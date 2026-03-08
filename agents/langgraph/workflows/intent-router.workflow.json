@@ -1,0 +1,44 @@
+{
+  "id": "intent-router-v1",
+  "name": "Intent Router Workflow",
+  "description": "n8n/Flowise-style orchestration: detect intent, dispatch agent, apply model policy, emit decision",
+  "entryNode": "start",
+  "nodes": [
+    {
+      "id": "start",
+      "type": "start"
+    },
+    {
+      "id": "detect-intent",
+      "type": "detect_intent",
+      "config": {
+        "policyRef": "../policies/intent-routing.json",
+        "minConfidence": 0.7
+      }
+    },
+    {
+      "id": "dispatch-agent",
+      "type": "dispatch_agent",
+      "config": {
+        "policyRef": "../policies/intent-routing.json"
+      }
+    },
+    {
+      "id": "apply-model-policy",
+      "type": "apply_model_policy",
+      "config": {
+        "policyRef": "../policies/model-routing.json"
+      }
+    },
+    {
+      "id": "emit-decision",
+      "type": "emit_decision"
+    }
+  ],
+  "edges": [
+    { "from": "start", "to": "detect-intent" },
+    { "from": "detect-intent", "to": "dispatch-agent" },
+    { "from": "dispatch-agent", "to": "apply-model-policy" },
+    { "from": "apply-model-policy", "to": "emit-decision" }
+  ]
+}

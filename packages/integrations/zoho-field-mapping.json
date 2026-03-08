@@ -1,0 +1,109 @@
+{
+  "version": "1.0.0",
+  "description": "Zoho CRM module and field mapping for GDT sync",
+  "syncDirection": "zoho_to_supabase",
+  "syncFrequency": "every_15_minutes",
+  "modules": {
+    "Accounts": {
+      "localTable": "clients",
+      "fields": {
+        "Account_Name": "name",
+        "Industry": "industry",
+        "Phone": "phone",
+        "Website": "website",
+        "Billing_City": "city",
+        "Billing_State": "state",
+        "Description": "notes",
+        "Created_Time": "zoho_created_at",
+        "Modified_Time": "zoho_updated_at"
+      },
+      "customFields": {
+        "Segmento": "segment",
+        "Numero_Empleados": "employee_count",
+        "Tipo_Servicio": "service_type"
+      },
+      "segmentMapping": {
+        "Charales": { "minRevenue": 0, "maxRevenue": 10000 },
+        "Truchas": { "minRevenue": 12000, "maxRevenue": 20000 },
+        "Atunes": { "minRevenue": 20000, "maxRevenue": 50000 },
+        "Tiburones": { "minRevenue": 100000, "maxRevenue": 400000 },
+        "Ballenas": { "minRevenue": 400000, "maxRevenue": null }
+      }
+    },
+    "Contacts": {
+      "localTable": "contacts",
+      "fields": {
+        "First_Name": "first_name",
+        "Last_Name": "last_name",
+        "Email": "email",
+        "Phone": "phone",
+        "Mobile": "mobile",
+        "Department": "department",
+        "Title": "title",
+        "Account_Name": "client_id",
+        "Created_Time": "zoho_created_at",
+        "Modified_Time": "zoho_updated_at"
+      },
+      "customFields": {
+        "Rol_Contacto": "contact_role"
+      },
+      "contactRoles": ["rh", "seguridad_higiene", "medico", "compras", "director"]
+    },
+    "Deals": {
+      "localTable": "deals",
+      "fields": {
+        "Deal_Name": "name",
+        "Amount": "amount",
+        "Stage": "stage",
+        "Closing_Date": "expected_close_date",
+        "Account_Name": "client_id",
+        "Contact_Name": "contact_id",
+        "Owner": "assigned_rep_id",
+        "Description": "notes",
+        "Created_Time": "zoho_created_at",
+        "Modified_Time": "zoho_updated_at"
+      },
+      "stageMapping": {
+        "Prospecto Identificado": "prospect_identified",
+        "Primer Contacto": "first_contact",
+        "Descubrimiento": "discovery",
+        "Preparación Cotización": "quote_preparation",
+        "Cotización Enviada": "quote_sent",
+        "Seguimiento/Negociación": "follow_up_negotiation",
+        "Cerrado Ganado": "closed_won",
+        "Cerrado Perdido": "closed_lost"
+      }
+    },
+    "Quotes": {
+      "localTable": "quotes",
+      "fields": {
+        "Subject": "subject",
+        "Quote_Stage": "status",
+        "Grand_Total": "total_amount",
+        "Deal_Name": "deal_id",
+        "Account_Name": "client_id",
+        "Created_Time": "zoho_created_at",
+        "Modified_Time": "zoho_updated_at"
+      },
+      "customFields": {
+        "Aprobado_Por_Miriam": "manager_approved"
+      }
+    },
+    "Activities": {
+      "localTable": "activities",
+      "fields": {
+        "Subject": "subject",
+        "Activity_Type": "activity_type",
+        "Due_Date": "due_date",
+        "Status": "status",
+        "Owner": "assigned_rep_id",
+        "What_Id": "deal_id",
+        "Who_Id": "contact_id",
+        "Description": "notes",
+        "Created_Time": "zoho_created_at",
+        "Modified_Time": "zoho_updated_at"
+      },
+      "activityTypes": ["call", "meeting", "task", "email"]
+    }
+  }
+}

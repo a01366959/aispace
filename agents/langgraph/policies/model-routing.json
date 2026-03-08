@@ -1,0 +1,59 @@
+{
+  "version": "2.0.0",
+  "description": "Cost-aware model policy — OpenAI only (GPT-4.1 / GPT-4o / GPT-4o-mini)",
+  "global": {
+    "provider": "openai",
+    "strategy": "cheapest_model_meeting_quality_threshold",
+    "maxEstimatedCostUsdPerRequest": 0.08,
+    "allowEscalation": true
+  },
+  "taskPolicies": {
+    "classify": {
+      "preferred": "gpt-4o-mini",
+      "fallback": "gpt-4o",
+      "temperature": 0.0,
+      "maxLatencyMs": 2500
+    },
+    "summarize": {
+      "preferred": "gpt-4o-mini",
+      "fallback": "gpt-4o",
+      "temperature": 0.2,
+      "maxLatencyMs": 3500
+    },
+    "draft": {
+      "preferred": "gpt-4o",
+      "fallback": "gpt-4o-mini",
+      "temperature": 0.4,
+      "maxLatencyMs": 5000
+    },
+    "analyze": {
+      "preferred": "gpt-4.1",
+      "fallback": "gpt-4o",
+      "temperature": 0.1,
+      "maxLatencyMs": 6000
+    },
+    "report": {
+      "preferred": "gpt-4.1",
+      "fallback": "gpt-4o-mini",
+      "temperature": 0.1,
+      "maxLatencyMs": 6500
+    }
+  },
+  "agentOverrides": {
+    "supervisor-agent": {
+      "preferred": "gpt-4o-mini",
+      "escalateOnLowConfidenceTo": "gpt-4o"
+    },
+    "sales-assistant-agent": {
+      "preferred": "gpt-4o",
+      "fallback": "gpt-4o-mini"
+    },
+    "follow-up-agent": {
+      "preferred": "gpt-4o-mini"
+    },
+    "reporting-agent": {
+      "preferred": "gpt-4.1",
+      "fallback": "gpt-4o-mini"
+    }
+  }
+}

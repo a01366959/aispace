@@ -1,0 +1,55 @@
+{
+  "version": "2.0.0",
+  "description": "Intent routing policy for GDT sales operations",
+  "defaultIntentModel": "gpt-4o-mini",
+  "confidenceThreshold": 0.7,
+  "routes": [
+    {
+      "intent": "follow_up",
+      "agent": "follow-up-agent",
+      "task": "detect_stale_deals",
+      "description": "Detección de tratos estancados, SLA monitoring, recordatorios",
+      "priority": 1
+    },
+    {
+      "intent": "dormant_client",
+      "agent": "follow-up-agent",
+      "task": "reactivate_dormant",
+      "description": "Detección y reactivación de clientes dormidos (30+ días sin contacto)",
+      "priority": 2
+    },
+    {
+      "intent": "sales",
+      "agent": "sales-assistant-agent",
+      "task": "draft",
+      "description": "Borradores de seguimiento, resúmenes, siguientes pasos",
+      "priority": 3
+    },
+    {
+      "intent": "reporting",
+      "agent": "reporting-agent",
+      "task": "report",
+      "description": "Reportes semanales/mensuales, métricas de pipeline",
+      "priority": 4
+    },
+    {
+      "intent": "technical",
+      "agent": "technical-agent",
+      "task": "analyze",
+      "description": "Solución técnica, planificación de implementación",
+      "priority": 5
+    },
+    {
+      "intent": "supervisor",
+      "agent": "supervisor-agent",
+      "task": "classify",
+      "description": "Pipeline scan, coordinación, priorización",
+      "priority": 6
+    }
+  ],
+  "fallback": {
+    "intent": "unknown",
+    "agent": "supervisor-agent",
+    "action": "classify_and_reroute"
+  }
+}
