@@ -25,10 +25,12 @@ Primary outcome: **eliminate the 95% deal loss rate caused by poor follow-up dis
 In scope:
 - Zoho CRM read sync (Accounts, Contacts, Deals, Quotes, Activities)
 - Inbox with deal rooms per client/deal
+- Conversation threading: each agent has a main chat; client-specific channels auto-created on client detection
 - Follow Up Agent — stale deal detection (5-7 days), automated reminder tasks
 - Supervisor Agent — daily pipeline scan, risk flagging, dormant client detection
 - Sales Assistant Agent — conversation summaries, next-action suggestions (Spanish)
 - Reporting Agent — weekly activity report, monthly pipeline report
+- Task system with dual-write (Supabase primary + Zoho sync)
 - Task generation + approval workflow (Miriam approves quotes/outbound)
 - Basic reporting dashboard (calls, follow-ups, quotes, conversions)
 
@@ -39,6 +41,16 @@ Out of scope:
 - Multi-department support beyond sales
 - Custom BI or forecasting models
 - Automated medical results delivery
+
+## Zoho Replacement Roadmap
+
+| Phase | Zoho Role | AI Sales OS Role |
+|---|---|---|
+| Phase 1 (MVP) | Source of truth for CRM data. Tasks synced both ways. | Primary UI for agents, tasks, inbox. Reads from Zoho. |
+| Phase 2 | Background sync only. Reps stop opening Zoho. | Full task/deal management. Writes back to Zoho for compliance. |
+| Phase 3 | Read-only archive. Sync disabled. | Complete replacement. All operations in AI Sales OS. |
+
+Transition triggers: rep adoption rate > 80%, Miriam confirms Zoho is redundant, all Zoho modules have AI Sales OS equivalents.
 
 ## Non-Negotiable Constraints
 
@@ -128,6 +140,20 @@ Out of scope:
 - Why: User provided comprehensive operational answers covering business model, pipeline stages, team structure, communication patterns, Zoho state, daily workflows, documents, reporting, and pain points. Architecture must be built against real operations, not generic patterns.
 - User Impact: Every agent, report, and automation is now calibrated to how GDT actually works. Follow-up discipline (95% of lost deals) is the #1 priority. Spanish output everywhere.
 - MVP Impact: High clarity gain. Pipeline stages, SLAs, tool names, and Zoho mappings are now concrete — enabling direct implementation.
+- Owner: Architecture
+
+### 2026-03-08 - Conversation Threading & Client Channels
+- Change: Added auto-channel creation model. Each agent has a main conversation; when a client is detected in chat, a dedicated client channel is spawned. Channels persist and reuse on revisit.
+- Why: Prevents context mixing across clients in a single agent chat. Gives reps and Miriam a clean per-client thread view.
+- User Impact: Reps get organized client-specific conversation history per agent. No manual channel creation needed.
+- MVP Impact: Medium complexity (needs entity extraction + channel routing). High UX clarity gain.
+- Owner: Architecture
+
+### 2026-03-08 - Task Dual-Write & Zoho Replacement Roadmap
+- Change: Tasks are now Supabase-primary with async sync to Zoho Activities. Added 3-phase Zoho replacement plan (dual-write → background sync → full replacement).
+- Why: Client (GDT) needs to keep using Zoho during transition. AI Sales OS must coexist without data loss, then progressively replace.
+- User Impact: Reps see tasks in both systems during Phase 1. Eventually only need AI Sales OS.
+- MVP Impact: Adds sync worker complexity. Reduces long-term Zoho dependency risk.
 - Owner: Architecture
 
 ## PRD Update Protocol (Mandatory)

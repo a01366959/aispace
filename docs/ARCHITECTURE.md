@@ -141,7 +141,108 @@ Most important success factor: **consistent follow-up with clients**.
 
 ## Core Entities
 
-Users, Organizations, Clients, Deals, Conversations, Messages, Threads, Tasks, Events, AgentActions, Embeddings, Documents.
+Users, Organizations, Clients, Deals, Conversations, Messages, Threads, Channels, Tasks, Events, AgentActions, Embeddings, Documents.
+
+## Conversation Threading & Channel Model
+
+Every agent has a **main conversation** — an open chat where reps interact with that agent freely.
+
+When an agent detects a specific client context inside a main conversation (by mention, CRM lookup, or deal reference), the system **auto-creates a client channel** (thread) dedicated to that client.
+
+### Flow
+
+1. Rep messages an agent in the main chat (e.g. "¿Qué pasa con Cervecería Toluca?").
+2. Agent classifies the message → detects `client_id` via entity extraction or CRM lookup.
+3. If no channel exists for that client under this agent, the system creates one.
+4. The agent response is posted in the **new client channel**, and the rep is redirected there.
+5. All subsequent messages about that client happen in the client channel.
+6. The main chat remains a general-purpose interface.
+
+### Data Model
+
+```
+conversations
+  id          UUID PK
+  type        'main' | 'client_channel'
+  agent_id    FK → agents
+  client_id   FK → clients (NULL for main conversations)
+  deal_id     FK → deals (optional, set if channel is deal-specific)
+  parent_id   FK → conversations (NULL for main, points to main for channels)
+  title       text (auto-generated: "{client_name} — {agent_name}")
+  created_at  timestamptz
+  updated_at  timestamptz
+
+messages
+  id              UUID PK
+  conversation_id FK → conversations
+  sender_type     'user' | 'agent' | 'system'
+  sender_id       UUID
+  content         text
+  metadata        jsonb (detected_client_id, intent, confidence, tool_calls)
+  created_at      timestamptz
+```
+
+### Rules
+
+- Each agent has exactly **one main conversation** per user.
+- Client channels are children of the main conversation (`parent_id`).
+- A client channel is scoped to one `client_id` (and optionally one `deal_id`).
+- Channels persist — revisiting a client reuses the existing channel.
+- Agents carry context from the main chat into the channel on creation.
+- Channel list appears as a sidebar/thread panel under the agent's section.
+
+## Task Dual-Write Strategy (Supabase + Zoho)
+
+### Current State
+
+Zoho CRM is the mandatory system of record for GDT sales operations. Reps and Miriam use it daily. AI Sales OS must coexist with Zoho until it can fully replace it.
+
+### Strategy: Supabase-Primary, Zoho-Synced
+
+1. **Tasks are created in Supabase first** — this is the source of truth for AI Sales OS.
+2. **A sync worker writes tasks to Zoho Activities** — so reps who still check Zoho see them.
+3. **Zoho → Supabase sync** runs on a schedule to pull tasks/activities created directly in Zoho.
+4. **Conflict resolution:** Last-write-wins with `updated_at` comparison. Supabase record includes `zoho_task_id` for deduplication.
+
+### Data Model Extension
+
+```
+tasks
+  id              UUID PK
+  title           text
+  description     text
+  status          'pending' | 'in_progress' | 'done' | 'dismissed'
+  priority        'low' | 'medium' | 'high' | 'urgent'
+  due_date        timestamptz
+  assigned_to     FK → users
+  client_id       FK → clients (optional)
+  deal_id         FK → deals (optional)
+  conversation_id FK → conversations (optional, links task to thread)
+  created_by      'agent' | 'user'
+  agent_name      text (which agent created it, if agent-created)
+  zoho_task_id    text (NULL until synced to Zoho)
+  zoho_synced_at  timestamptz
+  created_at      timestamptz
+  updated_at      timestamptz
+```
+
+### Sync Behavior
+
+| Event | Supabase | Zoho |
+|---|---|---|
+| Agent creates task | ✅ Immediate | ⏳ Sync worker pushes within 5 min |
+| User creates task in app | ✅ Immediate | ⏳ Sync worker pushes within 5 min |
+| User creates task in Zoho | ⏳ Pulled on next sync cycle | ✅ Already there |
+| Task updated in app | ✅ Immediate | ⏳ Sync worker pushes update |
+| Task completed in Zoho | ⏳ Pulled on next sync cycle | ✅ Already there |
+
+### Zoho Replacement Path
+
+Phase 1 (MVP): Dual-write. Both systems have tasks. Reps can use either.
+Phase 2: AI Sales OS becomes primary UI. Zoho is background sync only.
+Phase 3: Zoho sync disabled. All task management in AI Sales OS. Zoho kept as read-only archive.
+
+The `zoho_task_id` and `zoho_synced_at` fields make this transition seamless — when sync is turned off, the data stays intact.
 
 ## Development Principles
 
@@ -353,14 +454,16 @@ Minimum PRD update payload:
 ## MVP Build Sequence
 
 1. Zoho read integration — sync Accounts, Contacts, Deals, Quotes, Activities
-2. Database schema mapping Zoho entities to local tables
-3. Inbox + deal room UI shell with Zoho-synced data
-4. Follow Up Agent — stale deal detection (5-7 days), automated reminder tasks for reps
-5. Supervisor Agent — daily pipeline scan, risk flagging, dormant client detection
-6. Sales Assistant Agent — conversation summaries, suggested next actions, follow-up draft suggestions (Spanish)
-7. Reporting Agent — weekly activity report, monthly pipeline report
-8. Task generation + approval workflow (Miriam approves quotes/outbound)
-9. Basic reporting dashboard (calls, follow-ups, quotes, conversions)
+2. Database schema mapping Zoho entities to local tables + conversations/channels/tasks schema
+3. Inbox + deal room UI shell with Zoho-synced data + conversation threading
+4. Task system with dual-write to Supabase + Zoho sync worker
+5. Follow Up Agent — stale deal detection (5-7 days), automated reminder tasks for reps
+6. Supervisor Agent — daily pipeline scan, risk flagging, dormant client detection
+7. Sales Assistant Agent — conversation summaries, suggested next actions, follow-up draft suggestions (Spanish)
+8. Reporting Agent — weekly activity report, monthly pipeline report
+9. Task generation + approval workflow (Miriam approves quotes/outbound)
+10. Basic reporting dashboard (calls, follow-ups, quotes, conversions)
+11. Phase 2 planning: Zoho write-back for deals/quotes, progressive Zoho replacement
 
 Priority rationale: Follow-up discipline is the #1 pain point (95% of lost deals). Zoho sync must come first because all existing data lives there.
 

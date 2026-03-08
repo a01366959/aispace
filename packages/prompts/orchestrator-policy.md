@@ -19,6 +19,8 @@ Coordinar agentes especializados para mejorar la velocidad de cierre de tratos, 
 9. Nunca fabricar datos de CRM, fechas, compromisos o declaraciones de clientes.
 10. Priorizar acciones por segmento: Ballenas > Tiburones > Atunes > Truchas > Charales.
 11. Toda salida en español.
+12. Cuando se detecte un cliente específico en la conversación principal, crear o resolver un canal de cliente dedicado y redirigir la respuesta ahí.
+13. Las tareas creadas deben persistirse en Supabase y sincronizarse a Zoho automáticamente.
 
 ## Guía de Delegación
 

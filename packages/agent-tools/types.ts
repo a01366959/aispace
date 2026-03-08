@@ -25,7 +25,12 @@ export type GDTToolName =
   | "log_agent_action"         // Persist agent action with rationale/cost
   | "request_quote_approval"   // Request Miriam's approval for a quote
   | "sync_zoho_accounts"       // Trigger Zoho sync for accounts/deals/activities
-  | "escalate_to_manager";     // Escalate to Miriam with risk context
+  | "escalate_to_manager"      // Escalate to Miriam with risk context
+  | "detect_client_entity"     // Extract client_id from message via NER or CRM lookup
+  | "create_client_channel"    // Create a client-specific conversation channel under an agent
+  | "resolve_channel"          // Find existing channel for a client+agent pair
+  | "sync_task_to_zoho"        // Push a Supabase task to Zoho Activities
+  | "pull_zoho_tasks";         // Pull tasks/activities from Zoho into Supabase
 
 // ─── Tool I/O Schemas ──────────────────────────────────────────────────────────
 
@@ -77,7 +82,10 @@ export interface AgentTool<TInput = unknown, TOutput = unknown> {
 export type ToolExecutionContext = {
   agentName: string;
   threadId?: string;
+  conversationId?: string;
+  channelId?: string;
   dealId?: string;
+  clientId?: string;
   userId?: string;
   riskFlags: string[];
   /** Override permission level for this specific invocation */
