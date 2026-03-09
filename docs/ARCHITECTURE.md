@@ -238,9 +238,12 @@ tasks
 
 ### Zoho Replacement Path
 
-Phase 1 (MVP): Dual-write. Both systems have tasks. Reps can use either.
-Phase 2: AI Sales OS becomes primary UI. Zoho is background sync only.
-Phase 3: Zoho sync disabled. All task management in AI Sales OS. Zoho kept as read-only archive.
+**Hard deadline: October 2026 — Zoho subscription cancelled.**
+
+- Phase 1 (March–May): Dual-write. Both systems have tasks. Reps can use either.
+- Phase 2 (June–August): AI Sales OS becomes primary UI. Zoho is background sync only. Reps stop opening Zoho.
+- Phase 3 (September): Zoho sync disabled. Final data export and validation. AI Sales OS is sole platform.
+- Phase 4 (October): Zoho subscription cancelled. All data archived in Supabase.
 
 The `zoho_task_id` and `zoho_synced_at` fields make this transition seamless — when sync is turned off, the data stays intact.
 
@@ -396,30 +399,68 @@ Supervisor responsibilities:
 - operational DB rows
 - RAG memory (pgvector)
 - thread/deal history
-4. Agent proposes actions (`draft_message`, `create_task`, `escalate`, `summarize`).
-5. Policy layer determines whether action is:
-- auto-executable
-- approval-required
-- blocked
-6. Approved actions are persisted and published to realtime channels.
+4. Agent **executes the action immediately** (drafts quote, creates task, generates report, drafts message).
+5. Policy layer classifies the completed output:
+   - **auto-applied**: persisted and published immediately
+   - **approval-required**: artifact stored as pending, presented to approver with approve/reject/edit controls
+   - **blocked**: discarded with logged reason
+6. Approved outputs are persisted and published to realtime channels.
+
+## Proactive Execution Model
+
+Agents follow an **execute-first, approve-output** paradigm:
+
+- Agents **never** ask permission to work. No "¿Quieres que haga X?" messages.
+- Agents detect a signal → do the full work → present the completed artifact.
+- The human gate is on the **output**, not the **intent**.
+
+### Behavior Examples
+
+| Signal | Old (Reactive) | New (Proactive) |
+|---|---|---|
+| Upsell detected | "Detecté oportunidad. ¿Preparo cotización?" | Prepares quote → "Cotización lista para Cervecería Toluca — $42,000 MXN. ¿Apruebo para enviar?" |
+| Deal stale 6 days | "El deal lleva 6 días sin actividad" | Creates task + drafts follow-up → "Creé tarea de seguimiento y borrador de llamada para mañana" |
+| Dormant client 90d | "Este cliente no ha comprado en 3 meses" | Creates reactivation deal + drafts outreach → "Plan de reactivación listo. ¿Lo activo?" |
+| Missing call log | "¿Quieres que registre la llamada?" | Logs it → "Registré la llamada con Juan (Cervecería) — seguimiento viernes" |
+| Report due | "¿Genero el reporte semanal?" | Generates it → "Reporte semanal listo. 43 llamadas, 8 cotizaciones, 2 cierres" |
+
+### Execution Policy
+
+```
+Agent detects signal
+  → Execute action (draft, create, compute)
+  → Classify output:
+      auto-applied?     → persist + notify
+      approval-required? → store as pending + present with controls
+      blocked?          → discard + log
+  → Post result to conversation (proactive message)
+```
+
+- **Auto-applied** actions: tasks, internal notes, summaries, risk flags, call logs, reports
+- **Approval-required** actions: external sends, quotes, stage changes (Won/Lost), meeting scheduling, price modifications, medical results
+- **Blocked**: anything outside agent's scope or violating org policy
+
+Key principle: reps and Miriam review **artifacts**, not **proposals**. The agent has already done the work.
 
 ## Human-in-the-Loop Policy
 
-Always require **Miriam's approval** for:
-- Sending quotes to clients (Quote Sent stage)
-- Any external outbound communication (email, WhatsApp)
-- Deal stage changes to Closed Won or Closed Lost
-- Meeting scheduling with external attendees
-- Negotiating or modifying pricing
-- Sending medical results
+Always require **Miriam's approval** for (agent prepares the artifact first, then presents for approval):
+- Sending quotes to clients (quote already prepared)
+- Any external outbound communication (message already drafted)
+- Deal stage changes to Closed Won or Closed Lost (change already staged)
+- Meeting scheduling with external attendees (invite already drafted)
+- Negotiating or modifying pricing (new price already computed)
+- Sending medical results (delivery already prepared)
 
-Allow **auto-execution** for:
+Allow **auto-execution and immediate application** for:
 - Internal summaries and conversation notes
 - Follow-up reminder tasks assigned to reps
-- Dormant client detection alerts
+- Dormant client detection alerts + reactivation deal creation
 - Internal daily/weekly activity reports
 - Deal risk flagging
 - Task creation for reps (rep can dismiss)
+- Call/activity logging from conversation context
+- Upsell/renewal quote preparation (approval required only for sending)
 
 ## Design Source of Truth (Figma -> Code)
 

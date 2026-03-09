@@ -9,9 +9,11 @@
 
 ## Product Goal
 
-Build an AI-native operating system for GDT's sales team (5 reps + manager Miriam) where humans and specialized agents collaborate in one workspace to manage client follow-ups, deal rooms, tasks, and reporting — replacing fragmented workflows across WhatsApp, Excel, Zoho, and email.
+Build an AI-native operating system for GDT's sales team (5 reps + manager) where humans and specialized agents collaborate in one workspace to manage client follow-ups, deal rooms, tasks, and reporting — replacing fragmented workflows across WhatsApp, Excel, Zoho, and email.
 
 Primary outcome: **eliminate the 95% deal loss rate caused by poor follow-up discipline.**
+
+Secondary outcome: **fully replace Zoho CRM by October 2026** so GDT cancels the Zoho subscription and operates entirely within AI Sales OS.
 
 ## Target Users
 
@@ -44,13 +46,45 @@ Out of scope:
 
 ## Zoho Replacement Roadmap
 
-| Phase | Zoho Role | AI Sales OS Role |
-|---|---|---|
-| Phase 1 (MVP) | Source of truth for CRM data. Tasks synced both ways. | Primary UI for agents, tasks, inbox. Reads from Zoho. |
-| Phase 2 | Background sync only. Reps stop opening Zoho. | Full task/deal management. Writes back to Zoho for compliance. |
-| Phase 3 | Read-only archive. Sync disabled. | Complete replacement. All operations in AI Sales OS. |
+**Hard deadline: October 2026 — Zoho subscription cancelled. GDT operates 100% on AI Sales OS.**
 
-Transition triggers: rep adoption rate > 80%, Miriam confirms Zoho is redundant, all Zoho modules have AI Sales OS equivalents.
+| Phase | Target Date | Zoho Role | AI Sales OS Role |
+|---|---|---|---|
+| Phase 1 (MVP) | March – May 2026 | Source of truth for CRM data. Tasks synced both ways. | Primary UI for agents, tasks, inbox. Reads from Zoho. |
+| Phase 2 | June – August 2026 | Background sync only. Reps stop opening Zoho. | Full CRM: accounts, contacts, deals, quotes, activities managed natively. Writes back to Zoho for data safety only. |
+| Phase 3 | September 2026 | Read-only archive. Final data export/validation. | Complete replacement. All operations in AI Sales OS. |
+| Phase 4 | October 2026 | **Cancelled.** Subscription terminated. | Sole platform. Zoho data archived in Supabase. |
+
+### Zoho Module Replacement Checklist
+
+Every Zoho module GDT uses must have a functional equivalent in AI Sales OS before Phase 4.
+
+| Zoho Module | AI Sales OS Equivalent | Status |
+|---|---|---|
+| Accounts | Clients (with segments) | [ ] |
+| Contacts | Contacts (FK → clients) | [ ] |
+| Deals | Deals (8-stage pipeline) | [ ] |
+| Quotes | Quote builder + approval flow | [ ] |
+| Activities (Calls/Tasks) | Tasks + agent-logged activities | [ ] |
+
+### Transition Gates
+
+Phase 1 → 2:
+- All 5 Zoho modules readable in AI Sales OS
+- Rep adoption rate > 50% (daily active use)
+- Task dual-write working reliably
+
+Phase 2 → 3:
+- Rep adoption rate > 80%
+- Reps no longer open Zoho for daily work
+- All CRM writes happen in AI Sales OS and sync back
+- Miriam confirms Zoho is redundant for her workflows
+
+Phase 3 → 4:
+- All Zoho data exported and verified in Supabase
+- No data gaps between Zoho and AI Sales OS
+- 2-week parallel run with zero data-loss incidents
+- Miriam signs off on Zoho cancellation
 
 ## Non-Negotiable Constraints
 
@@ -155,6 +189,27 @@ Transition triggers: rep adoption rate > 80%, Miriam confirms Zoho is redundant,
 - User Impact: Reps see tasks in both systems during Phase 1. Eventually only need AI Sales OS.
 - MVP Impact: Adds sync worker complexity. Reduces long-term Zoho dependency risk.
 - Owner: Architecture
+
+### 2026-03-08 - Proactive Agent Execution Model
+- Change: Agents now follow an execute-first, approve-output paradigm. Instead of asking permission ("¿Preparo la cotización?"), agents do the work immediately and present the completed artifact for review. HITL gates moved from intent approval to output approval.
+- Why: Permission-seeking UX creates friction and delays. Reps want results, not confirmation dialogs. Proactive execution matches the "AI-first" principle — the agent is a skilled coworker who does the work and presents it, not a butler asking what to do.
+- User Impact: Dramatically faster workflows. Reps see completed drafts, quotes, and tasks instead of proposals. Miriam still approves all external sends and quotes, but reviews finished artifacts, not intentions.
+- MVP Impact: No added scope — same approval gates, same actions. Changes agent prompt tone and action pipeline ordering. Medium prompt engineering effort.
+- Owner: Architecture
+
+### 2026-03-08 - Epics, User Stories & Tasks Document
+- Change: Created `docs/EPICS.md` with 11 epics, 25+ user stories, detailed acceptance criteria, and implementation tasks. Aligned to MVP Build Sequence from ARCHITECTURE.md.
+- Why: Need a trackable artifact to validate progress as we build. Stories with acceptance criteria ensure nothing is shipped without verification.
+- User Impact: Clear visibility into what's done, what's in progress, and what's next. Each completed story has verifiable criteria.
+- MVP Impact: No scope change — documents existing planned scope with acceptance criteria. Enables parallel workstream visibility.
+- Owner: Architecture
+
+### 2026-03-09 - Zoho Cancellation Deadline: October 2026
+- Change: Set hard deadline of October 2026 for full Zoho replacement and subscription cancellation. Replaced vague "transition triggers" with 4-phase roadmap (March–October) with explicit dates, module replacement checklist, and transition gates per phase.
+- Why: GDT pays for Zoho monthly. Every month AI Sales OS doesn't replace Zoho is wasted spend. A hard deadline forces prioritization of Zoho-equivalent features and prevents indefinite dual-system operation.
+- User Impact: Reps and Miriam will fully transition off Zoho by October. No more dual data entry. Cost savings from cancelled Zoho subscription.
+- MVP Impact: Raises priority of Zoho write-back features (Phases 2-3) and quote builder (must replace Zoho Quotes). Timeline is aggressive but achievable given current scope.
+- Owner: Product + Architecture
 
 ## PRD Update Protocol (Mandatory)
 
