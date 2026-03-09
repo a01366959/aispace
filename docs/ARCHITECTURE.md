@@ -470,6 +470,162 @@ Allow **auto-execution and immediate application** for:
 4. If MCP Figma context is available, implementation must reference it for component behavior/states.
 5. Any deviation from Figma requires a documented decision in PRD change log.
 
+---
+
+## Hybrid Calling Architecture
+
+### Problem
+
+GDT reps make calls from their personal phones. Call quality on cellular is superior to browser VoIP, and reps are already comfortable with their phones. But the platform loses visibility — no transcription, no AI context during calls, no automatic logging.
+
+### Solution: Hybrid Call Mode
+
+The desktop provides the AI brain (context, transcript, post-call summary). The phone provides the voice pipe. A bridge connects them.
+
+### Architecture — Three Tiers
+
+```text
+┌─────────────────────────────────────────────────────────────┐
+│                    DESKTOP (apps/web)                        │
+│                                                             │
+│  ┌─────────────┐  ┌──────────────┐  ┌────────────────────┐ │
+│  │ CallPanel    │  │ LiveTranscript│  │ PostCallSummary   │ │
+│  │ (context,    │  │ (real-time   │  │ (AI summary,      │ │
+│  │  deal info,  │  │  transcript  │  │  tasks, SMS)      │ │
+│  │  history)    │  │  stream)     │  │                    │ │
+│  └──────┬───────┘  └──────┬───────┘  └──────┬─────────────┘ │
+│         │                 │                  │               │
+│         └─────────┬───────┘──────────────────┘               │
+│                   │                                          │
+│         ┌─────────▼──────────┐                               │
+│         │  Supabase Realtime  │ ◄── webhooks from Quo/worker │
+│         └────────────────────┘                               │
+└─────────────────────────────────────────────────────────────┘
+                              │
+              ┌───────────────┼───────────────┐
+              │               │               │
+    ┌─────────▼────┐  ┌──────▼──────┐  ┌─────▼──────────┐
+    │  TIER A:     │  │  TIER B:    │  │  TIER C:       │
+    │  Quo Bridge  │  │  BT Device  │  │  Companion App │
+    │              │  │  Bridge     │  │                │
+    │ POST /v1/    │  │ getUserMedia│  │ WebSocket      │
+    │ calls →      │  │ → Whisper   │  │ audio stream   │
+    │ rings rep's  │  │ → transcript│  │ → Whisper      │
+    │ phone →      │  │             │  │ → transcript   │
+    │ bridges to   │  │ BT Speaker  │  │                │
+    │ client       │  │ ↕ Phone     │  │ Android app    │
+    │              │  │ ↕ USB→PC    │  │ captures call  │
+    │ Quo records  │  │             │  │ audio          │
+    │ + transcribes│  │ Web Audio   │  │                │
+    │ server-side  │  │ captures    │  │ iOS: limited   │
+    └──────────────┘  └─────────────┘  └────────────────┘
+```
+
+### Tier A — Quo Click-to-Call (Recommended MVP)
+
+**Flow:**
+1. Rep clicks "Call" on contact card → desktop sends `POST /v1/calls` to Quo API
+2. Quo calls the rep's phone first → rep answers their phone
+3. Quo bridges the call to the client's number → standard phone call begins
+4. Audio flows through Quo servers → Quo records both sides + runs AI transcription
+5. Quo sends webhooks (`call.started`, `call.transcription`, `call.ended`) → Railway → Supabase Realtime
+6. Desktop receives live transcript + call state via Realtime subscription → CallPanel updates
+7. On hangup → Quo sends full transcript + AI summary → desktop runs post-call flow
+
+**Key integration points:**
+```
+packages/integrations/quo/
+  quoBridge.ts        — POST /v1/calls, GET /v1/calls/{id}, GET /v1/calls/{id}/transcript
+  quoWebhook.ts       — Express handler for Quo webhook events on Railway
+  quoMessages.ts      — POST /v1/messages (SMS follow-up after call)
+```
+
+**Cost:** ~$23/rep/month (Quo base) + per-minute PSTN.
+**Pros:** No hardware, server-side recording, Quo handles transcription.
+**Cons:** Per-minute cost on top of Quo subscription.
+
+### Tier B — Bluetooth Speakerphone Bridge (Offline Alternative)
+
+**Flow:**
+1. Rep clicks "Call" → desktop opens `tel:` URI → phone's native dialer opens
+2. Rep calls client from their phone using BT speakerphone for audio
+3. BT speakerphone is paired to phone (BT) AND computer (USB)
+4. Desktop captures audio from USB audio device via `navigator.mediaDevices.getUserMedia()`
+5. Audio streamed in chunks via WebSocket to Railway → Whisper API (Spanish) → transcript segments
+6. Transcript segments pushed to Supabase Realtime → CallPanel shows live transcript
+7. Rep clicks "End Call" on desktop → triggers post-call summary flow
+
+**Compatible devices:**
+| Device | Price (USD) | Connection | Form Factor |
+|---|---|---|---|
+| Jabra Speak 750 | ~$120 | BT + USB | Conference speakerphone |
+| Poly Sync 20 | ~$80 | BT + USB-C | Portable speakerphone |
+| Jabra Engage 55 | ~$150 | DECT + USB | Headset with mixer |
+| Plantronics MDA220 | ~$90 | 3.5mm + USB | Audio switch/mixer |
+
+**Key integration points:**
+```
+packages/integrations/audio/
+  audioCapture.ts     — Web Audio API wrapper, getUserMedia, device enumeration
+  audioStream.ts      — WebSocket chunked audio streaming (opus/webm)
+  deviceDetector.ts   — Auto-detect BT/USB devices, audio level monitoring
+```
+
+**Cost:** ~$80-150 one-time per rep, ~$0.006/min for Whisper API.
+**Pros:** No monthly subscription, works offline, no VoIP dependency.
+**Cons:** Requires hardware purchase, audio quality depends on device placement.
+
+### Tier C — Companion Mobile App (Future)
+
+**Flow:**
+1. Rep clicks "Call" → push notification to companion app on rep's phone
+2. Companion app auto-dials client via native dialer
+3. App captures call audio via Android `AudioRecord` API
+4. Audio streamed to desktop via local WiFi WebSocket
+5. Desktop → Whisper → transcript → CallPanel
+
+**Cost:** $0 (software only).
+**Pros:** No hardware, free.
+**Cons:** iOS heavily restricts call audio capture, Android needs special permissions, companion app maintenance.
+
+### CallPanel Mode Selection
+
+The `CallPanel` component accepts a `callMode` prop that adapts the UI:
+
+```typescript
+type CallMode = "voip" | "hybrid-quo" | "hybrid-device";
+```
+
+| Mode | Phone rings | Transcript source | Recording | Status indicator |
+|---|---|---|---|---|
+| `voip` | No (browser audio) | Quo Realtime | Quo server | "Quo conectado" |
+| `hybrid-quo` | Yes (rep's phone) | Quo webhook → Realtime | Quo server | "Llamada en tu teléfono" |
+| `hybrid-device` | Yes (rep's phone via tel:) | Web Audio → Whisper | Local capture | "Dispositivo: Jabra Speak 750" |
+
+### Data Model Extension
+
+```sql
+-- Call log table (stores all call records regardless of tier)
+call_logs
+  id                UUID PK
+  user_id           FK → users
+  contact_id        FK → contacts
+  deal_id           FK → deals (optional)
+  call_mode         'voip' | 'hybrid-quo' | 'hybrid-device'
+  direction         'outbound' | 'inbound'
+  started_at        timestamptz
+  ended_at          timestamptz
+  duration_seconds  int
+  recording_url     text (Supabase Storage path or Quo URL)
+  transcript        jsonb (array of {speaker, text, timestamp})
+  ai_summary        text
+  suggested_tasks   jsonb
+  quo_call_id       text (NULL for device mode)
+  audio_device      text (NULL for Quo modes — e.g. "Jabra Speak 750")
+  synced_to_zoho    boolean DEFAULT false
+  created_at        timestamptz
+```
+
 Current implementation note:
 - This repository stores the flow implementation contract from your provided design (intention node -> specialized agents).
 - Direct Figma API export is not available from this environment without authenticated MCP/Figma API access.

@@ -59,6 +59,8 @@ export interface QuickAction {
   variant?: "default" | "outline";
 }
 
+export type CallMode = "voip" | "hybrid-quo" | "hybrid-device";
+
 export interface CallPanelProps {
   contact: CallContact;
   deal: CallDeal;
@@ -67,6 +69,8 @@ export interface CallPanelProps {
   quickActions: QuickAction[];
   onClose: () => void;
   onQuickAction?: (actionId: string) => void;
+  callMode?: CallMode;
+  audioDevice?: string;
 }
 
 /* ═══════════════════════════════════════════════════ */
@@ -137,7 +141,10 @@ function CallPanel({
   quickActions,
   onClose,
   onQuickAction,
+  callMode = "voip",
+  audioDevice,
 }: CallPanelProps) {
+  const isHybrid = callMode !== "voip";
   const [phase, setPhase] = useState<CallPhase>("ringing");
   const [elapsed, setElapsed] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
@@ -292,7 +299,7 @@ function CallPanel({
               quoStatus === "disconnected" && "bg-muted-foreground",
             )} />
             <span className="text-[11px] font-medium text-muted-foreground">
-              {quoStatus === "connected" && "Quo conectado"}
+              {quoStatus === "connected" && (isHybrid ? "Llamada en tu teléfono" : "Quo conectado")}
               {quoStatus === "connecting" && "Conectando..."}
               {quoStatus === "disconnected" && "Llamada terminada"}
             </span>
@@ -328,7 +335,9 @@ function CallPanel({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-warning" />
               </span>
-              <span className="text-sm font-medium text-warning">Llamando vía Quo...</span>
+              <span className="text-sm font-medium text-warning">
+                {isHybrid ? "Conectando con tu teléfono..." : "Llamando vía Quo..."}
+              </span>
             </div>
           )}
           {phase !== "summary" && (
@@ -546,9 +555,16 @@ function CallPanel({
                   <p className="text-xl font-semibold">{contact.name}</p>
                   <p className="text-muted-foreground">{contact.phone}</p>
                   <p className="text-sm text-warning mt-2 font-medium">
-                    <i className="fa-solid fa-phone fa-shake mr-2" />
-                    Conectando vía Quo API...
+                    <i className={cn("fa-solid mr-2", isHybrid ? "fa-mobile-screen fa-bounce" : "fa-phone fa-shake")} />
+                    {isHybrid
+                      ? "Contesta en tu teléfono para iniciar..."
+                      : "Conectando vía Quo API..."}
                   </p>
+                  {isHybrid && (
+                    <p className="text-xs text-muted-foreground mt-1">
+                      La llamada se hará desde tu teléfono. El escritorio captura audio para transcripción.
+                    </p>
+                  )}
                   <div className="mt-3 flex items-center justify-center gap-2">
                     <div className="h-1.5 w-1.5 rounded-full bg-warning animate-bounce" style={{ animationDelay: "0ms" }} />
                     <div className="h-1.5 w-1.5 rounded-full bg-warning animate-bounce" style={{ animationDelay: "150ms" }} />
@@ -557,7 +573,9 @@ function CallPanel({
                 </div>
                 <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2 rounded-full bg-muted/50 border">
                   <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />
-                  POST /v1/calls · Quo API
+                  {callMode === "hybrid-quo" && "POST /v1/calls · Quo Bridge"}
+                  {callMode === "hybrid-device" && (audioDevice ?? "Dispositivo BT detectado")}
+                  {callMode === "voip" && "POST /v1/calls · Quo API"}
                 </div>
                 <Button variant="destructive" size="lg" className="rounded-full px-8" onClick={onClose}>
                   <i className="fa-solid fa-phone-hangup mr-2" />
@@ -634,7 +652,9 @@ function CallPanel({
                     onHangup={handleHangup}
                   />
                   <p className="text-center text-[10px] text-muted-foreground mt-3">
-                    Llamada VoIP vía Quo API · Cifrado SRTP · {contact.phone}
+                    {callMode === "voip" && `Llamada VoIP vía Quo API · Cifrado SRTP · ${contact.phone}`}
+                    {callMode === "hybrid-quo" && `Llamada telefónica vía Quo Bridge · ${contact.phone}`}
+                    {callMode === "hybrid-device" && `Audio capturado desde ${audioDevice ?? "dispositivo"} · ${contact.phone}`}
                   </p>
                 </div>
               </div>
@@ -731,9 +751,13 @@ function CallPanel({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2.5 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-success" />
+                  <div className={cn("h-2 w-2 rounded-full", callMode !== "hybrid-device" ? "bg-success" : "bg-muted-foreground")} />
                   <span className="font-medium">Quo</span>
-                  <span className="text-xs text-muted-foreground ml-auto">VoIP + SMS + Transcripción</span>
+                  <span className="text-xs text-muted-foreground ml-auto">
+                    {callMode === "voip" && "VoIP + SMS + Transcripción"}
+                    {callMode === "hybrid-quo" && "Bridge + SMS + Transcripción"}
+                    {callMode === "hybrid-device" && "Inactivo (modo dispositivo)"}
+                  </span>
                 </div>
                 <div className="flex items-center gap-2.5 text-sm">
                   <div className="h-2 w-2 rounded-full bg-success" />
@@ -745,6 +769,13 @@ function CallPanel({
                   <span className="font-medium">Zoho</span>
                   <span className="text-xs text-muted-foreground ml-auto">Sync (dual-write)</span>
                 </div>
+                {callMode === "hybrid-device" && audioDevice && (
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                    <span className="font-medium">{audioDevice}</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Audio bridge</span>
+                  </div>
+                )}
               </div>
             </div>
           </div>

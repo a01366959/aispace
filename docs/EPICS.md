@@ -741,12 +741,104 @@ Tasks:
 - [ ] Auto-suggest follow-up task with due date
 - [ ] Build confirm/edit flow before final save
 
-### Story 12.3 — Browser VoIP Calling (Phase B)
+### Story 12.3 — Hybrid Call Mode: Phone + Desktop Bridge (Phase B)
 
-> As a sales rep, I want to make and receive actual phone calls directly from my browser with mute, hold, and hangup controls — so I never leave the platform.
+> As a sales rep, I want to click "Call" on my desktop and have the call happen on my phone, while my desktop captures the audio for real-time transcription, AI context, and automatic logging — so I get the best call quality from my phone with full AI assistance from the platform.
+
+**Three tiers of implementation:**
+
+| Tier | Approach | Cost | Recording Method |
+|---|---|---|---|
+| **A — Quo Bridge** | Quo API click-to-call → rings rep's phone → bridges to client | ~$23/rep/mo | Quo records + transcribes server-side |
+| **B — BT Speakerphone** | BT speakerphone paired to phone + USB to computer | ~$80-150 one-time | Web Audio API captures from USB audio device |
+| **C — Companion App** | Mobile app captures audio + streams to desktop via WebSocket | $0 | App forwards audio stream locally |
 
 Acceptance Criteria:
-- Rep clicks "Call" → audio connects through browser to client's phone (PSTN)
+- Clicking "Call" on desktop triggers the call on the rep's phone (not browser VoIP)
+- Real-time transcript appears on the desktop during the call
+- Call duration tracked, call state synced between phone and desktop
+- Post-call summary flow runs automatically on hangup detection
+- Desktop shows full context panel (talking points, deal info, history) during the call
+- Recording captured and stored regardless of which tier is used
+- Works with existing `CallPanel` UI (same layout, adapted status indicators)
+
+**Tier A — Quo Click-to-Call (recommended MVP):**
+
+Flow: Desktop → `POST /v1/calls` with `from: rep_phone, to: client_phone` → Quo calls rep first → rep answers → Quo bridges to client → Quo records + transcribes → webhooks stream transcript + events to desktop.
+
+Tasks:
+- [ ] Build `quoBridge.ts` in `packages/integrations/quo/` — wraps Quo phone-call API (create call, get status, get transcript)
+- [ ] Implement click-to-call: `POST /v1/calls` with rep's phone number as originator
+- [ ] Subscribe to Quo webhooks: `call.started`, `call.answered`, `call.ended`, `call.transcription`
+- [ ] Build webhook handler on Railway (receives events, pushes to Supabase Realtime)
+- [ ] Stream live transcript from Quo webhook → Supabase Realtime → `CallPanel`
+- [ ] Auto-detect hangup from Quo `call.ended` event → trigger post-call summary
+- [ ] Retrieve recording URL + full transcript via Quo API after call ends
+- [ ] Map Quo call metadata to Supabase call log (duration, participants, recording_url, transcript)
+- [ ] Add `callMode: "hybrid-quo"` UI variant to `CallPanel` (shows "Llamada en tu teléfono" status)
+
+**Tier B — BT Speakerphone Bridge (offline alternative):**
+
+Flow: Desktop → `tel:` URI → phone dials → rep uses BT speakerphone paired to phone — speakerphone also connected to computer via USB → Web Audio API captures both sides of conversation → audio sent to Whisper for transcription.
+
+Compatible devices:
+- Jabra Speak 750 (~$120 USD) — BT + USB, conference speakerphone
+- Poly Sync 20 (~$80 USD) — BT + USB-C, portable
+- Jabra Engage 55 (~$150 USD) — headset, DECT + USB, mixer mode for phone + computer
+- Plantronics MDA220 (~$90 USD) — audio switch/mixer, desk phone + computer
+
+Tasks:
+- [ ] Build `audioCapture.ts` in `packages/integrations/audio/` — Web Audio API wrapper using `navigator.mediaDevices.getUserMedia()`
+- [ ] Auto-detect BT/USB audio devices via `navigator.mediaDevices.enumerateDevices()`
+- [ ] Build device selector UI in CallPanel settings (pick which audio input to capture)
+- [ ] Stream captured audio via WebSocket to Railway transcription worker
+- [ ] Build transcription pipeline: audio chunks → Whisper API (Spanish, `es`) → transcript segments
+- [ ] Store recording as WAV/WebM in Supabase Storage (encrypted, org-scoped RLS)
+- [ ] Detect call end from audio silence (10s threshold) or manual "End Call" button
+- [ ] Add `callMode: "hybrid-device"` UI variant to `CallPanel` (shows device connection status, audio level meters)
+- [ ] Show audio input level indicator during capture (confirms device is working)
+
+**Tier C — Companion Mobile App (future):**
+
+Flow: Rep clicks "Call" on desktop → push notification to companion app → app auto-dials client via native dialer → app captures call audio via Android `AudioRecord` API → streams audio to desktop via WebSocket → desktop transcribes.
+
+Tasks:
+- [ ] Design companion app architecture (React Native or native Android/iOS)
+- [ ] Build WebSocket audio streaming protocol (opus codec, low latency)
+- [ ] Handle iOS call audio restrictions (CallKit, limited to voicemail-style capture)
+- [ ] Handle Android `AudioRecord` permissions for call capture
+- [ ] Build push notification trigger: desktop → Supabase Realtime → companion app
+- [ ] Auto-detect call start/end from phone state changes
+- [ ] Pair desktop ↔ mobile via QR code during setup
+
+### Story 12.4 — Call Recording & Transcription
+
+> As a sales manager, I want calls optionally recorded and transcribed so that agents can extract full context without relying on rep notes.
+
+Acceptance Criteria:
+- Recording toggled per call or by org policy
+- Recordings stored in Supabase Storage (encrypted at rest)
+- Transcription via Quo AI (Tier A) or Whisper (Tier B/C) — Spanish
+- Transcript fed to Sales Assistant Agent for richer summaries
+- Consent beep/announcement played at call start (legal compliance MX)
+- Recordings retained per org retention policy (default 90 days)
+
+Tasks:
+- [ ] Add recording toggle to `CallControls` (with visual indicator)
+- [ ] Tier A: Retrieve recording from Quo API (`GET /v1/calls/{id}/recording`)
+- [ ] Tier B: Stream audio to server-side recording worker on Railway → Whisper API
+- [ ] Store recordings in Supabase Storage (encrypted, org-scoped RLS)
+- [ ] Feed transcript to post-call summary for enhanced AI context
+- [ ] Add consent announcement audio at call start (Mexican privacy law compliance)
+- [ ] Build recording playback UI in deal room timeline
+- [ ] Implement retention policy cleanup cron
+
+### Story 12.5 — Browser VoIP Calling (Phase C — Optional)
+
+> As a sales rep, I want to optionally make calls entirely from my browser with mute, hold, and hangup controls — for when I'm at my desk and prefer not to use my phone.
+
+Acceptance Criteria:
+- Rep clicks "Call" with VoIP mode → audio connects through browser to client's phone (PSTN)
 - Call controls in UI: mute, hold, hangup, speaker toggle
 - Incoming call notification with accept/reject
 - Audio quality comparable to native phone
@@ -755,37 +847,14 @@ Acceptance Criteria:
 - Integrates with Call Panel from Story 12.1 (same context UI)
 
 Tasks:
-- [ ] Evaluate and select SIP trunk provider (VoIP.ms vs Telnyx — target ≤$0.015/min MX)
+- [ ] Evaluate SIP trunk provider (VoIP.ms vs Telnyx — target ≤$0.015/min MX)
 - [ ] Provision Mexican DID numbers (one per rep or shared)
-- [ ] Build `sipClient.ts` in `packages/integrations/voip/` — SIP.js browser wrapper (register, call, hangup, hold, mute, DTMF)
+- [ ] Build `sipClient.ts` in `packages/integrations/voip/` — SIP.js browser wrapper
 - [ ] Build `sipGateway.ts` — WebSocket↔SIP bridge on Railway
-- [ ] Build `CallControls` component (mute, hold, hangup, speaker, DTMF pad)
 - [ ] Build incoming call notification + accept/reject UI
-- [ ] Wire call events (start, end, hold, mute) to Supabase call log
+- [ ] Wire call events to Supabase call log
 - [ ] Add call quality monitoring (jitter, packet loss indicators)
 - [ ] Configure SRTP for encrypted audio
-
-### Story 12.4 — Call Recording & Transcription (Phase B)
-
-> As a sales manager, I want calls optionally recorded and transcribed so that agents can extract full context without relying on rep notes.
-
-Acceptance Criteria:
-- Recording toggled per call or by org policy
-- Recordings stored in Supabase Storage (encrypted at rest)
-- Transcription via Whisper or Deepgram (Spanish)
-- Transcript fed to Sales Assistant Agent for richer summaries
-- Consent beep/announcement played at call start (legal compliance)
-- Recordings retained per org retention policy (default 90 days)
-
-Tasks:
-- [ ] Add recording toggle to `CallControls` (with visual indicator)
-- [ ] Stream audio to server-side recording worker on Railway
-- [ ] Store recordings in Supabase Storage (encrypted, org-scoped RLS)
-- [ ] Build transcription pipeline: recording → Whisper API → transcript
-- [ ] Feed transcript to post-call summary for enhanced AI context
-- [ ] Add consent announcement audio at call start
-- [ ] Build recording playback UI in deal room timeline
-- [ ] Implement retention policy cleanup cron
 
 ---
 
@@ -805,7 +874,10 @@ Tasks:
 | P2 | Epic 10: Approval Workflows | Required for external actions |
 | P3 | Epic 11: Polish & Launch | Final validation and deploy |
 | P3 | Epic 12A: Call Mode | Context panel + auto-logging ($0/rep, solves call logging pain) |
-| P4 | Epic 12B: Browser VoIP | Full in-browser calling (~$14/rep, after call mode validated) |
+| P3 | Epic 12B: Hybrid Call — Quo Bridge | Phone-based calling + Quo server-side recording/transcription (~$23/rep) |
+| P4 | Epic 12C: Hybrid Call — Device Bridge | BT speakerphone bridge + local audio capture (~$100 one-time/rep) |
+| P4 | Epic 12D: Browser VoIP | Full in-browser calling (~$14/rep, optional alternative to hybrid) |
+| P5 | Epic 12E: Companion Mobile App | Software-only phone bridge, Android-first ($0) |
 
 ## Validation Protocol
 

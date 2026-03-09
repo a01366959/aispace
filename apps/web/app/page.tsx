@@ -8,6 +8,8 @@ import { Avatar } from "@/components/ui/avatar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Tooltip } from "@/components/ui/tooltip";
+import { CallPanel, type CallContact, type CallDeal, type CallMode } from "@/components/call/CallPanel";
+import type { CallHistoryItem, TalkingPoint, QuickAction } from "@/components/call/CallPanel";
 
 /* ════════════════════════════════════════════════════════════════════════════
    Types
@@ -161,6 +163,67 @@ const MENTIONS: Mention[] = [
 ];
 
 const EMOJI_PICKER = ["👍", "✅", "🔥", "👀", "❤️", "😂", "🎉", "⚡"];
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Call Data — mapped to client threads
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const CALL_CONTACTS: Record<string, CallContact> = {
+  t1: { id: "t1", name: "Carlos Mendoza", initials: "CM", role: "Gerente de Compras", company: "Cervecería Toluca", phone: "722-555-1234", email: "c.mendoza@cervtoluca.mx", segment: "ballenas" },
+  t2: { id: "t2", name: "Ana Torres", initials: "AT", role: "Directora de Seguridad", company: "Plásticos Industriales", phone: "722-555-5678", email: "a.torres@plasticos.mx", segment: "tiburones" },
+  t3: { id: "t3", name: "Carlos Mendoza", initials: "CM", role: "Gerente de Compras", company: "Cervecería Toluca", phone: "722-555-1234", email: "c.mendoza@cervtoluca.mx", segment: "ballenas" },
+  t4: { id: "t4", name: "Roberto Juárez", initials: "RJ", role: "Jefe de RH", company: "Metalúrgica del Valle", phone: "722-555-3456", segment: "atunes" },
+  t5: { id: "t5", name: "Patricia Sánchez", initials: "PS", role: "Directora Médica", company: "Grupo Farmacéutico GT", phone: "722-555-7890", email: "p.sanchez@gfgt.mx", segment: "ballenas" },
+};
+
+const CALL_DEALS: Record<string, CallDeal> = {
+  t1: { id: "d1", name: "Exámenes anuales — Cervecería Toluca", stage: "Cotización enviada", stageNumber: 5, value: "$285,000 MXN", daysSinceActivity: 6 },
+  t2: { id: "d2", name: "Campaña ocupacional — Plásticos Industriales", stage: "Seguimiento", stageNumber: 6, value: "$180,000 MXN", daysSinceActivity: 4 },
+  t3: { id: "d3", name: "Audiometrías — Cervecería Toluca", stage: "Cotización enviada", stageNumber: 5, value: "$42,000 MXN", daysSinceActivity: 2 },
+  t4: { id: "d4", name: "Exámenes nuevo ingreso — Metalúrgica", stage: "Descubrimiento", stageNumber: 3, value: "$65,000 MXN", daysSinceActivity: 1 },
+  t5: { id: "d5", name: "Reactivación — Grupo Farmacéutico GT", stage: "Primer contacto", stageNumber: 2, value: "$420,000 MXN", daysSinceActivity: 47 },
+};
+
+const CALL_HISTORY: Record<string, CallHistoryItem[]> = {
+  t1: [
+    { date: "3 Mar", type: "quote", summary: "Cotización enviada — $285,000 MXN" },
+    { date: "28 Feb", type: "call", summary: "Esperan aprobación de presupuesto" },
+    { date: "22 Feb", type: "call", summary: "Descubrimiento: 200 empleados" },
+  ],
+  t2: [
+    { date: "5 Mar", type: "call", summary: "Seguimiento — esperan resultado de auditoría" },
+    { date: "1 Mar", type: "quote", summary: "Cotización enviada — $180,000 MXN" },
+  ],
+  t5: [
+    { date: "20 Ene", type: "call", summary: "Última llamada — 47 días sin contacto" },
+    { date: "15 Dic", type: "quote", summary: "Cotización previa — $380,000 MXN" },
+  ],
+};
+
+const CALL_TALKING_POINTS: Record<string, TalkingPoint[]> = {
+  t1: [
+    { priority: "high", text: "6 días sin actividad — SLA Ballena en riesgo" },
+    { priority: "high", text: "Esperan aprobación de presupuesto de RH" },
+    { priority: "medium", text: "200 empleados, exámenes anuales vencen en abril" },
+  ],
+  t2: [
+    { priority: "high", text: "4 días sin actividad — SLA Tiburones en riesgo" },
+    { priority: "medium", text: "Pendiente resultado de auditoría interna" },
+  ],
+  t5: [
+    { priority: "high", text: "47 días sin contacto — oportunidad de reactivación" },
+    { priority: "medium", text: "Historial de compra: $380K MXN el año pasado" },
+    { priority: "low", text: "Posible expansión a 3 sedes adicionales" },
+  ],
+};
+
+const CALL_QUICK_ACTIONS: QuickAction[] = [
+  { id: "schedule", label: "Agendar seguimiento", icon: "fa-calendar-plus" },
+  { id: "quote", label: "Preparar cotización", icon: "fa-file-invoice-dollar" },
+  { id: "update_stage", label: "Actualizar etapa", icon: "fa-arrow-right" },
+  { id: "create_task", label: "Crear tarea", icon: "fa-circle-plus" },
+  { id: "send_email", label: "Enviar correo", icon: "fa-envelope", variant: "outline" as const },
+];
 
 /* ════════════════════════════════════════════════════════════════════════════
    Helpers
@@ -474,6 +537,16 @@ export default function InboxPage() {
   const [threadOpen, setThreadOpen] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
 
+  // Call state
+  const [activeCallThreadId, setActiveCallThreadId] = useState<string | null>(null);
+  const [callMode, setCallMode] = useState<CallMode>("hybrid-quo");
+
+  const startCallFromThread = (threadId: string) => {
+    if (CALL_CONTACTS[threadId] && CALL_DEALS[threadId]) {
+      setActiveCallThreadId(threadId);
+    }
+  };
+
   const toggleAgent = (agentId: string) => {
     setExpandedAgents((prev) => {
       const next = new Set(prev);
@@ -499,6 +572,16 @@ export default function InboxPage() {
           </Tooltip>
         ))}
         <div className="flex-1" />
+        <Tooltip content={callMode === "hybrid-quo" ? "Modo: Quo → Teléfono" : callMode === "hybrid-device" ? "Modo: Dispositivo BT" : "Modo: VoIP"} side="right">
+          <Button
+            variant="ghost"
+            size="icon-sm"
+            className={cn("h-9 w-9 text-sidebar-foreground", callMode !== "voip" ? "text-success" : "")}
+            onClick={() => setCallMode((m) => m === "voip" ? "hybrid-quo" : m === "hybrid-quo" ? "hybrid-device" : "voip")}
+          >
+            <i className={cn("text-sm", callMode === "hybrid-device" ? "fa-solid fa-headset" : callMode === "hybrid-quo" ? "fa-solid fa-mobile-screen" : "fa-solid fa-phone")} />
+          </Button>
+        </Tooltip>
         <Tooltip content="Miriam Reyes" side="right">
           <Avatar size="sm" className="bg-primary/80 text-[11px]" initials="MR" />
         </Tooltip>
@@ -546,22 +629,34 @@ export default function InboxPage() {
 
                 {isExpanded && threads.map((thread) => {
                   const isActive = selectedChannel === thread.id;
+                  const hasContact = !!CALL_CONTACTS[thread.id];
                   return (
-                    <button
-                      key={thread.id}
-                      onClick={() => { setSelectedChannel(thread.id); setSelectedAgent(thread.agentId); setThreadOpen(null); }}
-                      className={cn("flex w-full items-center gap-2 py-1 pl-12 pr-3 text-left transition-colors", isActive ? "bg-muted" : "hover:bg-muted/40")}
-                    >
-                      <Avatar size="sm" className={cn("h-6 w-6 text-[10px]", AVATAR_BG[thread.initials] ?? "bg-muted-foreground")} initials={thread.initials} />
-                      <div className="flex-1 min-w-0">
-                        <div className="flex items-center gap-1.5">
-                          <span className={cn("truncate text-[13px]", thread.unread ? "font-semibold text-foreground" : "text-muted-foreground")}>{thread.clientName}</span>
-                          {thread.unread && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                    <div key={thread.id} className="flex items-center group">
+                      <button
+                        onClick={() => { setSelectedChannel(thread.id); setSelectedAgent(thread.agentId); setThreadOpen(null); }}
+                        className={cn("flex flex-1 items-center gap-2 py-1 pl-12 pr-1 text-left transition-colors min-w-0", isActive ? "bg-muted" : "hover:bg-muted/40")}
+                      >
+                        <Avatar size="sm" className={cn("h-6 w-6 text-[10px] shrink-0", AVATAR_BG[thread.initials] ?? "bg-muted-foreground")} initials={thread.initials} />
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5">
+                            <span className={cn("truncate text-[13px]", thread.unread ? "font-semibold text-foreground" : "text-muted-foreground")}>{thread.clientName}</span>
+                            {thread.unread && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
+                          </div>
+                          <span className="block truncate text-[11px] text-muted-foreground">{thread.preview}</span>
                         </div>
-                        <span className="block truncate text-[11px] text-muted-foreground">{thread.preview}</span>
-                      </div>
-                      <span className="shrink-0 text-[10px] text-muted-foreground">{thread.time}</span>
-                    </button>
+                        <span className="shrink-0 text-[10px] text-muted-foreground">{thread.time}</span>
+                      </button>
+                      {hasContact && (
+                        <Tooltip content="Llamar" side="right">
+                          <button
+                            onClick={(e) => { e.stopPropagation(); startCallFromThread(thread.id); }}
+                            className="shrink-0 h-6 w-6 mr-2 rounded flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-success hover:bg-[var(--success-100)] transition-all"
+                          >
+                            <i className="fa-solid fa-phone text-[10px]" />
+                          </button>
+                        </Tooltip>
+                      )}
+                    </div>
                   );
                 })}
               </div>
@@ -586,6 +681,12 @@ export default function InboxPage() {
                     <span>{activeChannel.company}</span>
                     <span>·</span>
                     <Badge variant={SEGMENT_BADGE[activeChannel.segment]} className="text-[9px] py-0">{SEGMENT_LABELS[activeChannel.segment]}</Badge>
+                    {CALL_CONTACTS[activeChannel.id] && (
+                      <>
+                        <span>·</span>
+                        <span className="font-mono">{CALL_CONTACTS[activeChannel.id]!.phone}</span>
+                      </>
+                    )}
                   </div>
                 </div>
               </>
@@ -602,7 +703,18 @@ export default function InboxPage() {
             )}
           </div>
           <div className="flex items-center gap-0.5">
-            {activeChannel && <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground"><i className="fa-solid fa-phone text-xs" /></Button>}
+            {activeChannel && (
+              <Tooltip content={callMode === "hybrid-quo" ? "Llamar (Quo → tu teléfono)" : callMode === "hybrid-device" ? "Llamar (dispositivo BT)" : "Llamar (VoIP)"} side="bottom">
+                <Button
+                  variant="ghost"
+                  size="icon-sm"
+                  className="h-8 w-8 text-success hover:bg-[var(--success-100)]"
+                  onClick={() => startCallFromThread(activeChannel.id)}
+                >
+                  <i className="fa-solid fa-phone text-xs" />
+                </Button>
+              </Tooltip>
+            )}
             <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground"><i className="fa-solid fa-thumbtack text-xs" /></Button>
             <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground"><i className="fa-solid fa-ellipsis-vertical text-xs" /></Button>
           </div>
@@ -660,6 +772,21 @@ export default function InboxPage() {
 
           <Composer placeholder="Responder en hilo..." />
         </aside>
+      )}
+
+      {/* ── Call Panel Overlay ───────────────────────────────────── */}
+      {activeCallThreadId && CALL_CONTACTS[activeCallThreadId] && CALL_DEALS[activeCallThreadId] && (
+        <CallPanel
+          contact={CALL_CONTACTS[activeCallThreadId]!}
+          deal={CALL_DEALS[activeCallThreadId]!}
+          history={CALL_HISTORY[activeCallThreadId] ?? []}
+          talkingPoints={CALL_TALKING_POINTS[activeCallThreadId] ?? []}
+          quickActions={CALL_QUICK_ACTIONS}
+          callMode={callMode}
+          audioDevice={callMode === "hybrid-device" ? "Jabra Speak 750" : undefined}
+          onClose={() => setActiveCallThreadId(null)}
+          onQuickAction={(id) => console.log("Quick action:", id)}
+        />
       )}
     </div>
   );
