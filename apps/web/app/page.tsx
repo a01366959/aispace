@@ -2,6 +2,15 @@
 
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
+import { Avatar } from "@/components/ui/avatar";
+import { Card, CardContent } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { ScrollArea } from "@/components/ui/scroll-area";
+import { Separator } from "@/components/ui/separator";
+import { Tooltip } from "@/components/ui/tooltip";
 
 /* ════════════════════════════════════════════════════════════════════════════
    Types
@@ -153,28 +162,35 @@ const SEGMENT_LABELS: Record<Segment, string> = {
   charales: "Charal",
 };
 
-const SEGMENT_COLORS: Record<Segment, string> = {
-  ballenas: "bg-[var(--blue-100)] text-[var(--blue-600)]",
-  tiburones: "bg-[var(--orange-100)] text-[var(--orange-600)]",
-  atunes: "bg-[var(--success-100)] text-[var(--success-600)]",
-  truchas: "bg-[var(--gray-100)] text-[var(--gray-600)]",
-  charales: "bg-[var(--gray-100)] text-[var(--gray-500)]",
+const SEGMENT_BADGE_VARIANTS: Record<Segment, "blue" | "warning" | "success" | "muted"> = {
+  ballenas: "blue",
+  tiburones: "warning",
+  atunes: "success",
+  truchas: "muted",
+  charales: "muted",
 };
 
-const STAGE_COLORS: Record<string, string> = {
-  cotización_enviada: "bg-[var(--blue-100)] text-[var(--blue-600)]",
-  seguimiento: "bg-[var(--orange-100)] text-[var(--orange-600)]",
-  descubrimiento: "bg-[var(--success-100)] text-[var(--success-600)]",
-  prospecto: "bg-[var(--gray-100)] text-[var(--gray-600)]",
-  cerrado_ganado: "bg-[var(--success-100)] text-[var(--success-600)]",
-  cerrado_perdido: "bg-[var(--danger-100)] text-[var(--danger-600)]",
+const STAGE_BADGE_VARIANTS: Record<string, "blue" | "warning" | "success" | "muted" | "destructive"> = {
+  cotización_enviada: "blue",
+  seguimiento: "warning",
+  descubrimiento: "success",
+  prospecto: "muted",
+  cerrado_ganado: "success",
+  cerrado_perdido: "destructive",
 };
 
 const AVATAR_COLORS: Record<string, string> = {
   CM: "bg-[var(--blue-600)]",
   AT: "bg-[var(--orange-600)]",
-  RJ: "bg-[var(--success-600)]",
-  PS: "bg-[var(--danger-600)]",
+  RJ: "bg-success",
+  PS: "bg-destructive",
+};
+
+const BUTTON_VARIANT_MAP: Record<string, "default" | "outline" | "success" | "destructive"> = {
+  primary: "default",
+  outline: "outline",
+  success: "success",
+  danger: "destructive",
 };
 
 /* Navigation items */
@@ -220,31 +236,35 @@ export default function InboxPage() {
   return (
     <div className="flex h-screen overflow-hidden">
       {/* ── Nav Rail ─────────────────────────────────────────────── */}
-      <nav className="flex w-16 min-w-[64px] flex-col items-center gap-1 bg-[var(--gray-900)] py-4" aria-label="Navegación principal">
+      <nav className="flex w-16 min-w-[64px] flex-col items-center gap-1 bg-sidebar py-4" aria-label="Navegación principal">
         <div className="mb-5 grid h-9 w-9 place-content-center rounded-md bg-primary text-[15px] font-bold tracking-tight text-white">
           AI
         </div>
         {NAV_ITEMS.map((item) => (
-          <button
-            key={item.label}
-            className={cn(
-              "relative grid h-10 w-10 place-content-center rounded-md text-[var(--gray-400)] transition-all",
-              item.active ? "bg-white/[.12] text-white" : "hover:bg-white/[.08] hover:text-[var(--gray-200)]"
-            )}
-            title={item.label}
-          >
-            <i className={item.icon} />
-            {item.badge && (
-              <span className="absolute right-1 top-1 grid min-w-[16px] place-content-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">
-                {item.badge}
-              </span>
-            )}
-          </button>
+          <Tooltip key={item.label} content={item.label} side="right">
+            <Button
+              variant="ghost"
+              size="icon-sm"
+              className={cn(
+                "relative text-sidebar-foreground",
+                item.active
+                  ? "bg-white/[.12] text-sidebar-active"
+                  : "hover:bg-white/[.08] hover:text-[var(--gray-200)]"
+              )}
+            >
+              <i className={item.icon} />
+              {item.badge && (
+                <Badge variant="destructive" className="absolute -right-0.5 -top-0.5 h-4 min-w-[16px] px-1 text-[10px]">
+                  {item.badge}
+                </Badge>
+              )}
+            </Button>
+          </Tooltip>
         ))}
         <div className="flex-1" />
-        <div className="grid h-8 w-8 place-content-center rounded-full bg-[var(--blue-400)] text-[13px] font-semibold text-white" title="Miriam Reyes">
-          MR
-        </div>
+        <Tooltip content="Miriam Reyes" side="right">
+          <Avatar size="sm" className="bg-[var(--blue-400)] text-[13px]" initials="MR" />
+        </Tooltip>
       </nav>
 
       {/* ── Agent / Thread Sidebar ───────────────────────────────── */}
@@ -254,22 +274,26 @@ export default function InboxPage() {
           <div className="mb-3 flex items-center justify-between">
             <h2 className="text-lg font-bold text-foreground">Inbox</h2>
             <div className="flex gap-1">
-              <button className="grid h-8 w-8 place-content-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Filtrar">
+              <Button variant="ghost" size="icon-sm" title="Filtrar">
                 <i className="fa-solid fa-filter" />
-              </button>
-              <button className="grid h-8 w-8 place-content-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Más">
+              </Button>
+              <Button variant="ghost" size="icon-sm" title="Más">
                 <i className="fa-solid fa-ellipsis" />
-              </button>
+              </Button>
             </div>
           </div>
-          <div className="flex items-center gap-2 rounded-md border border-transparent bg-muted px-3 py-2 transition-all focus-within:border-ring focus-within:bg-card focus-within:shadow-[0_0_0_3px_rgba(83,177,253,0.15)]">
-            <i className="fa-solid fa-magnifying-glass text-muted-foreground" />
-            <input type="text" placeholder="Buscar conversación..." className="flex-1 bg-transparent text-[13px] outline-none placeholder:text-[var(--gray-400)]" />
+          <div className="relative">
+            <i className="fa-solid fa-magnifying-glass absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-xs" />
+            <Input
+              type="text"
+              placeholder="Buscar conversación..."
+              className="pl-9 bg-muted border-transparent text-[13px] focus-visible:bg-card focus-visible:border-ring"
+            />
           </div>
         </div>
 
         {/* Agent list with threads */}
-        <div className="flex-1 overflow-y-auto">
+        <ScrollArea className="flex-1">
           {AGENTS.map((agent) => {
             const threads = CLIENT_THREADS.filter((t) => t.agentId === agent.id);
             const isExpanded = expandedAgents.has(agent.id);
@@ -285,28 +309,30 @@ export default function InboxPage() {
                   )}
                   onClick={() => setActiveView({ type: "main", agentId: agent.id })}
                 >
-                  <div className="grid h-9 w-9 min-w-[36px] place-content-center rounded-lg bg-primary/10 text-primary">
+                  <Avatar size="default" className="rounded-lg bg-primary/10 text-primary">
                     <i className={agent.icon} />
-                  </div>
+                  </Avatar>
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center justify-between gap-2">
                       <span className="truncate text-[13px] font-semibold text-foreground">{agent.name}</span>
                       {agent.unread > 0 && (
-                        <span className="grid min-w-[18px] place-content-center rounded-full bg-primary px-1.5 text-[10px] font-bold text-white">
+                        <Badge className="h-[18px] min-w-[18px] px-1.5 text-[10px]">
                           {agent.unread}
-                        </span>
+                        </Badge>
                       )}
                     </div>
                     <span className="text-[11px] text-muted-foreground">{agent.description}</span>
                   </div>
                   {threads.length > 0 && (
-                    <button
-                      className="grid h-6 w-6 place-content-center rounded text-muted-foreground transition-transform hover:text-foreground"
+                    <Button
+                      variant="ghost"
+                      size="icon-sm"
+                      className="h-6 w-6"
                       onClick={(e) => { e.stopPropagation(); toggleAgent(agent.id); }}
                       aria-label={isExpanded ? "Colapsar hilos" : "Expandir hilos"}
                     >
                       <i className={cn("fa-solid fa-chevron-down text-[10px] transition-transform", !isExpanded && "-rotate-90")} />
-                    </button>
+                    </Button>
                   )}
                 </button>
 
@@ -322,9 +348,7 @@ export default function InboxPage() {
                       )}
                       onClick={() => setActiveView({ type: "thread", threadId: thread.id })}
                     >
-                      <div className={cn("grid h-8 w-8 min-w-[32px] place-content-center rounded-full text-[12px] font-semibold text-white", AVATAR_COLORS[thread.initials] ?? "bg-[var(--gray-500)]")}>
-                        {thread.initials}
-                      </div>
+                      <Avatar size="sm" className={AVATAR_COLORS[thread.initials] ?? "bg-[var(--gray-500)]"} initials={thread.initials} />
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center justify-between gap-2">
                           <span className={cn("truncate text-[12px] text-foreground", thread.unread ? "font-bold" : "font-medium")}>
@@ -340,9 +364,9 @@ export default function InboxPage() {
                         </div>
                         <div className="mt-0.5 flex items-center gap-2">
                           <span className="truncate text-[10px] text-muted-foreground">{thread.company}</span>
-                          <span className={cn("flex-shrink-0 rounded-full px-1.5 py-px text-[9px] font-semibold", SEGMENT_COLORS[thread.segment])}>
+                          <Badge variant={SEGMENT_BADGE_VARIANTS[thread.segment]} className="h-auto px-1.5 py-px text-[9px]">
                             {SEGMENT_LABELS[thread.segment]}
-                          </span>
+                          </Badge>
                         </div>
                       </div>
                     </button>
@@ -351,7 +375,7 @@ export default function InboxPage() {
               </div>
             );
           })}
-        </div>
+        </ScrollArea>
       </aside>
 
       {/* ── Chat Panel ───────────────────────────────────────────── */}
@@ -360,13 +384,11 @@ export default function InboxPage() {
         <header className="flex items-center justify-between gap-4 border-b border-border bg-card px-5 py-3">
           <div className="flex items-center gap-3 min-w-0">
             {activeThread ? (
-              <div className={cn("grid h-10 w-10 min-w-[40px] place-content-center rounded-full text-sm font-semibold text-white", AVATAR_COLORS[activeThread.initials] ?? "bg-[var(--gray-500)]")}>
-                {activeThread.initials}
-              </div>
+              <Avatar size="md" className={AVATAR_COLORS[activeThread.initials] ?? "bg-[var(--gray-500)]"} initials={activeThread.initials} />
             ) : (
-              <div className="grid h-10 w-10 min-w-[40px] place-content-center rounded-lg bg-primary/10 text-primary text-lg">
+              <Avatar size="md" className="rounded-lg bg-primary/10 text-primary text-lg">
                 <i className={activeAgent?.icon ?? "fa-solid fa-robot"} />
-              </div>
+              </Avatar>
             )}
             <div className="min-w-0">
               <div className="text-[15px] font-bold text-foreground">
@@ -376,9 +398,9 @@ export default function InboxPage() {
                 {activeThread ? (
                   <>
                     <span>{activeThread.company}</span>
-                    <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", STAGE_COLORS[activeThread.stage] ?? "bg-muted text-muted-foreground")}>
+                    <Badge variant={STAGE_BADGE_VARIANTS[activeThread.stage] ?? "muted"} className="text-[11px]">
                       {STAGE_LABELS[activeThread.stage]}
-                    </span>
+                    </Badge>
                   </>
                 ) : (
                   <span>{activeAgent?.description}</span>
@@ -388,110 +410,115 @@ export default function InboxPage() {
           </div>
           <div className="flex flex-shrink-0 gap-1">
             {activeThread && (
-              <button className="grid h-8 w-8 place-content-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Llamar">
+              <Button variant="ghost" size="icon-sm" title="Llamar">
                 <i className="fa-solid fa-phone" />
-              </button>
+              </Button>
             )}
-            <button className="grid h-8 w-8 place-content-center rounded-md text-muted-foreground transition-colors hover:bg-muted hover:text-foreground" title="Más">
+            <Button variant="ghost" size="icon-sm" title="Más">
               <i className="fa-solid fa-ellipsis" />
-            </button>
+            </Button>
           </div>
         </header>
 
         {/* Messages */}
-        <div className="flex flex-1 flex-col gap-4 overflow-y-auto p-5">
+        <ScrollArea className="flex flex-1 flex-col gap-4 p-5">
           {/* Date divider */}
           <div className="flex items-center gap-3 my-2">
-            <div className="h-px flex-1 bg-border" />
+            <Separator className="flex-1" />
             <span className="text-[11px] font-medium text-muted-foreground">Hoy</span>
-            <div className="h-px flex-1 bg-border" />
+            <Separator className="flex-1" />
           </div>
 
-          {messages.map((msg) => (
-            <div key={msg.id} className={cn("flex gap-2.5 max-w-[720px]", msg.type === "user" && "flex-row-reverse self-end")}>
-              {/* Avatar */}
-              <div
-                className={cn(
-                  "mt-0.5 grid h-8 w-8 min-w-[32px] place-content-center rounded-full text-[12px] font-semibold text-white",
-                  msg.type === "agent" && "bg-gradient-to-br from-[var(--blue-600)] to-[#2E90FA]",
-                  msg.type === "user" && "bg-[var(--blue-600)]",
-                  msg.type === "system" && "bg-[var(--gray-400)]"
-                )}
-              >
-                {msg.type === "system" ? <i className="fa-solid fa-link text-[10px]" /> : msg.avatar}
-              </div>
-              {/* Body */}
-              <div className="flex flex-col gap-1">
-                {msg.type === "agent" && msg.agentTag && (
-                  <span className="inline-flex w-fit items-center gap-1 rounded-full bg-accent px-2 py-0.5 text-[10px] font-semibold text-primary">
-                    <i className="fa-solid fa-robot text-[8px]" /> {msg.agentTag}
-                  </span>
-                )}
-                {msg.type !== "agent" && (
-                  <span className={cn("text-[12px] font-semibold text-muted-foreground", msg.type === "user" && "text-right")}>{msg.sender}</span>
-                )}
-                <div
+          <div className="flex flex-col gap-4 mt-4">
+            {messages.map((msg) => (
+              <div key={msg.id} className={cn("flex gap-2.5 max-w-[720px]", msg.type === "user" && "flex-row-reverse self-end")}>
+                {/* Avatar */}
+                <Avatar
+                  size="sm"
                   className={cn(
-                    "rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed border",
-                    msg.type === "user" && "bg-primary text-white border-primary",
-                    msg.type === "agent" && "bg-gradient-to-br from-[#F0F7FF] to-[#E8F4FD] border-[var(--blue-100)] text-foreground",
-                    msg.type === "system" && "bg-muted border-border text-muted-foreground text-[12px] italic"
+                    "mt-0.5",
+                    msg.type === "agent" && "bg-gradient-to-br from-[var(--blue-600)] to-[#2E90FA]",
+                    msg.type === "user" && "bg-[var(--blue-600)]",
+                    msg.type === "system" && "bg-[var(--gray-400)]"
                   )}
                 >
-                  {msg.text}
-                </div>
-                {/* Action card */}
-                {msg.action && (
-                  <div className="mt-1.5 rounded-lg border border-border bg-card p-3 flex flex-col gap-2">
-                    <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
-                      {msg.action.status === "auto-applied" && <i className="fa-solid fa-circle-check text-[var(--success-600)]" />}
-                      {msg.action.status === "pending-approval" && <i className="fa-solid fa-clock text-[var(--orange-600)]" />}
-                      {msg.action.status === "info" && <i className="fa-solid fa-circle-info text-primary" />}
-                      {msg.action.label}
-                      {msg.action.status === "auto-applied" && (
-                        <span className="rounded-full bg-[var(--success-100)] px-2 py-0.5 text-[9px] font-bold text-[var(--success-600)]">Auto-aplicado</span>
-                      )}
-                      {msg.action.status === "pending-approval" && (
-                        <span className="rounded-full bg-[var(--orange-100)] px-2 py-0.5 text-[9px] font-bold text-[var(--orange-600)]">Pendiente</span>
-                      )}
-                    </div>
-                    <div className="text-[12px] leading-relaxed text-muted-foreground">{msg.action.body}</div>
-                    {msg.action.buttons && (
-                      <div className="mt-1 flex gap-2">
-                        {msg.action.buttons.map((btn) => (
-                          <button
-                            key={btn.label}
-                            className={cn(
-                              "inline-flex items-center justify-center gap-1.5 rounded-md px-3.5 py-1.5 text-[12px] font-semibold transition-colors",
-                              btn.variant === "primary" && "bg-primary text-white hover:bg-primary/90",
-                              btn.variant === "success" && "bg-[var(--success-600)] text-white hover:bg-[var(--success-600)]/90",
-                              btn.variant === "outline" && "border border-input bg-card text-muted-foreground hover:bg-muted",
-                              btn.variant === "danger" && "border border-[var(--danger-100)] text-destructive hover:bg-[var(--danger-100)]"
-                            )}
-                          >
-                            {btn.label}
-                          </button>
-                        ))}
-                      </div>
+                  {msg.type === "system" ? <i className="fa-solid fa-link text-[10px]" /> : msg.avatar}
+                </Avatar>
+                {/* Body */}
+                <div className="flex flex-col gap-1">
+                  {msg.type === "agent" && msg.agentTag && (
+                    <Badge variant="blue" className="w-fit gap-1 text-[10px]">
+                      <i className="fa-solid fa-robot text-[8px]" /> {msg.agentTag}
+                    </Badge>
+                  )}
+                  {msg.type !== "agent" && (
+                    <span className={cn("text-[12px] font-semibold text-muted-foreground", msg.type === "user" && "text-right")}>{msg.sender}</span>
+                  )}
+                  <div
+                    className={cn(
+                      "rounded-xl px-3.5 py-2.5 text-[13px] leading-relaxed border",
+                      msg.type === "user" && "bg-primary text-white border-primary",
+                      msg.type === "agent" && "bg-gradient-to-br from-[#F0F7FF] to-[#E8F4FD] border-[var(--blue-100)] text-foreground",
+                      msg.type === "system" && "bg-muted border-border text-muted-foreground text-[12px] italic"
                     )}
+                  >
+                    {msg.text}
                   </div>
-                )}
-                <span className={cn("text-[10px] text-muted-foreground", msg.type === "user" && "text-right")}>{msg.time}</span>
+                  {/* Action card */}
+                  {msg.action && (
+                    <Card className="mt-1.5">
+                      <CardContent className="p-3 flex flex-col gap-2">
+                        <div className="flex items-center gap-2 text-[12px] font-semibold text-foreground">
+                          {msg.action.status === "auto-applied" && <i className="fa-solid fa-circle-check text-success" />}
+                          {msg.action.status === "pending-approval" && <i className="fa-solid fa-clock text-warning" />}
+                          {msg.action.status === "info" && <i className="fa-solid fa-circle-info text-primary" />}
+                          {msg.action.label}
+                          {msg.action.status === "auto-applied" && (
+                            <Badge variant="success" className="text-[9px]">Auto-aplicado</Badge>
+                          )}
+                          {msg.action.status === "pending-approval" && (
+                            <Badge variant="warning" className="text-[9px]">Pendiente</Badge>
+                          )}
+                        </div>
+                        <p className="text-[12px] leading-relaxed text-muted-foreground">{msg.action.body}</p>
+                        {msg.action.buttons && (
+                          <div className="mt-1 flex gap-2">
+                            {msg.action.buttons.map((btn) => (
+                              <Button
+                                key={btn.label}
+                                variant={BUTTON_VARIANT_MAP[btn.variant]}
+                                size="sm"
+                                className="text-[12px]"
+                              >
+                                {btn.label}
+                              </Button>
+                            ))}
+                          </div>
+                        )}
+                      </CardContent>
+                    </Card>
+                  )}
+                  <span className={cn("text-[10px] text-muted-foreground", msg.type === "user" && "text-right")}>{msg.time}</span>
+                </div>
               </div>
-            </div>
-          ))}
-        </div>
+            ))}
+          </div>
+        </ScrollArea>
 
         {/* Input */}
         <div className="border-t border-border bg-card px-5 pb-4 pt-3">
           <div className="flex items-end gap-2 rounded-xl border border-border bg-muted px-3.5 py-2.5 transition-all focus-within:border-ring focus-within:bg-card focus-within:shadow-[0_0_0_3px_rgba(83,177,253,0.12)]">
-            <button className="grid h-8 w-8 place-content-center rounded-md text-muted-foreground transition-colors hover:text-foreground" title="Adjuntar">
+            <Button variant="ghost" size="icon-sm" title="Adjuntar">
               <i className="fa-solid fa-paperclip" />
-            </button>
-            <textarea rows={1} placeholder="Escribe un mensaje..." className="flex-1 resize-none bg-transparent text-[13px] leading-relaxed outline-none placeholder:text-[var(--gray-400)]" />
-            <button className="grid h-8 w-8 place-content-center rounded-md bg-primary text-white transition-colors hover:bg-primary/90" title="Enviar">
+            </Button>
+            <Textarea
+              rows={1}
+              placeholder="Escribe un mensaje..."
+              className="flex-1 min-h-0 resize-none border-0 bg-transparent p-0 text-[13px] leading-relaxed shadow-none focus-visible:ring-0 placeholder:text-[var(--gray-400)]"
+            />
+            <Button size="icon-sm" title="Enviar">
               <i className="fa-solid fa-paper-plane" />
-            </button>
+            </Button>
           </div>
         </div>
       </main>
@@ -501,9 +528,7 @@ export default function InboxPage() {
         <aside className="hidden w-[300px] min-w-[300px] flex-col overflow-y-auto border-l border-border bg-card xl:flex">
           {/* Header */}
           <div className="border-b border-border p-4 text-center">
-            <div className={cn("mx-auto mb-2 grid h-14 w-14 place-content-center rounded-full text-xl font-bold text-white", AVATAR_COLORS[activeThread.initials] ?? "bg-[var(--gray-500)]")}>
-              {activeThread.initials}
-            </div>
+            <Avatar size="lg" className={cn("mx-auto mb-2", AVATAR_COLORS[activeThread.initials] ?? "bg-[var(--gray-500)]")} initials={activeThread.initials} />
             <div className="text-[15px] font-bold text-foreground">{activeThread.clientName}</div>
             <div className="mt-0.5 text-[12px] text-muted-foreground">{activeThread.company}</div>
           </div>
@@ -512,9 +537,9 @@ export default function InboxPage() {
           <div className="border-b border-border p-4">
             <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Información del deal</div>
             {[
-              { label: "Etapa", value: <span className={cn("rounded-full px-2 py-0.5 text-[11px] font-semibold", STAGE_COLORS[activeThread.stage])}>{STAGE_LABELS[activeThread.stage]}</span> },
+              { label: "Etapa", value: <Badge variant={STAGE_BADGE_VARIANTS[activeThread.stage]} className="text-[11px]">{STAGE_LABELS[activeThread.stage]}</Badge> },
               { label: "Valor", value: "$285,000 MXN" },
-              { label: "Segmento", value: <span className={cn("rounded-full px-1.5 py-0.5 text-[10px] font-semibold", SEGMENT_COLORS[activeThread.segment])}>{SEGMENT_LABELS[activeThread.segment]}</span> },
+              { label: "Segmento", value: <Badge variant={SEGMENT_BADGE_VARIANTS[activeThread.segment]} className="text-[10px]">{SEGMENT_LABELS[activeThread.segment]}</Badge> },
               { label: "Vendedor", value: "Miriam Reyes" },
               { label: "Creado", value: "15 May 2025" },
             ].map((field) => (
@@ -528,24 +553,28 @@ export default function InboxPage() {
           {/* Risk */}
           <div className="border-b border-border p-4">
             <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Riesgo</div>
-            <div className="flex items-center gap-2 rounded-md bg-[var(--orange-100)] px-3 py-2 text-[12px] font-medium text-[var(--orange-600)]">
-              <i className="fa-solid fa-triangle-exclamation" /> Seguimiento pendiente — 6 días
-            </div>
+            <Card className="border-warning/30 bg-[var(--orange-100)]">
+              <CardContent className="flex items-center gap-2 p-3 text-[12px] font-medium text-warning">
+                <i className="fa-solid fa-triangle-exclamation" /> Seguimiento pendiente — 6 días
+              </CardContent>
+            </Card>
           </div>
 
           {/* Tasks */}
           <div className="border-b border-border p-4">
             <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Tareas ({TASKS.length})</div>
             {TASKS.map((task) => (
-              <div key={task.id} className="mb-2 flex items-start gap-2.5 rounded-md border border-border p-2.5">
-                <div className={cn("mt-0.5 h-4 w-4 min-w-[16px] cursor-pointer rounded border-[1.5px]", task.done ? "border-[var(--success-600)] bg-[var(--success-600)]" : "border-input hover:border-ring")} />
-                <div className="flex-1 min-w-0">
-                  <div className="text-[12px] font-medium text-foreground">{task.title}</div>
-                  <div className={cn("mt-0.5 text-[11px] font-medium", task.dueStatus === "overdue" && "text-destructive", task.dueStatus === "upcoming" && "text-[var(--orange-600)]", task.dueStatus === "safe" && "text-muted-foreground")}>
-                    {task.due}
+              <Card key={task.id} className="mb-2">
+                <CardContent className="flex items-start gap-2.5 p-2.5">
+                  <div className={cn("mt-0.5 h-4 w-4 min-w-[16px] cursor-pointer rounded border-[1.5px]", task.done ? "border-success bg-success" : "border-input hover:border-ring")} />
+                  <div className="flex-1 min-w-0">
+                    <div className="text-[12px] font-medium text-foreground">{task.title}</div>
+                    <div className={cn("mt-0.5 text-[11px] font-medium", task.dueStatus === "overdue" && "text-destructive", task.dueStatus === "upcoming" && "text-warning", task.dueStatus === "safe" && "text-muted-foreground")}>
+                      {task.due}
+                    </div>
                   </div>
-                </div>
-              </div>
+                </CardContent>
+              </Card>
             ))}
           </div>
 
@@ -554,7 +583,7 @@ export default function InboxPage() {
             <div className="mb-3 text-[11px] font-bold uppercase tracking-wider text-muted-foreground">Actividad reciente</div>
             {ACTIVITIES.map((act, i) => (
               <div key={i} className="flex gap-2.5 py-2">
-                <div className={cn("mt-1.5 h-2 w-2 min-w-[8px] rounded-full", act.type === "call" && "bg-[var(--blue-400)]", act.type === "email" && "bg-[var(--orange-400)]", act.type === "task" && "bg-[var(--success-600)]", act.type === "agent" && "bg-primary")} />
+                <div className={cn("mt-1.5 h-2 w-2 min-w-[8px] rounded-full", act.type === "call" && "bg-[var(--blue-400)]", act.type === "email" && "bg-[var(--orange-400)]", act.type === "task" && "bg-success", act.type === "agent" && "bg-primary")} />
                 <div>
                   <div className="text-[12px] leading-snug text-muted-foreground">{act.text}</div>
                   <div className="mt-0.5 text-[10px] text-muted-foreground/70">{act.date}</div>
