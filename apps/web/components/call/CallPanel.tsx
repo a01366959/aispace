@@ -8,8 +8,10 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Avatar } from "@/components/ui/avatar";
+import { Textarea } from "@/components/ui/textarea";
 import { CallControls } from "./CallControls";
 import { CallNotes } from "./CallNotes";
+import { LiveTranscript, type TranscriptEntry } from "./LiveTranscript";
 import { PostCallSummary, type SuggestedTask } from "./PostCallSummary";
 
 /* ═══════════════════════════════════════════════════ */
@@ -100,10 +102,32 @@ function formatTimer(seconds: number): string {
 }
 
 /* ═══════════════════════════════════════════════════ */
+/*  Simulated Quo transcript data                      */
+/* ═══════════════════════════════════════════════════ */
+
+function getSimulatedTranscript(contactFirstName: string): { text: string; speaker: "rep" | "client"; delay: number }[] {
+  return [
+    { speaker: "rep", text: `Buenos días, ¿hablo con ${contactFirstName}?`, delay: 3000 },
+    { speaker: "client", text: "Sí, buenos días. ¿Quién habla?", delay: 6000 },
+    { speaker: "rep", text: "Le habla Carlos de GDT, Grupo Diagnóstico Toluca. Le llamo respecto a la cotización que le enviamos para los exámenes de su empresa.", delay: 10000 },
+    { speaker: "client", text: "Ah sí, la recibí. Estamos revisándola internamente con el área de finanzas.", delay: 15000 },
+    { speaker: "rep", text: "Perfecto. ¿Hay algo que pueda aclarar o ajustar en la propuesta?", delay: 19000 },
+    { speaker: "client", text: "De hecho sí, nos gustaría saber si pueden hacer los exámenes en nuestras instalaciones. Tenemos dificultad para mover a todo el personal.", delay: 25000 },
+    { speaker: "rep", text: "Claro que sí, contamos con unidad móvil. Podemos ir directamente a sus instalaciones. Solo necesitaría confirmar cuántos empleados serían y las fechas que les convienen.", delay: 32000 },
+    { speaker: "client", text: "Serían aproximadamente 120 personas. Nos gustaría en la segunda semana de abril si es posible.", delay: 38000 },
+    { speaker: "rep", text: "Déjeme verificar la disponibilidad de la unidad móvil para esas fechas. Le envío la actualización de la cotización con el servicio en sitio hoy mismo.", delay: 44000 },
+    { speaker: "client", text: "Muy bien, se lo agradezco. Quedo pendiente.", delay: 48000 },
+    { speaker: "rep", text: "Excelente. Le mando la cotización actualizada y le llamo mañana para confirmar. Que tenga buen día.", delay: 53000 },
+    { speaker: "client", text: "Igualmente, gracias. Hasta luego.", delay: 57000 },
+  ];
+}
+
+/* ═══════════════════════════════════════════════════ */
 /*  Component                                          */
 /* ═══════════════════════════════════════════════════ */
 
 type CallPhase = "ringing" | "active" | "summary";
+type CenterTab = "transcript" | "notes";
 
 function CallPanel({
   contact,
@@ -121,12 +145,20 @@ function CallPanel({
   const [isSpeaker, setIsSpeaker] = useState(false);
   const [showDialpad, setShowDialpad] = useState(false);
   const [notes, setNotes] = useState("");
+  const [centerTab, setCenterTab] = useState<CenterTab>("transcript");
+
+  // Quo API state
+  const [quoCallId, setQuoCallId] = useState<string | null>(null);
+  const [quoStatus, setQuoStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+  const [transcriptEntries, setTranscriptEntries] = useState<TranscriptEntry[]>([]);
 
   // Post-call
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
   const [summary, setSummary] = useState("");
   const [suggestedTasks, setSuggestedTasks] = useState<SuggestedTask[]>([]);
   const [selectedTaskIds, setSelectedTaskIds] = useState<Set<string>>(new Set());
+  const [smsMessage, setSmsMessage] = useState("");
+  const [smsSent, setSmsSent] = useState(false);
 
   // Timer
   useEffect(() => {
@@ -135,50 +167,78 @@ function CallPanel({
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Simulate ringing → connected
+  // Simulate Quo API: POST /v1/calls → ringing → connected
   useEffect(() => {
     if (phase === "ringing") {
-      const timeout = setTimeout(() => setPhase("active"), 2500);
+      const timeout = setTimeout(() => {
+        setQuoCallId("quo_call_" + Math.random().toString(36).slice(2, 10));
+        setQuoStatus("connected");
+        setPhase("active");
+      }, 2500);
       return () => clearTimeout(timeout);
     }
   }, [phase]);
 
+  // Simulate Quo live transcription via webhook
+  useEffect(() => {
+    if (phase !== "active") return;
+    const contactFirstName = contact.name.split(" ")[0]!;
+    const simulated = getSimulatedTranscript(contactFirstName);
+    const timeouts: ReturnType<typeof setTimeout>[] = [];
+
+    simulated.forEach((line, i) => {
+      const t = setTimeout(() => {
+        setTranscriptEntries((prev) => [
+          ...prev,
+          {
+            id: `t-${i}`,
+            speaker: line.speaker,
+            text: line.text,
+            timestamp: formatTimer(Math.floor(line.delay / 1000)),
+            isFinal: true,
+          },
+        ]);
+      }, line.delay);
+      timeouts.push(t);
+    });
+
+    return () => timeouts.forEach(clearTimeout);
+  }, [phase, contact.name]);
+
   const handleHangup = useCallback(() => {
+    setQuoStatus("disconnected");
     setPhase("summary");
     setIsGeneratingSummary(true);
-    // Simulate AI generation
+
+    // Simulate Quo API: GET /v1/calls/{id}/summary + our AI enrichment
     setTimeout(() => {
       setSummary(
-        `Llamada con ${contact.name} de ${contact.company}.\n\n` +
-        `Se discutió el estado del deal "${deal.name}" (etapa ${deal.stageNumber}: ${deal.stage}).\n\n` +
-        (notes
-          ? `Notas del representante:\n${notes}\n\n`
-          : "") +
-        `El cliente mostró interés en continuar. Se acordó dar seguimiento la próxima semana con una cotización actualizada.`
+        `Resumen generado por Quo AI + contexto del deal:\n\n` +
+        `Llamada de seguimiento con ${contact.name} (${contact.company}) sobre "${deal.name}".\n\n` +
+        `Puntos clave:\n` +
+        `• El cliente confirmó haber recibido la cotización y está en revisión con finanzas\n` +
+        `• Solicitan servicio en sitio (unidad móvil) — no pueden mover al personal\n` +
+        `• Aproximadamente 120 empleados\n` +
+        `• Fecha deseada: segunda semana de abril\n` +
+        `• Se comprometió enviar cotización actualizada con servicio en sitio hoy\n\n` +
+        (notes ? `Notas adicionales del representante:\n${notes}\n\n` : "") +
+        `Próximos pasos: Enviar cotización actualizada, confirmar disponibilidad de unidad móvil, llamar mañana.`
       );
       setSuggestedTasks([
-        {
-          id: "t1",
-          label: `Seguimiento con ${contact.name} — llamada`,
-          dueDate: "En 3 días",
-          type: "follow_up",
-        },
-        {
-          id: "t2",
-          label: `Enviar cotización actualizada a ${contact.company}`,
-          dueDate: "Mañana",
-          type: "quote",
-        },
-        {
-          id: "t3",
-          label: `Agendar reunión presencial con ${contact.name}`,
-          dueDate: "Próxima semana",
-          type: "meeting",
-        },
+        { id: "t1", label: `Enviar cotización actualizada con servicio en sitio a ${contact.company}`, dueDate: "Hoy", type: "quote" },
+        { id: "t2", label: `Verificar disponibilidad unidad móvil — 2da semana de abril`, dueDate: "Hoy", type: "task" },
+        { id: "t3", label: `Llamada de confirmación con ${contact.name}`, dueDate: "Mañana", type: "follow_up" },
+        { id: "t4", label: `Actualizar deal a etapa "Negociación"`, dueDate: "Hoy", type: "task" },
       ]);
-      setSelectedTaskIds(new Set(["t1", "t2"]));
+      const contactFirstName = contact.name.split(" ")[0];
+      setSmsMessage(
+        `Hola ${contactFirstName}, gracias por su tiempo. ` +
+        `Le enviaré la cotización actualizada con el servicio en sitio el día de hoy. ` +
+        `Quedo a sus órdenes. — Carlos, GDT`
+      );
+      setSelectedTaskIds(new Set(["t1", "t2", "t3"]));
       setIsGeneratingSummary(false);
-    }, 2500);
+    }, 3000);
   }, [contact, deal, notes]);
 
   const handleToggleTask = (taskId: string) => {
@@ -190,6 +250,10 @@ function CallPanel({
     });
   };
 
+  const handleSendSms = () => {
+    setSmsSent(true);
+  };
+
   const seg = segmentConfig[contact.segment];
 
   return (
@@ -198,11 +262,7 @@ function CallPanel({
       <div className="flex items-center justify-between px-6 py-3 border-b bg-card">
         <div className="flex items-center gap-3">
           <div className="relative">
-            <Avatar
-              initials={contact.initials}
-              size="md"
-              className="bg-primary"
-            />
+            <Avatar initials={contact.initials} size="md" className="bg-primary" />
             {phase === "active" && (
               <span className="absolute -bottom-0.5 -right-0.5 h-3.5 w-3.5 rounded-full bg-success border-2 border-card" />
             )}
@@ -210,9 +270,7 @@ function CallPanel({
           <div>
             <div className="flex items-center gap-2">
               <span className="font-semibold">{contact.name}</span>
-              <Badge variant={seg.variant} className="text-[10px]">
-                {seg.emoji} {seg.label}
-              </Badge>
+              <Badge variant={seg.variant} className="text-[10px]">{seg.emoji} {seg.label}</Badge>
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
               <span>{contact.role}</span>
@@ -225,6 +283,24 @@ function CallPanel({
         </div>
 
         <div className="flex items-center gap-4">
+          {/* Quo API status indicator */}
+          <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border">
+            <div className={cn(
+              "h-2 w-2 rounded-full",
+              quoStatus === "connected" && "bg-success",
+              quoStatus === "connecting" && "bg-warning animate-pulse",
+              quoStatus === "disconnected" && "bg-muted-foreground",
+            )} />
+            <span className="text-[11px] font-medium text-muted-foreground">
+              {quoStatus === "connected" && "Quo conectado"}
+              {quoStatus === "connecting" && "Conectando..."}
+              {quoStatus === "disconnected" && "Llamada terminada"}
+            </span>
+            {quoCallId && (
+              <span className="text-[10px] font-mono text-muted-foreground/60">{quoCallId.slice(0, 14)}</span>
+            )}
+          </div>
+
           {phase === "active" && (
             <div className="flex items-center gap-2">
               <span className="relative flex h-2.5 w-2.5">
@@ -236,14 +312,12 @@ function CallPanel({
               </span>
               {isOnHold && (
                 <Badge variant="warning" className="text-[10px]">
-                  <i className="fa-solid fa-pause mr-1" />
-                  En espera
+                  <i className="fa-solid fa-pause mr-1" />En espera
                 </Badge>
               )}
               {isMuted && (
                 <Badge variant="destructive" className="text-[10px]">
-                  <i className="fa-solid fa-microphone-slash mr-1" />
-                  Silenciado
+                  <i className="fa-solid fa-microphone-slash mr-1" />Silenciado
                 </Badge>
               )}
             </div>
@@ -254,7 +328,7 @@ function CallPanel({
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-warning opacity-75" />
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-warning" />
               </span>
-              <span className="text-sm font-medium text-warning">Llamando...</span>
+              <span className="text-sm font-medium text-warning">Llamando vía Quo...</span>
             </div>
           )}
           {phase !== "summary" && (
@@ -267,32 +341,131 @@ function CallPanel({
 
       {/* ── Main content ─────────────────────────────────────── */}
       {phase === "summary" ? (
-        <div className="flex-1 max-w-2xl mx-auto w-full">
-          <PostCallSummary
-            contactName={contact.name}
-            company={contact.company}
-            duration={formatTimer(elapsed)}
-            summary={summary}
-            suggestedTasks={suggestedTasks}
-            onEditSummary={setSummary}
-            onConfirm={onClose}
-            onDiscard={onClose}
-            onToggleTask={handleToggleTask}
-            selectedTaskIds={selectedTaskIds}
-            isGenerating={isGeneratingSummary}
-          />
+        <div className="flex-1 overflow-y-auto">
+          <div className="max-w-5xl mx-auto w-full grid grid-cols-5 gap-0 h-full">
+            {/* Left: Summary + Tasks */}
+            <div className="col-span-3 border-r">
+              <PostCallSummary
+                contactName={contact.name}
+                company={contact.company}
+                duration={formatTimer(elapsed)}
+                summary={summary}
+                suggestedTasks={suggestedTasks}
+                onEditSummary={setSummary}
+                onConfirm={onClose}
+                onDiscard={onClose}
+                onToggleTask={handleToggleTask}
+                selectedTaskIds={selectedTaskIds}
+                isGenerating={isGeneratingSummary}
+              />
+            </div>
+
+            {/* Right: Transcript + SMS + Quo metadata */}
+            <div className="col-span-2 flex flex-col p-4 gap-4 overflow-y-auto">
+              {/* Full transcript from Quo */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <i className="fa-solid fa-file-lines text-muted-foreground text-xs" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Transcripción completa
+                  </span>
+                  <Badge variant="muted" className="text-[9px] ml-auto gap-1">vía Quo API</Badge>
+                </div>
+                <div className="rounded-lg border bg-muted/30 p-3 max-h-[280px] overflow-y-auto">
+                  {transcriptEntries.length > 0 ? (
+                    <div className="space-y-2.5">
+                      {transcriptEntries.map((entry) => (
+                        <div key={entry.id} className="text-sm">
+                          <span className={cn(
+                            "font-semibold text-xs",
+                            entry.speaker === "rep" ? "text-primary" : "text-foreground"
+                          )}>
+                            {entry.speaker === "rep" ? "Rep" : contact.name.split(" ")[0]}
+                          </span>
+                          <span className="text-[10px] text-muted-foreground font-mono ml-2">{entry.timestamp}</span>
+                          <p className="text-sm text-foreground mt-0.5">{entry.text}</p>
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    <p className="text-sm text-muted-foreground italic">Sin transcripción disponible</p>
+                  )}
+                </div>
+              </div>
+
+              <Separator />
+
+              {/* SMS follow-up via Quo Messages API */}
+              <div>
+                <div className="flex items-center gap-2 mb-3">
+                  <i className="fa-solid fa-message text-primary text-xs" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Seguimiento SMS
+                  </span>
+                  <Badge variant="blue" className="text-[9px] ml-auto gap-1">Quo Messages API</Badge>
+                </div>
+                {smsSent ? (
+                  <div className="rounded-lg border border-success/30 bg-[var(--success-100)] p-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-[var(--success-600)]">
+                      <i className="fa-solid fa-check-circle" />
+                      SMS enviado a {contact.phone}
+                    </div>
+                    <p className="text-xs text-[var(--success-600)]/80 mt-1">{smsMessage}</p>
+                  </div>
+                ) : (
+                  <>
+                    <Textarea
+                      value={smsMessage}
+                      onChange={(e) => setSmsMessage(e.target.value)}
+                      placeholder="Escribir mensaje de seguimiento..."
+                      className="min-h-[80px] text-sm mb-2"
+                      disabled={isGeneratingSummary}
+                    />
+                    <div className="flex items-center justify-between">
+                      <span className="text-[11px] text-muted-foreground">
+                        <i className="fa-solid fa-phone mr-1" />A: {contact.phone}
+                      </span>
+                      <Button size="sm" onClick={handleSendSms} disabled={!smsMessage.trim() || isGeneratingSummary}>
+                        <i className="fa-solid fa-paper-plane mr-1 text-xs" />
+                        Enviar SMS vía Quo
+                      </Button>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <Separator />
+
+              {/* Quo API call metadata */}
+              <div>
+                <div className="flex items-center gap-2 mb-2">
+                  <i className="fa-solid fa-server text-muted-foreground text-xs" />
+                  <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
+                    Datos de Quo API
+                  </span>
+                </div>
+                <div className="rounded-lg bg-muted/50 p-3 font-mono text-[11px] text-muted-foreground space-y-1">
+                  <div className="flex justify-between"><span>call_id</span><span>{quoCallId ?? "—"}</span></div>
+                  <div className="flex justify-between"><span>duration</span><span>{elapsed}s</span></div>
+                  <div className="flex justify-between"><span>direction</span><span>outbound</span></div>
+                  <div className="flex justify-between"><span>transcript_segments</span><span>{transcriptEntries.length}</span></div>
+                  <div className="flex justify-between"><span>ai_summary</span><span className="text-success">available</span></div>
+                  <div className="flex justify-between"><span>recording</span><span className="text-success">saved</span></div>
+                  <div className="flex justify-between"><span>synced_to_crm</span><span className="text-success">supabase + zoho</span></div>
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
       ) : (
         <div className="flex-1 grid grid-cols-12 gap-0 overflow-hidden">
           {/* ── Left panel: Context ─────────────────────────── */}
-          <div className="col-span-4 border-r overflow-y-auto p-5 flex flex-col gap-5">
+          <div className="col-span-3 border-r overflow-y-auto p-5 flex flex-col gap-5">
             {/* Deal info */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <i className="fa-solid fa-handshake text-primary text-xs" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Deal activo
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Deal activo</span>
               </div>
               <Card>
                 <CardContent className="p-4 space-y-3">
@@ -300,20 +473,12 @@ function CallPanel({
                     <span className="font-semibold text-sm">{deal.name}</span>
                     <Badge variant={deal.daysSinceActivity > 5 ? "destructive" : "success"} className="text-[10px]">
                       {deal.daysSinceActivity > 5 ? (
-                        <>
-                          <i className="fa-solid fa-triangle-exclamation mr-1" />
-                          {deal.daysSinceActivity}d sin actividad
-                        </>
+                        <><i className="fa-solid fa-triangle-exclamation mr-1" />{deal.daysSinceActivity}d sin actividad</>
                       ) : (
-                        <>
-                          <i className="fa-solid fa-check mr-1" />
-                          Activo
-                        </>
+                        <><i className="fa-solid fa-check mr-1" />Activo</>
                       )}
                     </Badge>
                   </div>
-
-                  {/* Stage progress */}
                   <div>
                     <div className="flex items-center justify-between text-xs text-muted-foreground mb-1.5">
                       <span>Etapa {deal.stageNumber}: {deal.stage}</span>
@@ -321,13 +486,7 @@ function CallPanel({
                     </div>
                     <div className="flex gap-1">
                       {Array.from({ length: 8 }).map((_, i) => (
-                        <div
-                          key={i}
-                          className={cn(
-                            "h-1.5 flex-1 rounded-full",
-                            i < deal.stageNumber ? "bg-primary" : "bg-muted"
-                          )}
-                        />
+                        <div key={i} className={cn("h-1.5 flex-1 rounded-full", i < deal.stageNumber ? "bg-primary" : "bg-muted")} />
                       ))}
                     </div>
                   </div>
@@ -339,17 +498,12 @@ function CallPanel({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <i className="fa-solid fa-sparkles text-primary text-xs" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Puntos a tratar
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Puntos a tratar</span>
                 <Badge variant="blue" className="text-[10px] ml-auto">IA</Badge>
               </div>
               <div className="flex flex-col gap-2">
                 {talkingPoints.map((tp, i) => (
-                  <div
-                    key={i}
-                    className="flex items-start gap-2.5 rounded-lg border p-3 text-sm"
-                  >
+                  <div key={i} className="flex items-start gap-2.5 rounded-lg border p-3 text-sm">
                     <span className={cn("inline-flex items-center justify-center h-5 min-w-[20px] rounded-full text-[10px] font-bold", priorityColors[tp.priority])}>
                       {tp.priority === "high" ? "!" : tp.priority === "medium" ? "·" : "–"}
                     </span>
@@ -365,9 +519,7 @@ function CallPanel({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <i className="fa-solid fa-clock-rotate-left text-muted-foreground text-xs" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Historial reciente
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Historial reciente</span>
               </div>
               <div className="flex flex-col gap-2">
                 {history.map((h, i) => (
@@ -381,17 +533,13 @@ function CallPanel({
             </div>
           </div>
 
-          {/* ── Center: Call area ───────────────────────────── */}
-          <div className="col-span-5 flex flex-col">
+          {/* ── Center: Transcript + Notes tabs ────────────── */}
+          <div className="col-span-6 flex flex-col">
             {/* Ringing state */}
             {phase === "ringing" && (
               <div className="flex-1 flex flex-col items-center justify-center gap-6">
                 <div className="relative">
-                  <Avatar
-                    initials={contact.initials}
-                    size="lg"
-                    className="bg-primary h-24 w-24 text-3xl"
-                  />
+                  <Avatar initials={contact.initials} size="lg" className="bg-primary h-24 w-24 text-3xl" />
                   <div className="absolute inset-0 rounded-full border-4 border-primary/30 animate-ping" />
                 </div>
                 <div className="text-center">
@@ -399,8 +547,17 @@ function CallPanel({
                   <p className="text-muted-foreground">{contact.phone}</p>
                   <p className="text-sm text-warning mt-2 font-medium">
                     <i className="fa-solid fa-phone fa-shake mr-2" />
-                    Llamando...
+                    Conectando vía Quo API...
                   </p>
+                  <div className="mt-3 flex items-center justify-center gap-2">
+                    <div className="h-1.5 w-1.5 rounded-full bg-warning animate-bounce" style={{ animationDelay: "0ms" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-warning animate-bounce" style={{ animationDelay: "150ms" }} />
+                    <div className="h-1.5 w-1.5 rounded-full bg-warning animate-bounce" style={{ animationDelay: "300ms" }} />
+                  </div>
+                </div>
+                <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2 rounded-full bg-muted/50 border">
+                  <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+                  POST /v1/calls · Quo API
                 </div>
                 <Button variant="destructive" size="lg" className="rounded-full px-8" onClick={onClose}>
                   <i className="fa-solid fa-phone-hangup mr-2" />
@@ -412,22 +569,57 @@ function CallPanel({
             {/* Active call */}
             {phase === "active" && (
               <div className="flex-1 flex flex-col">
-                {/* Notes area */}
-                <div className="flex-1 p-5">
-                  <CallNotes value={notes} onChange={setNotes} />
+                {/* Tab switcher */}
+                <div className="flex items-center border-b px-5 pt-3">
+                  <button
+                    onClick={() => setCenterTab("transcript")}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+                      centerTab === "transcript" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <i className="fa-solid fa-closed-captioning mr-2 text-xs" />
+                    Transcripción en vivo
+                    {transcriptEntries.length > 0 && (
+                      <Badge variant="muted" className="text-[10px] ml-2">{transcriptEntries.length}</Badge>
+                    )}
+                  </button>
+                  <button
+                    onClick={() => setCenterTab("notes")}
+                    className={cn(
+                      "px-4 py-2 text-sm font-medium border-b-2 transition-colors",
+                      centerTab === "notes" ? "border-primary text-primary" : "border-transparent text-muted-foreground hover:text-foreground"
+                    )}
+                  >
+                    <i className="fa-solid fa-pen-to-square mr-2 text-xs" />
+                    Notas
+                  </button>
                 </div>
+
+                {/* Tab content */}
+                <div className="flex-1 p-5 overflow-hidden">
+                  {centerTab === "transcript" ? (
+                    <LiveTranscript
+                      entries={transcriptEntries}
+                      isActive={phase === "active"}
+                      contactName={contact.name.split(" ")[0]!}
+                    />
+                  ) : (
+                    <CallNotes value={notes} onChange={setNotes} />
+                  )}
+                </div>
+
                 {/* Dialpad */}
                 {showDialpad && (
                   <div className="px-5 pb-3">
                     <div className="grid grid-cols-3 gap-2 max-w-[200px] mx-auto">
                       {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((key) => (
-                        <Button key={key} variant="outline" size="sm" className="h-10 text-base font-mono">
-                          {key}
-                        </Button>
+                        <Button key={key} variant="outline" size="sm" className="h-10 text-base font-mono">{key}</Button>
                       ))}
                     </div>
                   </div>
                 )}
+
                 {/* Controls */}
                 <div className="p-5 border-t bg-card">
                   <CallControls
@@ -441,19 +633,20 @@ function CallPanel({
                     onToggleDialpad={() => setShowDialpad(!showDialpad)}
                     onHangup={handleHangup}
                   />
+                  <p className="text-center text-[10px] text-muted-foreground mt-3">
+                    Llamada VoIP vía Quo API · Cifrado SRTP · {contact.phone}
+                  </p>
                 </div>
               </div>
             )}
           </div>
 
-          {/* ── Right panel: Quick actions ─────────────────── */}
+          {/* ── Right panel: Quick actions + integrations ──── */}
           <div className="col-span-3 border-l overflow-y-auto p-5 flex flex-col gap-5">
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <i className="fa-solid fa-bolt text-primary text-xs" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Acciones rápidas
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Acciones rápidas</span>
               </div>
               <div className="flex flex-col gap-2">
                 {quickActions.map((action) => (
@@ -476,9 +669,7 @@ function CallPanel({
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <i className="fa-solid fa-address-card text-muted-foreground text-xs" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Contacto
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Contacto</span>
               </div>
               <div className="space-y-2.5 text-sm">
                 <div className="flex items-center gap-2">
@@ -504,13 +695,11 @@ function CallPanel({
 
             <Separator />
 
-            {/* Stats mini */}
+            {/* Metrics */}
             <div>
               <div className="flex items-center gap-2 mb-3">
                 <i className="fa-solid fa-chart-simple text-muted-foreground text-xs" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                  Métricas del cliente
-                </span>
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Métricas del cliente</span>
               </div>
               <div className="grid grid-cols-2 gap-3">
                 <div className="rounded-lg bg-muted/50 p-3 text-center">
@@ -528,6 +717,33 @@ function CallPanel({
                 <div className="rounded-lg bg-muted/50 p-3 text-center">
                   <p className="text-lg font-bold text-foreground">85%</p>
                   <p className="text-[11px] text-muted-foreground">Prob. cierre</p>
+                </div>
+              </div>
+            </div>
+
+            <Separator />
+
+            {/* Active integrations */}
+            <div>
+              <div className="flex items-center gap-2 mb-3">
+                <i className="fa-solid fa-plug text-muted-foreground text-xs" />
+                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Integraciones activas</span>
+              </div>
+              <div className="space-y-2">
+                <div className="flex items-center gap-2.5 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-success" />
+                  <span className="font-medium">Quo</span>
+                  <span className="text-xs text-muted-foreground ml-auto">VoIP + SMS + Transcripción</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-success" />
+                  <span className="font-medium">Supabase</span>
+                  <span className="text-xs text-muted-foreground ml-auto">CRM + Tareas</span>
+                </div>
+                <div className="flex items-center gap-2.5 text-sm">
+                  <div className="h-2 w-2 rounded-full bg-warning" />
+                  <span className="font-medium">Zoho</span>
+                  <span className="text-xs text-muted-foreground ml-auto">Sync (dual-write)</span>
                 </div>
               </div>
             </div>
