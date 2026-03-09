@@ -692,6 +692,103 @@ Tasks:
 
 ---
 
+## Epic 12: In-Platform Calling
+
+> Let reps make and receive PSTN calls directly from the browser, with full client context visible during the call and automatic post-call logging.
+
+**Phase A (MVP — $0/rep):** Call Mode — context panel + `tel:` link, call happens on rep's own phone.  
+**Phase B (Post-MVP — ~$14/rep/month):** Browser VoIP via SIP.js + SIP trunk, full in-browser calling with mute/hold/hangup controls.
+
+### Story 12.1 — Call Mode (Phase A)
+
+> As a sales rep, I want to click a contact's phone number and immediately see a full-screen context panel with talking points, deal info, and live note-taking — so I have everything I need during the call without searching.
+
+Acceptance Criteria:
+- Clicking a phone number on any contact/deal card opens Call Mode panel
+- `tel:` link triggers the device's native dialer simultaneously
+- Call Mode shows: contact profile, deal stage & value, segment, history, AI talking points, action buttons
+- Live notes area for typing during the call
+- "End Call" button triggers post-call summary flow
+- Works on desktop (browser) and mobile (triggers phone app)
+
+Tasks:
+- [ ] Build `CallButton` component (phone icon on contact cards, deal rooms, inbox)
+- [ ] Build `CallPanel` full-screen overlay layout (contact info + deal context + talking points + notes)
+- [ ] Pre-generate talking points on deal/contact update (cache in Supabase, not on-demand)
+- [ ] Build `CallNotes` live text area with auto-save
+- [ ] Build quick-action buttons: schedule follow-up, update deal stage, create task
+- [ ] Trigger `tel:` URI on click for native dialer fallback
+- [ ] Build mobile-responsive layout for Call Mode
+
+### Story 12.2 — Post-Call AI Summary & Auto-Logging
+
+> As a sales rep, I want the system to summarize my call notes and automatically log the call activity so I never forget to update the CRM.
+
+Acceptance Criteria:
+- On "End Call": AI generates structured summary from rep's notes (Spanish)
+- Call activity auto-created in Supabase tasks/activities (duration, summary, next steps)
+- Activity synced to Zoho (dual-write)
+- If deal was stale (5+ days), stale flag is auto-cleared
+- Follow-up task auto-suggested based on call outcome
+- Rep can edit summary before confirming
+
+Tasks:
+- [ ] Build `PostCallSummary` component (editable AI summary + suggested tasks)
+- [ ] Build post-call processing worker: notes → GPT-4o-mini → structured summary
+- [ ] Auto-create call activity in Supabase (duration, summary, contact_id, deal_id)
+- [ ] Sync call activity to Zoho Activities via dual-write
+- [ ] Auto-clear stale deal flag on call completion
+- [ ] Auto-suggest follow-up task with due date
+- [ ] Build confirm/edit flow before final save
+
+### Story 12.3 — Browser VoIP Calling (Phase B)
+
+> As a sales rep, I want to make and receive actual phone calls directly from my browser with mute, hold, and hangup controls — so I never leave the platform.
+
+Acceptance Criteria:
+- Rep clicks "Call" → audio connects through browser to client's phone (PSTN)
+- Call controls in UI: mute, hold, hangup, speaker toggle
+- Incoming call notification with accept/reject
+- Audio quality comparable to native phone
+- Mexican DID as caller ID (clients see a local 722 number)
+- Call duration tracked automatically
+- Integrates with Call Panel from Story 12.1 (same context UI)
+
+Tasks:
+- [ ] Evaluate and select SIP trunk provider (VoIP.ms vs Telnyx — target ≤$0.015/min MX)
+- [ ] Provision Mexican DID numbers (one per rep or shared)
+- [ ] Build `sipClient.ts` in `packages/integrations/voip/` — SIP.js browser wrapper (register, call, hangup, hold, mute, DTMF)
+- [ ] Build `sipGateway.ts` — WebSocket↔SIP bridge on Railway
+- [ ] Build `CallControls` component (mute, hold, hangup, speaker, DTMF pad)
+- [ ] Build incoming call notification + accept/reject UI
+- [ ] Wire call events (start, end, hold, mute) to Supabase call log
+- [ ] Add call quality monitoring (jitter, packet loss indicators)
+- [ ] Configure SRTP for encrypted audio
+
+### Story 12.4 — Call Recording & Transcription (Phase B)
+
+> As a sales manager, I want calls optionally recorded and transcribed so that agents can extract full context without relying on rep notes.
+
+Acceptance Criteria:
+- Recording toggled per call or by org policy
+- Recordings stored in Supabase Storage (encrypted at rest)
+- Transcription via Whisper or Deepgram (Spanish)
+- Transcript fed to Sales Assistant Agent for richer summaries
+- Consent beep/announcement played at call start (legal compliance)
+- Recordings retained per org retention policy (default 90 days)
+
+Tasks:
+- [ ] Add recording toggle to `CallControls` (with visual indicator)
+- [ ] Stream audio to server-side recording worker on Railway
+- [ ] Store recordings in Supabase Storage (encrypted, org-scoped RLS)
+- [ ] Build transcription pipeline: recording → Whisper API → transcript
+- [ ] Feed transcript to post-call summary for enhanced AI context
+- [ ] Add consent announcement audio at call start
+- [ ] Build recording playback UI in deal room timeline
+- [ ] Implement retention policy cleanup cron
+
+---
+
 ## Priority Summary
 
 | Priority | Epic | Why |
@@ -707,6 +804,8 @@ Tasks:
 | P2 | Epic 9: Reporting | Reporting cadence automation |
 | P2 | Epic 10: Approval Workflows | Required for external actions |
 | P3 | Epic 11: Polish & Launch | Final validation and deploy |
+| P3 | Epic 12A: Call Mode | Context panel + auto-logging ($0/rep, solves call logging pain) |
+| P4 | Epic 12B: Browser VoIP | Full in-browser calling (~$14/rep, after call mode validated) |
 
 ## Validation Protocol
 
