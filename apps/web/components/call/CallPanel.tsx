@@ -95,8 +95,8 @@ const historyIcons: Record<string, string> = {
 };
 
 const priorityColors: Record<string, string> = {
-  high: "bg-[var(--danger-100)] text-[var(--danger-600)]",
-  medium: "bg-[var(--orange-100)] text-[var(--orange-600)]",
+  high: "bg-red-50 text-red-600",
+  medium: "bg-amber-50 text-amber-600",
   low: "bg-muted text-muted-foreground",
 };
 
@@ -465,12 +465,12 @@ function CallPanel({
                   </Badge>
                 </div>
                 {smsSent ? (
-                  <div className="rounded-lg border border-success/30 bg-[var(--success-100)] p-3">
-                    <div className="flex items-center gap-2 text-sm font-medium text-[var(--success-600)]">
+                  <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
+                    <div className="flex items-center gap-2 text-sm font-medium text-emerald-700">
                       <i className="fa-solid fa-check-circle" />
                       SMS enviado a {contact.phone}
                     </div>
-                    <p className="text-xs text-[var(--success-600)]/80 mt-1">{smsMessage}</p>
+                    <p className="text-xs text-emerald-600 mt-1">{smsMessage}</p>
                   </div>
                 ) : (
                   <>
@@ -672,7 +672,7 @@ function CallPanel({
                   {centerTab === "transcript" ? (
                     <>
                       {isMicMode && !speech.isSupported && (
-                        <div className="mb-3 rounded-lg border border-warning/30 bg-[var(--orange-100)] p-3 text-sm text-[var(--orange-600)]">
+                        <div className="mb-3 rounded-lg border border-amber-200 bg-amber-50 p-3 text-sm text-amber-700">
                           <i className="fa-solid fa-triangle-exclamation mr-2" />
                           Tu navegador no soporta Web Speech API. Usa Chrome o Edge para transcripción gratuita.
                         </div>

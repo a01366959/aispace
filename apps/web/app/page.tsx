@@ -235,9 +235,9 @@ const STAGE_LABELS: Record<Stage, string> = {
   seguimiento: "Seguimiento", cerrado_ganado: "Cerrado ganado", cerrado_perdido: "Cerrado perdido",
 };
 const SEGMENT_LABELS: Record<Segment, string> = { ballenas: "Ballena", tiburones: "Tiburón", atunes: "Atún", truchas: "Trucha", charales: "Charal" };
-const SEGMENT_BADGE: Record<Segment, "blue" | "warning" | "success" | "muted"> = { ballenas: "blue", tiburones: "warning", atunes: "success", truchas: "muted", charales: "muted" };
-const STAGE_BADGE: Record<string, "blue" | "warning" | "success" | "muted" | "destructive"> = { cotización_enviada: "blue", seguimiento: "warning", descubrimiento: "success", prospecto: "muted", cerrado_ganado: "success", cerrado_perdido: "destructive" };
-const AVATAR_BG: Record<string, string> = { CM: "bg-[var(--blue-600)]", AT: "bg-[var(--orange-600)]", RJ: "bg-success", PS: "bg-destructive", AI: "bg-foreground", SV: "bg-foreground", MR: "bg-primary" };
+const SEGMENT_BADGE: Record<Segment, "blue" | "warning" | "success" | "muted" | "outline"> = { ballenas: "outline", tiburones: "outline", atunes: "outline", truchas: "muted", charales: "muted" };
+const STAGE_BADGE: Record<string, "blue" | "warning" | "success" | "muted" | "destructive" | "outline" | "secondary"> = { cotización_enviada: "secondary", seguimiento: "secondary", descubrimiento: "secondary", prospecto: "muted", cerrado_ganado: "success", cerrado_perdido: "destructive" };
+const AVATAR_BG: Record<string, string> = { CM: "bg-blue-100 text-blue-700", AT: "bg-amber-100 text-amber-700", RJ: "bg-emerald-100 text-emerald-700", PS: "bg-violet-100 text-violet-700", AI: "bg-muted text-muted-foreground", SV: "bg-muted text-muted-foreground", MR: "bg-primary text-primary-foreground" };
 const BTN_MAP: Record<string, "default" | "outline" | "success" | "destructive"> = { primary: "default", outline: "outline", success: "success", danger: "destructive" };
 
 const NAV_ITEMS = [
@@ -429,7 +429,7 @@ function MessageBubble({
       <div className="flex-1 min-w-0">
         <div className="flex items-baseline gap-2">
           <span className="text-[13px] font-semibold text-foreground">{msg.sender}</span>
-          {msg.agentTag && <Badge variant="muted" className="text-[10px] gap-1 py-0 border-0"><i className="fa-solid fa-robot text-[8px]" /> {msg.agentTag}</Badge>}
+          {msg.agentTag && <span className="text-[10px] text-muted-foreground">· {msg.agentTag}</span>}
           <span className="text-[11px] text-muted-foreground">{msg.time}</span>
         </div>
 
@@ -443,15 +443,15 @@ function MessageBubble({
         <p className="mt-0.5 text-sm leading-relaxed text-foreground">{msg.text}</p>
 
         {msg.action && (
-          <Card className="mt-2 shadow-none">
+          <Card className="mt-2">
             <CardContent className="p-3 flex flex-col gap-1.5">
               <div className="flex items-center gap-2 text-xs font-medium text-foreground">
-                {msg.action.status === "auto-applied" && <i className="fa-solid fa-circle-check text-success text-[11px]" />}
-                {msg.action.status === "pending-approval" && <i className="fa-solid fa-clock text-warning text-[11px]" />}
-                {msg.action.status === "info" && <i className="fa-solid fa-circle-info text-primary text-[11px]" />}
-                {msg.action.label}
-                {msg.action.status === "auto-applied" && <Badge variant="success" className="text-[9px] py-0">Aplicado</Badge>}
-                {msg.action.status === "pending-approval" && <Badge variant="warning" className="text-[9px] py-0">Pendiente</Badge>}
+                {msg.action.status === "auto-applied" && <i className="fa-solid fa-circle-check text-muted-foreground text-[11px]" />}
+                {msg.action.status === "pending-approval" && <i className="fa-solid fa-clock text-muted-foreground text-[11px]" />}
+                {msg.action.status === "info" && <i className="fa-solid fa-circle-info text-muted-foreground text-[11px]" />}
+                <span className="truncate">{msg.action.label}</span>
+                {msg.action.status === "auto-applied" && <span className="text-[10px] text-muted-foreground shrink-0">Aplicado</span>}
+                {msg.action.status === "pending-approval" && <span className="text-[10px] text-muted-foreground shrink-0">Pendiente</span>}
               </div>
               <p className="text-xs leading-relaxed text-muted-foreground">{msg.action.body}</p>
               {msg.action.buttons && (
@@ -479,7 +479,7 @@ function MessageBubble({
         )}
 
         {msg.threadCount && msg.threadCount > 0 && onOpenThread && (
-          <button onClick={() => onOpenThread(msg.id)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs font-medium text-primary hover:underline">
+          <button onClick={() => onOpenThread(msg.id)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
             <i className="fa-solid fa-message text-[10px]" />
             {msg.threadCount} {msg.threadCount === 1 ? "respuesta" : "respuestas"}
           </button>
@@ -567,7 +567,7 @@ export default function InboxPage() {
           <Tooltip key={item.label} content={item.label} side="right">
             <Button variant="ghost" size="icon-sm" className={cn("relative h-9 w-9 text-sidebar-foreground", item.active ? "bg-white/10 text-white" : "hover:bg-white/[.06]")}>
               <i className={cn(item.icon, "text-sm")} />
-              {item.badge && <span className="absolute -right-0.5 -top-0.5 flex h-4 min-w-[16px] items-center justify-center rounded-full bg-destructive px-1 text-[10px] font-bold text-white">{item.badge}</span>}
+              {item.badge && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />}
             </Button>
           </Tooltip>
         ))}
@@ -576,14 +576,14 @@ export default function InboxPage() {
           <Button
             variant="ghost"
             size="icon-sm"
-            className={cn("h-9 w-9 text-sidebar-foreground", callMode !== "voip" ? "text-success" : "")}
+            className="h-9 w-9 text-sidebar-foreground"
             onClick={() => setCallMode((m) => m === "mic-listen" ? "voip" : m === "voip" ? "hybrid-quo" : m === "hybrid-quo" ? "hybrid-device" : "mic-listen")}
           >
             <i className={cn("text-sm", callMode === "mic-listen" ? "fa-solid fa-microphone" : callMode === "hybrid-device" ? "fa-solid fa-headset" : callMode === "hybrid-quo" ? "fa-solid fa-mobile-screen" : "fa-solid fa-phone")} />
           </Button>
         </Tooltip>
         <Tooltip content="Miriam Reyes" side="right">
-          <Avatar size="sm" className="bg-primary/80 text-[11px]" initials="MR" />
+          <Avatar size="sm" className="bg-white/10 text-white text-[10px]" initials="MR" />
         </Tooltip>
       </nav>
 
@@ -623,7 +623,7 @@ export default function InboxPage() {
                   >
                     <i className={cn(agent.icon, "text-xs w-4 text-center")} />
                     <span className="truncate">{agent.name}</span>
-                    {agent.unread > 0 && <Badge className="ml-auto h-5 min-w-[20px] px-1.5 text-[10px]">{agent.unread}</Badge>}
+                    {agent.unread > 0 && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
                   </button>
                 </div>
 
@@ -650,7 +650,7 @@ export default function InboxPage() {
                         <Tooltip content="Llamar" side="right">
                           <button
                             onClick={(e) => { e.stopPropagation(); startCallFromThread(thread.id); }}
-                            className="shrink-0 h-6 w-6 mr-2 rounded flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-success hover:bg-[var(--success-100)] transition-all"
+                            className="shrink-0 h-6 w-6 mr-2 rounded flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-all"
                           >
                             <i className="fa-solid fa-phone text-[10px]" />
                           </button>
@@ -673,21 +673,16 @@ export default function InboxPage() {
               <>
                 <Avatar size="sm" className={AVATAR_BG[activeChannel.initials] ?? "bg-muted-foreground"} initials={activeChannel.initials} />
                 <div className="min-w-0">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">{activeChannel.clientName}</span>
-                    <Badge variant={STAGE_BADGE[activeChannel.stage] ?? "muted"} className="text-[10px] py-0">{STAGE_LABELS[activeChannel.stage]}</Badge>
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="text-sm font-semibold text-foreground truncate">{activeChannel.clientName}</span>
+                    <span className="text-xs text-muted-foreground shrink-0">{STAGE_LABELS[activeChannel.stage]}</span>
                   </div>
-                  <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                    <span>{activeChannel.company}</span>
-                    <span>·</span>
-                    <Badge variant={SEGMENT_BADGE[activeChannel.segment]} className="text-[9px] py-0">{SEGMENT_LABELS[activeChannel.segment]}</Badge>
+                  <p className="text-xs text-muted-foreground truncate">
+                    {activeChannel.company}
                     {CALL_CONTACTS[activeChannel.id] && (
-                      <>
-                        <span>·</span>
-                        <span className="font-mono">{CALL_CONTACTS[activeChannel.id]!.phone}</span>
-                      </>
+                      <> · <span className="font-mono">{CALL_CONTACTS[activeChannel.id]!.phone}</span></>
                     )}
-                  </div>
+                  </p>
                 </div>
               </>
             ) : (
@@ -708,7 +703,7 @@ export default function InboxPage() {
                 <Button
                   variant="ghost"
                   size="icon-sm"
-                  className="h-8 w-8 text-success hover:bg-[var(--success-100)]"
+                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
                   onClick={() => startCallFromThread(activeChannel.id)}
                 >
                   <i className="fa-solid fa-phone text-xs" />

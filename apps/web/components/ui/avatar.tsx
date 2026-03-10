@@ -4,14 +4,14 @@ import { cva, type VariantProps } from "class-variance-authority";
 import { cn } from "@/lib/utils";
 
 const avatarVariants = cva(
-  "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-semibold text-white",
+  "relative flex shrink-0 items-center justify-center overflow-hidden rounded-full font-medium",
   {
     variants: {
       size: {
-        sm: "h-8 w-8 text-xs",
-        default: "h-9 w-9 text-sm",
-        md: "h-10 w-10 text-sm",
-        lg: "h-14 w-14 text-xl font-bold",
+        sm: "h-7 w-7 text-[11px]",
+        default: "h-8 w-8 text-xs",
+        md: "h-9 w-9 text-xs",
+        lg: "h-12 w-12 text-base",
       },
     },
     defaultVariants: {

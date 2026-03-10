@@ -20,7 +20,7 @@ const CallButton = React.forwardRef<HTMLButtonElement, CallButtonProps>(
           variant="ghost"
           size={size}
           className={cn(
-            "text-muted-foreground hover:text-success hover:bg-[var(--success-100)] transition-colors",
+            "text-muted-foreground hover:text-foreground hover:bg-muted transition-colors",
             className
           )}
           onClick={() => onStartCall?.(phoneNumber)}

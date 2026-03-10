@@ -187,7 +187,7 @@ export default function CallDemoPage() {
                       initials={contact.initials}
                       size="lg"
                       className={cn(
-                        contact.segment === "ballenas" && "bg-[var(--blue-600)]",
+                        contact.segment === "ballenas" && "bg-blue-100 text-blue-700",
                         contact.segment === "atunes" && "bg-success",
                         contact.segment === "truchas" && "bg-secondary",
                       )}
