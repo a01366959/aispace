@@ -162,10 +162,16 @@ export default function CallDemoPage() {
                 Haz clic en el teléfono de cualquier contacto para iniciar una llamada con contexto completo
               </p>
             </div>
-            <Badge variant="warning" className="ml-auto">
-              <i className="fa-solid fa-flask mr-1" />
-              Prototipo
-            </Badge>
+            <div className="ml-auto flex items-center gap-2">
+              <a href="/transcribe" className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-md text-sm font-medium border hover:bg-muted transition-colors">
+                <i className="fa-solid fa-microphone text-xs" />
+                Transcripción en vivo
+              </a>
+              <Badge variant="warning">
+                <i className="fa-solid fa-flask mr-1" />
+                Prototipo
+              </Badge>
+            </div>
           </div>
         </div>
       </div>

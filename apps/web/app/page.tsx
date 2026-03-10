@@ -246,6 +246,7 @@ const NAV_ITEMS = [
   { icon: "fa-solid fa-circle-check", label: "Tareas" },
   { icon: "fa-solid fa-calendar-days", label: "Calendario" },
   { icon: "fa-solid fa-chart-column", label: "Reportes" },
+  { icon: "fa-solid fa-microphone", label: "Transcripción", href: "/transcribe" },
 ];
 
 /* ════════════════════════════════════════════════════════════════════════════
@@ -565,10 +566,16 @@ export default function InboxPage() {
         <div className="mb-4 grid h-8 w-8 place-content-center rounded-lg bg-primary text-xs font-bold text-white">AI</div>
         {NAV_ITEMS.map((item) => (
           <Tooltip key={item.label} content={item.label} side="right">
-            <Button variant="ghost" size="icon-sm" className={cn("relative h-9 w-9 text-sidebar-foreground", item.active ? "bg-white/10 text-white" : "hover:bg-white/[.06]")}>
-              <i className={cn(item.icon, "text-sm")} />
-              {item.badge && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />}
-            </Button>
+            {item.href ? (
+              <a href={item.href} className={cn("relative inline-flex items-center justify-center h-9 w-9 rounded-md text-sidebar-foreground hover:bg-white/[.06] transition-colors")}>
+                <i className={cn(item.icon, "text-sm")} />
+              </a>
+            ) : (
+              <Button variant="ghost" size="icon-sm" className={cn("relative h-9 w-9 text-sidebar-foreground", item.active ? "bg-white/10 text-white" : "hover:bg-white/[.06]")}>
+                <i className={cn(item.icon, "text-sm")} />
+                {item.badge && <span className="absolute right-1.5 top-1.5 h-2 w-2 rounded-full bg-primary" />}
+              </Button>
+            )}
           </Tooltip>
         ))}
         <div className="flex-1" />
