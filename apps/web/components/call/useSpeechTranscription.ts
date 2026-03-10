@@ -108,8 +108,7 @@ export function useSpeechTranscription({
     if (!isSupported || recognitionRef.current) return;
 
     const SpeechRecognitionCtor =
-      (window as unknown as { SpeechRecognition?: typeof SpeechRecognition }).SpeechRecognition ??
-      (window as unknown as { webkitSpeechRecognition?: typeof SpeechRecognition }).webkitSpeechRecognition;
+      window.SpeechRecognition ?? window.webkitSpeechRecognition;
 
     if (!SpeechRecognitionCtor) {
       setError("Web Speech API no disponible en este navegador");
