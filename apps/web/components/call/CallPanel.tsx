@@ -152,7 +152,7 @@ function CallPanel({
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
   const [isSpeaker, setIsSpeaker] = useState(false);
-  const [showDialpad, setShowDialpad] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [notes, setNotes] = useState("");
   const [centerTab, setCenterTab] = useState<CenterTab>("transcript");
 
@@ -299,6 +299,63 @@ function CallPanel({
 
   const seg = segmentConfig[contact.segment];
 
+  /* ── Minimized floating PiP window ──────────────────────────────────────── */
+  if (isMinimized && phase === "active") {
+    return (
+      <div className="fixed bottom-6 right-6 z-50 w-[300px] rounded-2xl border border-border bg-card shadow-2xl overflow-hidden">
+        {/* Header row */}
+        <div className="flex items-center gap-3 px-4 py-3 border-b bg-muted/20">
+          <div className="relative shrink-0">
+            <Avatar initials={contact.initials} size="sm" className="bg-primary" />
+            <span className="absolute -bottom-0.5 -right-0.5 h-3 w-3 rounded-full bg-success border-2 border-card" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="font-semibold text-sm truncate text-foreground">{contact.name}</div>
+            <div className="text-[11px] text-muted-foreground truncate">{contact.company}</div>
+          </div>
+          <div className="flex items-center gap-1.5 shrink-0">
+            <span className="relative flex h-2 w-2">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-success opacity-75" />
+              <span className="relative inline-flex rounded-full h-2 w-2 bg-success" />
+            </span>
+            <span className="font-mono text-sm font-semibold text-foreground">{formatTimer(elapsed)}</span>
+          </div>
+        </div>
+        {/* Controls row */}
+        <div className="flex items-center justify-between px-4 py-3">
+          <button
+            onClick={() => setIsMuted(!isMuted)}
+            aria-label={isMuted ? "Activar micrófono" : "Silenciar"}
+            className={cn(
+              "h-10 w-10 rounded-full flex items-center justify-center border transition-colors",
+              isMuted
+                ? "bg-destructive text-destructive-foreground border-destructive"
+                : "bg-background text-foreground border-border hover:bg-muted",
+            )}
+          >
+            <i className={cn("fa-solid text-sm", isMuted ? "fa-microphone-slash" : "fa-microphone")} />
+          </button>
+
+          <button
+            onClick={() => setIsMinimized(false)}
+            className="flex items-center gap-1 text-[12px] text-muted-foreground hover:text-foreground transition-colors px-3 py-1.5 rounded-lg hover:bg-muted"
+          >
+            <i className="fa-solid fa-expand text-xs" />
+            <span>Expandir</span>
+          </button>
+
+          <button
+            onClick={handleHangup}
+            aria-label="Colgar"
+            className="h-10 w-10 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white shadow-md transition-colors"
+          >
+            <i className="fa-solid fa-phone-hangup text-sm" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="fixed inset-0 z-50 bg-background flex flex-col">
       {/* ── Top bar ──────────────────────────────────────────── */}
@@ -388,7 +445,7 @@ function CallPanel({
             </div>
           )}
           {phase !== "summary" && (
-            <Button variant="ghost" size="icon-sm" onClick={onClose} aria-label="Minimizar">
+            <Button variant="ghost" size="icon-sm" onClick={() => setIsMinimized(true)} aria-label="Minimizar">
               <i className="fa-solid fa-compress text-sm" />
             </Button>
           )}
@@ -709,28 +766,15 @@ function CallPanel({
                   )}
                 </div>
 
-                {/* Dialpad */}
-                {showDialpad && (
-                  <div className="px-5 pb-3">
-                    <div className="grid grid-cols-3 gap-2 max-w-[200px] mx-auto">
-                      {["1", "2", "3", "4", "5", "6", "7", "8", "9", "*", "0", "#"].map((key) => (
-                        <Button key={key} variant="outline" size="sm" className="h-10 text-base font-mono">{key}</Button>
-                      ))}
-                    </div>
-                  </div>
-                )}
-
                 {/* Controls */}
                 <div className="p-5 border-t bg-card">
                   <CallControls
                     isMuted={isMuted}
                     isOnHold={isOnHold}
                     isSpeaker={isSpeaker}
-                    showDialpad={showDialpad}
                     onToggleMute={() => setIsMuted(!isMuted)}
                     onToggleHold={() => setIsOnHold(!isOnHold)}
                     onToggleSpeaker={() => setIsSpeaker(!isSpeaker)}
-                    onToggleDialpad={() => setShowDialpad(!showDialpad)}
                     onHangup={handleHangup}
                   />
                   <p className="text-center text-[10px] text-muted-foreground mt-3">

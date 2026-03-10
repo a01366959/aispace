@@ -9,11 +9,9 @@ export interface CallControlsProps {
   isMuted: boolean;
   isOnHold: boolean;
   isSpeaker: boolean;
-  showDialpad: boolean;
   onToggleMute: () => void;
   onToggleHold: () => void;
   onToggleSpeaker: () => void;
-  onToggleDialpad: () => void;
   onHangup: () => void;
 }
 
@@ -21,15 +19,13 @@ function CallControls({
   isMuted,
   isOnHold,
   isSpeaker,
-  showDialpad,
   onToggleMute,
   onToggleHold,
   onToggleSpeaker,
-  onToggleDialpad,
   onHangup,
 }: CallControlsProps) {
   return (
-    <div className="flex items-center justify-center gap-3">
+    <div className="flex items-center justify-center gap-4">
       <Tooltip content={isMuted ? "Activar micrófono" : "Silenciar"} side="top">
         <Button
           variant={isMuted ? "destructive" : "outline"}
@@ -66,29 +62,15 @@ function CallControls({
         </Button>
       </Tooltip>
 
-      <Tooltip content={showDialpad ? "Ocultar teclado" : "Teclado numérico"} side="top">
-        <Button
-          variant={showDialpad ? "default" : "outline"}
-          size="icon"
-          onClick={onToggleDialpad}
-          className="h-12 w-12 rounded-full"
-          aria-label="Teclado numérico"
-        >
-          <i className="fa-solid fa-grid-2 text-base" />
-        </Button>
-      </Tooltip>
-
-      <Tooltip content="Colgar" side="top">
-        <Button
-          variant="destructive"
-          size="icon"
-          onClick={onHangup}
-          className="h-14 w-14 rounded-full shadow-lg"
-          aria-label="Colgar llamada"
-        >
-          <i className="fa-solid fa-phone-hangup text-lg" />
-        </Button>
-      </Tooltip>
+      {/* Hangup — visually dominant */}
+      <button
+        onClick={onHangup}
+        aria-label="Colgar llamada"
+        className="flex items-center gap-2.5 h-14 px-6 rounded-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold shadow-lg shadow-red-600/30 transition-all"
+      >
+        <i className="fa-solid fa-phone-hangup text-lg" />
+        <span className="text-sm">Colgar</span>
+      </button>
     </div>
   );
 }
