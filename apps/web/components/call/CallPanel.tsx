@@ -222,49 +222,61 @@ function CallPanel({
   // In mic mode, use real speech entries
   const activeTranscript = isMicMode ? speech.entries : transcriptEntries;
 
-  const handleHangup = useCallback(() => {
+  const handleHangup = useCallback(async () => {
     setQuoStatus("disconnected");
     if (isMicMode) speech.stop();
     setPhase("summary");
     setIsGeneratingSummary(true);
 
-    const transcriptText = (isMicMode ? speech.entries : transcriptEntries)
+    const entries = isMicMode ? speech.entries : transcriptEntries;
+    const transcriptText = entries
       .filter((e) => e.isFinal)
       .map((e) => e.text)
       .join("\n");
 
-    // Simulate AI summary generation from transcript
-    setTimeout(() => {
+    try {
+      const res = await fetch("/api/call-summary", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          transcript: transcriptText,
+          contact: { name: contact.name, company: contact.company, role: contact.role, phone: contact.phone },
+          deal: { name: deal.name, stage: deal.stage, value: deal.value },
+          repNotes: notes,
+          repName: "Carlos Ramírez", // TODO: from auth context
+        }),
+      });
+
+      if (!res.ok) {
+        const err = await res.json().catch(() => ({ error: "Unknown error" }));
+        throw new Error(err.error || `API returned ${res.status}`);
+      }
+
+      const data = await res.json();
+      setSummary(data.summary);
+      setSuggestedTasks(data.tasks ?? []);
+      setSmsMessage(data.followUpMessage ?? "");
+      setSelectedTaskIds(new Set((data.tasks ?? []).slice(0, 3).map((t: { id: string }) => t.id)));
+    } catch (err) {
+      console.error("Call summary generation failed:", err);
+      // Fallback: basic summary from transcript
       setSummary(
-        (isMicMode
-          ? `Resumen generado por IA (transcripción vía micrófono):\n\n`
-          : `Resumen generado por Quo AI + contexto del deal:\n\n`) +
-        `Llamada de seguimiento con ${contact.name} (${contact.company}) sobre "${deal.name}".\n\n` +
-        `Puntos clave:\n` +
-        `• El cliente confirmó haber recibido la cotización y está en revisión con finanzas\n` +
-        `• Solicitan servicio en sitio (unidad móvil) — no pueden mover al personal\n` +
-        `• Aproximadamente 120 empleados\n` +
-        `• Fecha deseada: segunda semana de abril\n` +
-        `• Se comprometió enviar cotización actualizada con servicio en sitio hoy\n\n` +
-        (notes ? `Notas adicionales del representante:\n${notes}\n\n` : "") +
-        `Próximos pasos: Enviar cotización actualizada, confirmar disponibilidad de unidad móvil, llamar mañana.`
+        `Llamada con ${contact.name} (${contact.company}) — ${deal.name}\n\n` +
+        `Duración: ${formatTimer(elapsed)}\n` +
+        `Segmentos transcritos: ${entries.filter((e) => e.isFinal).length}\n\n` +
+        (transcriptText || "No se capturó transcripción.") +
+        (notes ? `\n\nNotas del representante:\n${notes}` : "") +
+        `\n\n⚠️ Resumen automático no disponible — revisa la transcripción arriba.`
       );
       setSuggestedTasks([
-        { id: "t1", label: `Enviar cotización actualizada con servicio en sitio a ${contact.company}`, dueDate: "Hoy", type: "quote" },
-        { id: "t2", label: `Verificar disponibilidad unidad móvil — 2da semana de abril`, dueDate: "Hoy", type: "task" },
-        { id: "t3", label: `Llamada de confirmación con ${contact.name}`, dueDate: "Mañana", type: "follow_up" },
-        { id: "t4", label: `Actualizar deal a etapa "Negociación"`, dueDate: "Hoy", type: "task" },
+        { id: "t1", label: `Seguimiento con ${contact.name}`, dueDate: "Mañana", type: "follow_up" },
       ]);
-      const contactFirstName = contact.name.split(" ")[0];
-      setSmsMessage(
-        `Hola ${contactFirstName}, gracias por su tiempo. ` +
-        `Le enviaré la cotización actualizada con el servicio en sitio el día de hoy. ` +
-        `Quedo a sus órdenes. — Carlos, GDT`
-      );
-      setSelectedTaskIds(new Set(["t1", "t2", "t3"]));
+      setSmsMessage("");
+      setSelectedTaskIds(new Set(["t1"]));
+    } finally {
       setIsGeneratingSummary(false);
-    }, 3000);
-  }, [contact, deal, notes, isMicMode, speech, transcriptEntries]);
+    }
+  }, [contact, deal, notes, elapsed, isMicMode, speech, transcriptEntries]);
 
   const handleToggleTask = (taskId: string) => {
     setSelectedTaskIds((prev) => {
@@ -276,6 +288,12 @@ function CallPanel({
   };
 
   const handleSendSms = () => {
+    // Open WhatsApp Web with the pre-filled follow-up message (free, no API)
+    const phone = contact.phone.replace(/[^0-9+]/g, "");
+    // Add Mexico country code if not present
+    const intlPhone = phone.startsWith("+") ? phone : `+52${phone}`;
+    const encoded = encodeURIComponent(smsMessage);
+    window.open(`https://wa.me/${intlPhone.replace("+", "")}?text=${encoded}`, "_blank");
     setSmsSent(true);
   };
 
