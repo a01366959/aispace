@@ -68,7 +68,7 @@ function CallControls({
         aria-label="Colgar llamada"
         className="flex items-center gap-2.5 h-14 px-6 rounded-full bg-red-600 hover:bg-red-700 active:bg-red-800 text-white font-semibold shadow-lg shadow-red-600/30 transition-all"
       >
-        <i className="fa-solid fa-phone-hangup text-lg" />
+        <i className="fa-solid fa-phone-slash text-lg" />
         <span className="text-sm">Colgar</span>
       </button>
     </div>

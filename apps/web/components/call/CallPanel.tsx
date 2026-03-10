@@ -349,7 +349,7 @@ function CallPanel({
             aria-label="Colgar"
             className="h-10 w-10 rounded-full flex items-center justify-center bg-red-600 hover:bg-red-700 text-white shadow-md transition-colors"
           >
-            <i className="fa-solid fa-phone-hangup text-sm" />
+            <i className="fa-solid fa-phone-slash text-sm" />
           </button>
         </div>
       </div>
@@ -383,7 +383,7 @@ function CallPanel({
         </div>
 
         <div className="flex items-center gap-4">
-          {/* Quo API status indicator */}
+          {/* Call status indicator */}
           <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-muted/50 border">
             <div className={cn(
               "h-2 w-2 rounded-full",
@@ -392,7 +392,7 @@ function CallPanel({
               quoStatus === "disconnected" && "bg-muted-foreground",
             )} />
             <span className="text-[11px] font-medium text-muted-foreground">
-              {quoStatus === "connected" && (isMicMode ? "Micrófono activo" : isHybrid ? "Llamada en tu teléfono" : "Quo conectado")}
+              {quoStatus === "connected" && (isMicMode ? "Micrófono activo" : isHybrid ? "Llamada en tu teléfono" : "Conectado")}
               {quoStatus === "connecting" && "Conectando..."}
               {quoStatus === "disconnected" && "Llamada terminada"}
             </span>
@@ -406,9 +406,6 @@ function CallPanel({
                   />
                 ))}
               </div>
-            )}
-            {!isMicMode && quoCallId && (
-              <span className="text-[10px] font-mono text-muted-foreground/60">{quoCallId.slice(0, 14)}</span>
             )}
           </div>
 
@@ -440,7 +437,7 @@ function CallPanel({
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-warning" />
               </span>
               <span className="text-sm font-medium text-warning">
-                {isMicMode ? "Activando micrófono..." : isHybrid ? "Conectando con tu teléfono..." : "Llamando vía Quo..."}
+                {isMicMode ? "Activando micrófono..." : isHybrid ? "Conectando con tu teléfono..." : "Llamando..."}
               </span>
             </div>
           )}
@@ -475,16 +472,13 @@ function CallPanel({
 
             {/* Right: Transcript + SMS + Quo metadata */}
             <div className="col-span-2 flex flex-col p-4 gap-4 overflow-y-auto">
-              {/* Full transcript from Quo */}
+              {/* Full transcript */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <i className="fa-solid fa-file-lines text-muted-foreground text-xs" />
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Transcripción completa
                   </span>
-                  <Badge variant="muted" className="text-[9px] ml-auto gap-1">
-                    {isMicMode ? "Web Speech API" : "vía Quo API"}
-                  </Badge>
                 </div>
                 <div className="rounded-lg border bg-muted/30 p-3 max-h-[280px] overflow-y-auto">
                   {activeTranscript.filter((e) => e.isFinal).length > 0 ? (
@@ -510,16 +504,13 @@ function CallPanel({
 
               <Separator />
 
-              {/* SMS follow-up via Quo Messages API */}
+              {/* SMS / WhatsApp follow-up */}
               <div>
                 <div className="flex items-center gap-2 mb-3">
                   <i className="fa-solid fa-message text-primary text-xs" />
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Seguimiento SMS
+                    Seguimiento
                   </span>
-                  <Badge variant="blue" className="text-[9px] ml-auto gap-1">
-                    {isMicMode ? "WhatsApp / SMS" : "Quo Messages API"}
-                  </Badge>
                 </div>
                 {smsSent ? (
                   <div className="rounded-lg border border-emerald-200 bg-emerald-50 p-3">
@@ -544,7 +535,7 @@ function CallPanel({
                       </span>
                       <Button size="sm" onClick={handleSendSms} disabled={!smsMessage.trim() || isGeneratingSummary}>
                         <i className="fa-solid fa-paper-plane mr-1 text-xs" />
-                        {isMicMode ? "Enviar seguimiento" : "Enviar SMS vía Quo"}
+                        Enviar mensaje
                       </Button>
                     </div>
                   </>
@@ -553,24 +544,19 @@ function CallPanel({
 
               <Separator />
 
-              {/* Quo API call metadata */}
+              {/* Session metadata */}
               <div>
                 <div className="flex items-center gap-2 mb-2">
-                  <i className="fa-solid fa-server text-muted-foreground text-xs" />
+                  <i className="fa-solid fa-circle-info text-muted-foreground text-xs" />
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    {isMicMode ? "Datos de sesión" : "Datos de Quo API"}
+                    Resumen de sesión
                   </span>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3 font-mono text-[11px] text-muted-foreground space-y-1">
-                  {!isMicMode && <div className="flex justify-between"><span>call_id</span><span>{quoCallId ?? "—"}</span></div>}
-                  <div className="flex justify-between"><span>duration</span><span>{elapsed}s</span></div>
-                  <div className="flex justify-between"><span>direction</span><span>outbound</span></div>
-                  <div className="flex justify-between"><span>transcript_segments</span><span>{activeTranscript.filter((e) => e.isFinal).length}</span></div>
-                  <div className="flex justify-between"><span>transcript_source</span><span className="text-success">{isMicMode ? "web_speech_api" : "quo_ai"}</span></div>
-                  <div className="flex justify-between"><span>ai_summary</span><span className="text-success">available</span></div>
-                  {!isMicMode && <div className="flex justify-between"><span>recording</span><span className="text-success">saved</span></div>}
-                  <div className="flex justify-between"><span>synced_to_crm</span><span className="text-success">supabase + zoho</span></div>
-                  {isMicMode && <div className="flex justify-between"><span>cost</span><span className="text-success">$0.00</span></div>}
+                  <div className="flex justify-between"><span>Duración</span><span>{formatTimer(elapsed)}</span></div>
+                  <div className="flex justify-between"><span>Segmentos</span><span>{activeTranscript.filter((e) => e.isFinal).length}</span></div>
+                  <div className="flex justify-between"><span>Resumen IA</span><span className="text-success">disponible</span></div>
+                  <div className="flex justify-between"><span>Sync CRM</span><span className="text-success">✓ guardado</span></div>
                 </div>
               </div>
             </div>
@@ -668,7 +654,7 @@ function CallPanel({
                     <i className={cn("fa-solid mr-2", isHybrid ? "fa-mobile-screen fa-bounce" : "fa-phone fa-shake")} />
                     {isHybrid
                       ? "Contesta en tu teléfono para iniciar..."
-                      : "Conectando vía Quo API..."}
+                      : "Conectando..."}
                   </p>
                   {isHybrid && (
                     <p className="text-xs text-muted-foreground mt-1">
@@ -681,14 +667,14 @@ function CallPanel({
                     <div className="h-1.5 w-1.5 rounded-full bg-warning animate-bounce" style={{ animationDelay: "300ms" }} />
                   </div>
                 </div>
-                <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2 rounded-full bg-muted/50 border">
-                  <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />
-                  {callMode === "hybrid-quo" && "POST /v1/calls · Quo Bridge"}
-                  {callMode === "hybrid-device" && (audioDevice ?? "Dispositivo BT detectado")}
-                  {callMode === "voip" && "POST /v1/calls · Quo API"}
-                </div>
+                {callMode === "hybrid-device" && audioDevice && (
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground px-3 py-2 rounded-full bg-muted/50 border">
+                    <div className="h-2 w-2 rounded-full bg-warning animate-pulse" />
+                    {audioDevice}
+                  </div>
+                )}
                 <Button variant="destructive" size="lg" className="rounded-full px-8" onClick={onClose}>
-                  <i className="fa-solid fa-phone-hangup mr-2" />
+                  <i className="fa-solid fa-phone-slash mr-2" />
                   Cancelar
                 </Button>
               </div>
@@ -748,8 +734,8 @@ function CallPanel({
                             {Array.from({ length: 8 }).map((_, i) => (
                               <div
                                 key={i}
-                                className="w-1 rounded-full bg-success/60 transition-all duration-100"
-                                style={{ height: `${Math.max(3, speech.audioLevel * 20 * (0.5 + Math.random()))}px` }}
+                                className="w-1 rounded-full bg-success/60 transition-all duration-150"
+                                style={{ height: `${Math.max(3, speech.audioLevel * 18 * Math.abs(Math.sin(i * 0.8)))}px` }}
                               />
                             ))}
                           </div>
@@ -778,10 +764,8 @@ function CallPanel({
                     onHangup={handleHangup}
                   />
                   <p className="text-center text-[10px] text-muted-foreground mt-3">
-                    {callMode === "voip" && `Llamada VoIP vía Quo API · Cifrado SRTP · ${contact.phone}`}
-                    {callMode === "hybrid-quo" && `Llamada telefónica vía Quo Bridge · ${contact.phone}`}
-                    {callMode === "hybrid-device" && `Audio capturado desde ${audioDevice ?? "dispositivo"} · ${contact.phone}`}
-                    {callMode === "mic-listen" && `Micrófono capturando audio · Web Speech API (gratis) · ${contact.phone}`}
+                    {callMode === "hybrid-device" && `Audio desde ${audioDevice ?? "dispositivo"} · `}
+                    {contact.phone}
                   </p>
                 </div>
               </div>
@@ -868,51 +852,7 @@ function CallPanel({
               </div>
             </div>
 
-            <Separator />
 
-            {/* Active integrations */}
-            <div>
-              <div className="flex items-center gap-2 mb-3">
-                <i className="fa-solid fa-plug text-muted-foreground text-xs" />
-                <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">Integraciones activas</span>
-              </div>
-              <div className="space-y-2">
-                <div className="flex items-center gap-2.5 text-sm">
-                  <div className={cn("h-2 w-2 rounded-full", callMode !== "hybrid-device" && !isMicMode ? "bg-success" : "bg-muted-foreground")} />
-                  <span className="font-medium">Quo</span>
-                  <span className="text-xs text-muted-foreground ml-auto">
-                    {callMode === "voip" && "VoIP + SMS + Transcripción"}
-                    {callMode === "hybrid-quo" && "Bridge + SMS + Transcripción"}
-                    {callMode === "hybrid-device" && "Inactivo (modo dispositivo)"}
-                    {callMode === "mic-listen" && "No utilizado"}
-                  </span>
-                </div>
-                {isMicMode && (
-                  <div className="flex items-center gap-2.5 text-sm">
-                    <div className={cn("h-2 w-2 rounded-full", speech.isListening ? "bg-success animate-pulse" : "bg-muted-foreground")} />
-                    <span className="font-medium">Micrófono</span>
-                    <span className="text-xs text-muted-foreground ml-auto">Web Speech API ($0)</span>
-                  </div>
-                )}
-                <div className="flex items-center gap-2.5 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-success" />
-                  <span className="font-medium">Supabase</span>
-                  <span className="text-xs text-muted-foreground ml-auto">CRM + Tareas</span>
-                </div>
-                <div className="flex items-center gap-2.5 text-sm">
-                  <div className="h-2 w-2 rounded-full bg-warning" />
-                  <span className="font-medium">Zoho</span>
-                  <span className="text-xs text-muted-foreground ml-auto">Sync (dual-write)</span>
-                </div>
-                {callMode === "hybrid-device" && audioDevice && (
-                  <div className="flex items-center gap-2.5 text-sm">
-                    <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
-                    <span className="font-medium">{audioDevice}</span>
-                    <span className="text-xs text-muted-foreground ml-auto">Audio bridge</span>
-                  </div>
-                )}
-              </div>
-            </div>
           </div>
         </div>
       )}

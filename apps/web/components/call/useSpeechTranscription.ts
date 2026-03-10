@@ -59,6 +59,10 @@ export function useSpeechTranscription({
   const startTimeRef = useRef<number>(0);
   const onEntryRef = useRef(onEntry);
   onEntryRef.current = onEntry;
+  // Track last interim text so we can commit it if recognition stops unexpectedly
+  const lastInterimRef = useRef<string>("");
+  // Track last committed final text to avoid duplicates after restart
+  const lastFinalRef = useRef<string>("");
 
   // Check browser support
   const isSupported = typeof window !== "undefined" &&
@@ -119,7 +123,7 @@ export function useSpeechTranscription({
     recognition.lang = lang;
     recognition.continuous = true;
     recognition.interimResults = true;
-    recognition.maxAlternatives = 1;
+    recognition.maxAlternatives = 3;
 
     startTimeRef.current = Date.now();
 
@@ -131,8 +135,17 @@ export function useSpeechTranscription({
     recognition.onresult = (event: SpeechRecognitionEvent) => {
       for (let i = event.resultIndex; i < event.results.length; i++) {
         const result = event.results[i]!;
-        const transcript = result[0]!.transcript.trim();
-        if (!transcript) continue;
+        // Pick the best alternative (highest confidence, or first if equal)
+        let bestTranscript = result[0]!.transcript.trim();
+        let bestConfidence = result[0]!.confidence ?? 0;
+        for (let a = 1; a < result.length; a++) {
+          const alt = result[a]!;
+          if ((alt.confidence ?? 0) > bestConfidence) {
+            bestConfidence = alt.confidence ?? 0;
+            bestTranscript = alt.transcript.trim();
+          }
+        }
+        if (!bestTranscript) continue;
 
         const isFinal = result.isFinal;
         const elapsed = Date.now() - startTimeRef.current;
@@ -140,22 +153,33 @@ export function useSpeechTranscription({
           ? `speech-${entryCountRef.current++}`
           : `speech-interim`;
 
-        const entry: TranscriptEntry = {
-          id: entryId,
-          speaker: "rep", // Mic captures both sides — marked as "rep" since it's the local mic
-          text: transcript,
-          timestamp: formatTimestamp(elapsed),
-          isFinal,
-        };
-
         if (isFinal) {
+          // Skip if this is the same text we just committed (restart duplicate guard)
+          if (bestTranscript === lastFinalRef.current) continue;
+          lastFinalRef.current = bestTranscript;
+          lastInterimRef.current = "";
+
+          const entry: TranscriptEntry = {
+            id: entryId,
+            speaker: "rep",
+            text: bestTranscript,
+            timestamp: formatTimestamp(elapsed),
+            isFinal: true,
+          };
           setEntries((prev) => {
-            // Replace any interim entry + append final
             const filtered = prev.filter((e) => e.id !== "speech-interim");
             return [...filtered, entry];
           });
           onEntryRef.current?.(entry);
         } else {
+          lastInterimRef.current = bestTranscript;
+          const entry: TranscriptEntry = {
+            id: entryId,
+            speaker: "rep",
+            text: bestTranscript,
+            timestamp: formatTimestamp(elapsed),
+            isFinal: false,
+          };
           setEntries((prev) => {
             const filtered = prev.filter((e) => e.id !== "speech-interim");
             return [...filtered, entry];
@@ -165,12 +189,37 @@ export function useSpeechTranscription({
     };
 
     recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
-      if (event.error === "no-speech") return; // Normal pause
       if (event.error === "aborted") return; // User stopped
+      if (event.error === "no-speech") {
+        // Browser paused due to silence — restart immediately to avoid missing speech
+        try { recognition.stop(); } catch { /* ignore */ }
+        return;
+      }
       setError(`Error de reconocimiento: ${event.error}`);
     };
 
     recognition.onend = () => {
+      // If we have uncommitted interim text, commit it before restarting
+      if (lastInterimRef.current && recognitionRef.current) {
+        const interim = lastInterimRef.current;
+        lastInterimRef.current = "";
+        if (interim !== lastFinalRef.current) {
+          lastFinalRef.current = interim;
+          const elapsed = Date.now() - startTimeRef.current;
+          const entry: TranscriptEntry = {
+            id: `speech-${entryCountRef.current++}`,
+            speaker: "rep",
+            text: interim,
+            timestamp: formatTimestamp(elapsed),
+            isFinal: true,
+          };
+          setEntries((prev) => {
+            const filtered = prev.filter((e) => e.id !== "speech-interim");
+            return [...filtered, entry];
+          });
+          onEntryRef.current?.(entry);
+        }
+      }
       // Auto-restart if still active (Chrome stops after ~60s of silence)
       if (recognitionRef.current) {
         try {
@@ -194,7 +243,8 @@ export function useSpeechTranscription({
     if (recognitionRef.current) {
       const ref = recognitionRef.current;
       recognitionRef.current = null; // Prevent auto-restart in onend
-      ref.stop();
+      lastInterimRef.current = "";
+      try { ref.stop(); } catch { /* ignore if already stopped */ }
       setIsListening(false);
       stopAudioMeter();
     }
@@ -203,6 +253,8 @@ export function useSpeechTranscription({
   const clear = useCallback(() => {
     setEntries([]);
     entryCountRef.current = 0;
+    lastInterimRef.current = "";
+    lastFinalRef.current = "";
   }, []);
 
   // Start/stop based on isActive prop
