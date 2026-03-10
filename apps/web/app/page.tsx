@@ -137,6 +137,41 @@ const MESSAGES: Message[] = [
   },
 ];
 
+// Per-agent demo messages for the main agent view
+const AGENT_MESSAGES: Record<string, Message[]> = {
+  "follow-up": [
+    MESSAGES[0],
+    MESSAGES[1],
+    MESSAGES[2],
+  ],
+  "sales-assistant": [
+    {
+      id: "sa1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:22",
+      text: "Resumen del cliente: Cervecería Toluca — 200 empleados. Cotización audiometrías lista ($42,000 MXN).",
+      agentTag: "Resumen",
+    },
+    {
+      id: "sa2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:24",
+      text: "Sugerencia: Enviar recordatorio por WhatsApp mañana 10:00 AM.",
+      action: { label: "Borrador de mensaje", body: "Hola Carlos, ¿confirmamos envío de cotización?", status: "pending-approval" },
+    },
+  ],
+  "supervisor": [
+    {
+      id: "sv1", sender: "Supervisor", avatar: "SV", type: "agent", time: "07:00",
+      text: "Resumen diario: 43 llamadas, 8 cotizaciones, 2 cierres. Revisar deals > $100K.",
+      agentTag: "Pipeline",
+    },
+  ],
+  "reporting": [
+    {
+      id: "r1", sender: "Reporting", avatar: "AI", type: "agent", time: "17:00",
+      text: "Reporte semanal listo. Top 3 reps: Miriam, Juan, Laura.",
+      agentTag: "Reporte",
+    },
+  ],
+};
+
 const THREAD_MESSAGES: Message[] = [
   { id: "th1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16", text: "Contexto: Grupo Farmacéutico GT (Ballena) — sin compras ni contacto en 47 días." },
   { id: "th2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:17", text: "Creé deal de reactivación y borrador de contacto. Lo pasé al Supervisor para asignación.", action: { label: "Deal creado", body: "Reactivación — Grupo Farmacéutico GT. Valor estimado: $420,000 MXN. Pendiente asignación de vendedor.", status: "auto-applied" } },
@@ -420,15 +455,25 @@ function MessageBubble({
     );
   }
 
+  const isUser = msg.type === "user";
+  const bubbleClass = isUser ? "bg-primary/5 text-foreground rounded-lg px-3 py-2 inline-block" : "";
+
   return (
     <div
-      className={cn("group relative flex gap-2.5 px-5 py-1.5 -mx-5 transition-colors", hovering && "bg-muted/40")}
+      className={cn(
+        "group relative flex gap-2.5 px-4 py-1.5 transition-colors",
+        hovering && "bg-muted/40",
+        isUser && "justify-end"
+      )}
       onMouseEnter={() => setHovering(true)}
       onMouseLeave={() => { setHovering(false); setShowEmojiPicker(false); }}
     >
-      <Avatar size="sm" className={cn("mt-0.5 shrink-0", AVATAR_BG[msg.avatar] ?? "bg-muted-foreground")} initials={msg.avatar} />
-      <div className="flex-1 min-w-0">
-        <div className="flex items-baseline gap-2">
+      {!isUser && (
+        <Avatar size="sm" className={cn("mt-0.5 shrink-0", AVATAR_BG[msg.avatar] ?? "bg-muted-foreground")} initials={msg.avatar} />
+      )}
+
+      <div className={cn("flex-1 min-w-0", isUser ? "max-w-[70%] text-right" : "") }>
+        <div className={cn("flex items-baseline gap-2", isUser ? "justify-end" : "") }>
           <span className="text-[13px] font-semibold text-foreground">{msg.sender}</span>
           {msg.agentTag && <span className="text-[10px] text-muted-foreground">· {msg.agentTag}</span>}
           <span className="text-[11px] text-muted-foreground">{msg.time}</span>
@@ -441,7 +486,9 @@ function MessageBubble({
           </div>
         )}
 
-        <p className="mt-0.5 text-sm leading-relaxed text-foreground">{msg.text}</p>
+        <div className={cn("mt-0.5 text-sm leading-relaxed", bubbleClass)}>
+          <p className="m-0">{msg.text}</p>
+        </div>
 
         {msg.action && (
           <Card className="mt-2">
@@ -467,7 +514,7 @@ function MessageBubble({
         )}
 
         {reactions.length > 0 && (
-          <div className="mt-1.5 flex flex-wrap gap-1">
+          <div className="mt-1.5 flex flex-wrap gap-1 justify-end">
             {reactions.map((r) => (
               <button key={r.emoji} onClick={() => addReaction(r.emoji)} className={cn("inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-xs transition-colors", r.reacted ? "border-primary/30 bg-primary/5 text-foreground" : "border-border bg-background text-muted-foreground hover:bg-muted")}>
                 {r.emoji} <span className="font-medium">{r.count}</span>
@@ -480,15 +527,16 @@ function MessageBubble({
         )}
 
         {msg.threadCount && msg.threadCount > 0 && onOpenThread && (
-          <button onClick={() => onOpenThread(msg.id)} className="mt-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground">
-            <i className="fa-solid fa-message text-[10px]" />
-            {msg.threadCount} {msg.threadCount === 1 ? "respuesta" : "respuestas"}
-          </button>
+          <div className={cn("mt-1.5 inline-flex items-center gap-1.5 text-xs text-muted-foreground hover:text-foreground", isUser ? "justify-end" : "") }>
+            <button onClick={() => onOpenThread(msg.id)}>
+              <i className="fa-solid fa-message text-[10px]" />
+              <span className="ml-1">{msg.threadCount} {msg.threadCount === 1 ? "respuesta" : "respuestas"}</span>
+            </button>
+          </div>
         )}
       </div>
 
-      {/* Hover toolbar */}
-      {hovering && (
+      {hovering && !isUser && (
         <div className="absolute -top-3 right-4 flex items-center rounded-md border border-border bg-card shadow-sm z-10">
           <Tooltip content="Reaccionar" side="top">
             <Button variant="ghost" size="icon-sm" className="h-7 w-7 rounded-none rounded-l-md" onClick={() => setShowEmojiPicker(!showEmojiPicker)}>
@@ -518,11 +566,15 @@ function MessageBubble({
       )}
 
       {showEmojiPicker && (
-        <div className="absolute -top-11 right-4 flex items-center gap-0.5 rounded-lg border border-border bg-card p-1 shadow-lg z-20">
+        <div className="absolute -top-11 right-3 flex items-center gap-0.5 rounded-lg border border-border bg-card p-1 shadow-lg z-20">
           {EMOJI_PICKER.map((emoji) => (
             <button key={emoji} onClick={() => addReaction(emoji)} className="h-7 w-7 rounded text-sm hover:bg-muted transition-colors">{emoji}</button>
           ))}
         </div>
+      )}
+
+      {isUser && (
+        <Avatar size="sm" className={cn("mt-0.5 shrink-0 ml-3", AVATAR_BG[msg.avatar] ?? "bg-muted-foreground")} initials={msg.avatar} />
       )}
     </div>
   );
@@ -673,8 +725,8 @@ export default function InboxPage() {
       </aside>
 
       {/* ── Main Chat ────────────────────────────────────────────── */}
-      <main className="flex flex-1 flex-col min-w-0">
-        <header className="flex items-center justify-between border-b border-border bg-card px-5 py-2.5">
+      <main className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
+        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-2.5">
           <div className="flex items-center gap-2.5 min-w-0">
             {activeChannel ? (
               <>
@@ -723,16 +775,19 @@ export default function InboxPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto py-4">
-          <div className="flex items-center gap-3 px-5 mb-3">
+          <div className="flex items-center gap-3 px-4 mb-3">
             <Separator className="flex-1" />
             <span className="text-[11px] font-medium text-muted-foreground px-2">Hoy</span>
             <Separator className="flex-1" />
           </div>
-          <div className="flex flex-col gap-px">
-            {MESSAGES.map((msg) => (
-              <MessageBubble key={msg.id} msg={msg} onOpenThread={(id) => setThreadOpen(id === threadOpen ? null : id)} onReply={() => {}} />
-            ))}
-          </div>
+            <div className="flex flex-col gap-px px-4">
+              {(() => {
+                const messagesToShow = activeChannel ? MESSAGES : (AGENT_MESSAGES[selectedAgent] ?? MESSAGES);
+                return messagesToShow.map((msg) => (
+                  <MessageBubble key={msg.id} msg={msg} onOpenThread={(id) => setThreadOpen(id === threadOpen ? null : id)} onReply={() => {}} />
+                ));
+              })()}
+            </div>
         </div>
 
         <Composer />
