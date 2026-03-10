@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { cn } from "@/lib/utils";
 
 /* ─── Block types ─────────────────────────────────────────────────────────── */
@@ -86,7 +86,11 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
   const [slashOpen, setSlashOpen] = useState(false);
   const [slashFilter, setSlashFilter] = useState("");
   const [slashBlockId, setSlashBlockId] = useState<string | null>(null);
+  const [slashSelectedIdx, setSlashSelectedIdx] = useState(0);
+  const [dropdownAnchor, setDropdownAnchor] = useState<{ top?: number; bottom?: number }>({});
   const refs = useRef<Record<string, HTMLTextAreaElement | null>>({});
+  const containerRef = useRef<HTMLDivElement>(null);
+  const dropdownRef = useRef<HTMLDivElement>(null);
 
   const notify = useCallback(
     (updated: Block[]) => onChange(serializeBlocks(updated)),
@@ -121,6 +125,7 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
       });
       setSlashOpen(false);
       setSlashFilter("");
+      setSlashSelectedIdx(0);
       setSlashBlockId(null);
       setTimeout(() => {
         const el = refs.current[id];
@@ -185,8 +190,14 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
     [notify],
   );
 
-  const filteredCmds = SLASH_CMDS.filter((c) => {
-    if (!slashFilter) return true;
+  // Auto-scroll highlighted item into view when navigating with arrows
+  useEffect(() => {
+    if (!dropdownRef.current) return;
+    const selected = dropdownRef.current.querySelector<HTMLElement>("[data-selected='true']");
+    if (selected) selected.scrollIntoView({ block: "nearest" });
+  }, [slashSelectedIdx]);
+
+  const filteredCmds = SLASH_CMDS.filter((c) => {    if (!slashFilter) return true;
     const q = slashFilter.toLowerCase();
     return (
       c.label.toLowerCase().includes(q) ||
@@ -197,7 +208,7 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
   let numCounter = 0;
 
   return (
-    <div className="flex flex-col h-full gap-2 relative">
+    <div ref={containerRef} className="flex flex-col h-full gap-2 relative">
       {/* Header */}
       <div className="flex items-center gap-2 shrink-0">
         <i className="fa-solid fa-pen-to-square text-muted-foreground text-xs" />
@@ -329,12 +340,27 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
 
                     // Slash command trigger: starts with "/" and no space yet
                     if (v.startsWith("/") && !v.slice(1).includes(" ")) {
+                      // Compute dropdown direction based on available space
+                      const el = refs.current[block.id];
+                      const container = containerRef.current;
+                      if (el && container) {
+                        const elRect = el.getBoundingClientRect();
+                        const cRect = container.getBoundingClientRect();
+                        const spaceBelow = cRect.bottom - elRect.bottom;
+                        if (spaceBelow > 260) {
+                          setDropdownAnchor({ top: elRect.bottom - cRect.top + 4 });
+                        } else {
+                          setDropdownAnchor({ bottom: cRect.bottom - elRect.top + 4 });
+                        }
+                      }
                       setSlashOpen(true);
                       setSlashFilter(v.slice(1));
+                      setSlashSelectedIdx(0);
                       setSlashBlockId(block.id);
                     } else if (slashBlockId === block.id) {
                       setSlashOpen(false);
                       setSlashFilter("");
+                      setSlashSelectedIdx(0);
                       setSlashBlockId(null);
                     }
 
@@ -343,13 +369,25 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
                   onKeyDown={(e) => {
                     if (e.key === "Enter" && !e.shiftKey) {
                       e.preventDefault();
-                      // If slash menu open, apply first result
+                      // Slash menu open: Enter applies highlighted command
                       if (slashOpen && slashBlockId === block.id) {
-                        const first = filteredCmds[0];
-                        if (first) changeType(block.id, first.type);
+                        const cmd = filteredCmds[slashSelectedIdx];
+                        if (cmd) changeType(block.id, cmd.type);
                         return;
                       }
                       insertAfter(block.id);
+                    }
+                    if (slashOpen && slashBlockId === block.id) {
+                      if (e.key === "ArrowDown") {
+                        e.preventDefault();
+                        setSlashSelectedIdx((i) => Math.min(i + 1, filteredCmds.length - 1));
+                        return;
+                      }
+                      if (e.key === "ArrowUp") {
+                        e.preventDefault();
+                        setSlashSelectedIdx((i) => Math.max(i - 1, 0));
+                        return;
+                      }
                     }
                     if (e.key === "Backspace" && !block.content) {
                       e.preventDefault();
@@ -358,6 +396,7 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
                     if (e.key === "Escape") {
                       setSlashOpen(false);
                       setSlashFilter("");
+                      setSlashSelectedIdx(0);
                       setSlashBlockId(null);
                     }
                   }}
@@ -370,25 +409,43 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
 
       {/* ── Slash command palette ──────────────────────────────────── */}
       {slashOpen && filteredCmds.length > 0 && (
-        <div className="absolute bottom-[calc(100%-3rem)] left-0 right-0 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50">
+        <div
+          className="absolute left-0 right-0 rounded-xl border border-border bg-card shadow-2xl overflow-hidden z-50"
+          style={dropdownAnchor}
+        >
           <div className="px-3 py-2 text-[10px] font-semibold text-muted-foreground uppercase tracking-wider border-b bg-muted/30">
             Tipo de bloque
           </div>
-          <div className="max-h-[260px] overflow-y-auto p-1.5 grid grid-cols-2 gap-1">
-            {filteredCmds.map((cmd) => (
+          <div ref={dropdownRef} className="max-h-[260px] overflow-y-auto p-1.5 flex flex-col gap-0.5">
+            {filteredCmds.map((cmd, idx) => (
               <button
                 key={cmd.type}
-                className="flex items-center gap-2.5 px-3 py-2 rounded-lg text-left hover:bg-muted transition-colors"
+                data-selected={idx === slashSelectedIdx}
+                className={cn(
+                  "flex items-center gap-2.5 px-3 py-2 rounded-lg text-left transition-colors w-full",
+                  idx === slashSelectedIdx
+                    ? "bg-primary/10"
+                    : "hover:bg-muted",
+                )}
                 onMouseDown={(e) => {
                   e.preventDefault();
                   if (slashBlockId) changeType(slashBlockId, cmd.type);
                 }}
+                onMouseEnter={() => setSlashSelectedIdx(idx)}
               >
-                <span className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-muted/60 text-muted-foreground">
-                  <i className={cn("fa-solid text-sm", cmd.icon)} />
+                <span className={cn(
+                  "flex h-7 w-7 shrink-0 items-center justify-center rounded-md text-sm transition-colors",
+                  idx === slashSelectedIdx
+                    ? "bg-primary/15 text-primary"
+                    : "bg-muted/60 text-muted-foreground",
+                )}>
+                  <i className={cn("fa-solid text-xs", cmd.icon)} />
                 </span>
                 <div className="min-w-0">
-                  <div className="font-medium text-[12px] text-foreground truncate">
+                  <div className={cn(
+                    "font-medium text-[12px] truncate transition-colors",
+                    idx === slashSelectedIdx ? "text-primary" : "text-foreground",
+                  )}>
                     {cmd.label}
                   </div>
                   <div className="text-[10px] text-muted-foreground truncate">
