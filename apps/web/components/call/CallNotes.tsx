@@ -208,21 +208,10 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
   let numCounter = 0;
 
   return (
-    <div ref={containerRef} className="flex flex-col h-full gap-2 relative">
-      {/* Header */}
-      <div className="flex items-center gap-2 shrink-0">
-        <i className="fa-solid fa-pen-to-square text-muted-foreground text-xs" />
-        <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-          Notas
-        </span>
-        <span className="ml-auto text-[10px] text-muted-foreground/50 select-none">
-          / para formato · ↵ nueva línea
-        </span>
-      </div>
-
-      {/* Editor surface */}
+    <div ref={containerRef} className="flex flex-col h-full relative">
+      {/* Editor surface — borderless Notion-style canvas */}
       <div
-        className="flex-1 overflow-y-auto rounded-xl border border-border bg-background px-5 py-4 cursor-text"
+        className="flex-1 overflow-y-auto cursor-text"
         onClick={(e) => {
           if (e.target === e.currentTarget) {
             const last = blocks[blocks.length - 1];
@@ -230,7 +219,7 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
           }
         }}
       >
-        <div className="flex flex-col gap-0.5">
+        <div className="flex flex-col gap-0.5 px-1">
           {blocks.map((block) => {
             if (block.type === "numbered") numCounter++;
             else numCounter = 0;
@@ -458,9 +447,12 @@ function CallNotes({ onChange, disabled }: CallNotesProps) {
         </div>
       )}
 
-      <p className="text-[10px] text-muted-foreground shrink-0">
-        Estas notas se usarán para el resumen automático al colgar.
-      </p>
+      {/* Subtle hint only when nothing typed yet */}
+      {blocks.length === 1 && !blocks[0]?.content && !slashOpen && (
+        <p className="px-1 text-[10px] text-muted-foreground/40 select-none pointer-events-none">
+          Usa / para dar formato
+        </p>
+      )}
     </div>
   );
 }
