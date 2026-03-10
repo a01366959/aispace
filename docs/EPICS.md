@@ -745,10 +745,11 @@ Tasks:
 
 > As a sales rep, I want to click "Call" on my desktop and have the call happen on my phone, while my desktop captures the audio for real-time transcription, AI context, and automatic logging — so I get the best call quality from my phone with full AI assistance from the platform.
 
-**Three tiers of implementation:**
+**Four tiers of implementation:**
 
 | Tier | Approach | Cost | Recording Method |
 |---|---|---|---|
+| **0 — Mic-Listen** | Phone on speakerphone near laptop mic, Web Speech API transcribes | $0/rep | No recording (transcript only, free) |
 | **A — Quo Bridge** | Quo API click-to-call → rings rep's phone → bridges to client | ~$23/rep/mo | Quo records + transcribes server-side |
 | **B — BT Speakerphone** | BT speakerphone paired to phone + USB to computer | ~$80-150 one-time | Web Audio API captures from USB audio device |
 | **C — Companion App** | Mobile app captures audio + streams to desktop via WebSocket | $0 | App forwards audio stream locally |
@@ -873,6 +874,7 @@ Tasks:
 | P2 | Epic 9: Reporting | Reporting cadence automation |
 | P2 | Epic 10: Approval Workflows | Required for external actions |
 | P3 | Epic 11: Polish & Launch | Final validation and deploy |
+| P2 | Epic 12F: Mic-Listen Mode | $0/rep, phone on speakerphone + browser Web Speech API transcription |
 | P3 | Epic 12A: Call Mode | Context panel + auto-logging ($0/rep, solves call logging pain) |
 | P3 | Epic 12B: Hybrid Call — Quo Bridge | Phone-based calling + Quo server-side recording/transcription (~$23/rep) |
 | P4 | Epic 12C: Hybrid Call — Device Bridge | BT speakerphone bridge + local audio capture (~$100 one-time/rep) |

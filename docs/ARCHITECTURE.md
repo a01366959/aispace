@@ -593,14 +593,15 @@ packages/integrations/audio/
 The `CallPanel` component accepts a `callMode` prop that adapts the UI:
 
 ```typescript
-type CallMode = "voip" | "hybrid-quo" | "hybrid-device";
+type CallMode = "mic-listen" | "voip" | "hybrid-quo" | "hybrid-device";
 ```
 
-| Mode | Phone rings | Transcript source | Recording | Status indicator |
-|---|---|---|---|---|
-| `voip` | No (browser audio) | Quo Realtime | Quo server | "Quo conectado" |
-| `hybrid-quo` | Yes (rep's phone) | Quo webhook → Realtime | Quo server | "Llamada en tu teléfono" |
-| `hybrid-device` | Yes (rep's phone via tel:) | Web Audio → Whisper | Local capture | "Dispositivo: Jabra Speak 750" |
+| Mode | Phone rings | Transcript source | Recording | Status indicator | Cost |
+|---|---|---|---|---|---|
+| `mic-listen` | No (rep dials manually) | Web Speech API (browser) | None (transcript only) | "Micrófono activo" | $0 |
+| `voip` | No (browser audio) | Quo Realtime | Quo server | "Quo conectado" | ~$23/rep |
+| `hybrid-quo` | Yes (rep's phone) | Quo webhook → Realtime | Quo server | "Llamada en tu teléfono" | ~$23/rep |
+| `hybrid-device` | Yes (rep's phone via tel:) | Web Audio → Whisper | Local capture | "Dispositivo: Jabra Speak 750" | $80-150 once |
 
 ### Data Model Extension
 
@@ -611,17 +612,19 @@ call_logs
   user_id           FK → users
   contact_id        FK → contacts
   deal_id           FK → deals (optional)
-  call_mode         'voip' | 'hybrid-quo' | 'hybrid-device'
+  call_mode         'mic-listen' | 'voip' | 'hybrid-quo' | 'hybrid-device'
   direction         'outbound' | 'inbound'
   started_at        timestamptz
   ended_at          timestamptz
   duration_seconds  int
-  recording_url     text (Supabase Storage path or Quo URL)
+  recording_url     text (Supabase Storage path or Quo URL, NULL for mic-listen)
   transcript        jsonb (array of {speaker, text, timestamp})
   ai_summary        text
   suggested_tasks   jsonb
-  quo_call_id       text (NULL for device mode)
-  audio_device      text (NULL for Quo modes — e.g. "Jabra Speak 750")
+  quo_call_id       text (NULL for mic-listen and device mode)
+  audio_device      text (NULL for Quo/mic modes — e.g. "Jabra Speak 750")
+  transcript_source text ('web_speech_api' | 'quo_ai' | 'whisper')
+  cost_usd          numeric DEFAULT 0
   synced_to_zoho    boolean DEFAULT false
   created_at        timestamptz
 ```

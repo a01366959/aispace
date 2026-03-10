@@ -539,7 +539,7 @@ export default function InboxPage() {
 
   // Call state
   const [activeCallThreadId, setActiveCallThreadId] = useState<string | null>(null);
-  const [callMode, setCallMode] = useState<CallMode>("hybrid-quo");
+  const [callMode, setCallMode] = useState<CallMode>("mic-listen");
 
   const startCallFromThread = (threadId: string) => {
     if (CALL_CONTACTS[threadId] && CALL_DEALS[threadId]) {
@@ -572,14 +572,14 @@ export default function InboxPage() {
           </Tooltip>
         ))}
         <div className="flex-1" />
-        <Tooltip content={callMode === "hybrid-quo" ? "Modo: Quo → Teléfono" : callMode === "hybrid-device" ? "Modo: Dispositivo BT" : "Modo: VoIP"} side="right">
+        <Tooltip content={callMode === "mic-listen" ? "Modo: Micrófono ($0)" : callMode === "hybrid-quo" ? "Modo: Quo → Teléfono" : callMode === "hybrid-device" ? "Modo: Dispositivo BT" : "Modo: VoIP"} side="right">
           <Button
             variant="ghost"
             size="icon-sm"
             className={cn("h-9 w-9 text-sidebar-foreground", callMode !== "voip" ? "text-success" : "")}
-            onClick={() => setCallMode((m) => m === "voip" ? "hybrid-quo" : m === "hybrid-quo" ? "hybrid-device" : "voip")}
+            onClick={() => setCallMode((m) => m === "mic-listen" ? "voip" : m === "voip" ? "hybrid-quo" : m === "hybrid-quo" ? "hybrid-device" : "mic-listen")}
           >
-            <i className={cn("text-sm", callMode === "hybrid-device" ? "fa-solid fa-headset" : callMode === "hybrid-quo" ? "fa-solid fa-mobile-screen" : "fa-solid fa-phone")} />
+            <i className={cn("text-sm", callMode === "mic-listen" ? "fa-solid fa-microphone" : callMode === "hybrid-device" ? "fa-solid fa-headset" : callMode === "hybrid-quo" ? "fa-solid fa-mobile-screen" : "fa-solid fa-phone")} />
           </Button>
         </Tooltip>
         <Tooltip content="Miriam Reyes" side="right">
@@ -704,7 +704,7 @@ export default function InboxPage() {
           </div>
           <div className="flex items-center gap-0.5">
             {activeChannel && (
-              <Tooltip content={callMode === "hybrid-quo" ? "Llamar (Quo → tu teléfono)" : callMode === "hybrid-device" ? "Llamar (dispositivo BT)" : "Llamar (VoIP)"} side="bottom">
+              <Tooltip content={callMode === "mic-listen" ? "Llamar (micrófono)" : callMode === "hybrid-quo" ? "Llamar (Quo → tu teléfono)" : callMode === "hybrid-device" ? "Llamar (dispositivo BT)" : "Llamar (VoIP)"} side="bottom">
                 <Button
                   variant="ghost"
                   size="icon-sm"

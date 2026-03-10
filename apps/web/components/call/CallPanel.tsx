@@ -13,6 +13,7 @@ import { CallControls } from "./CallControls";
 import { CallNotes } from "./CallNotes";
 import { LiveTranscript, type TranscriptEntry } from "./LiveTranscript";
 import { PostCallSummary, type SuggestedTask } from "./PostCallSummary";
+import { useSpeechTranscription } from "./useSpeechTranscription";
 
 /* ═══════════════════════════════════════════════════ */
 /*  Types                                              */
@@ -59,7 +60,7 @@ export interface QuickAction {
   variant?: "default" | "outline";
 }
 
-export type CallMode = "voip" | "hybrid-quo" | "hybrid-device";
+export type CallMode = "voip" | "hybrid-quo" | "hybrid-device" | "mic-listen";
 
 export interface CallPanelProps {
   contact: CallContact;
@@ -144,8 +145,9 @@ function CallPanel({
   callMode = "voip",
   audioDevice,
 }: CallPanelProps) {
-  const isHybrid = callMode !== "voip";
-  const [phase, setPhase] = useState<CallPhase>("ringing");
+  const isMicMode = callMode === "mic-listen";
+  const isHybrid = callMode !== "voip" && !isMicMode;
+  const [phase, setPhase] = useState<CallPhase>(isMicMode ? "active" : "ringing");
   const [elapsed, setElapsed] = useState(0);
   const [isMuted, setIsMuted] = useState(false);
   const [isOnHold, setIsOnHold] = useState(false);
@@ -154,10 +156,16 @@ function CallPanel({
   const [notes, setNotes] = useState("");
   const [centerTab, setCenterTab] = useState<CenterTab>("transcript");
 
-  // Quo API state
-  const [quoCallId, setQuoCallId] = useState<string | null>(null);
-  const [quoStatus, setQuoStatus] = useState<"connecting" | "connected" | "disconnected">("connecting");
+  // Call state
+  const [quoCallId, setQuoCallId] = useState<string | null>(isMicMode ? null : null);
+  const [quoStatus, setQuoStatus] = useState<"connecting" | "connected" | "disconnected">(isMicMode ? "connected" : "connecting");
   const [transcriptEntries, setTranscriptEntries] = useState<TranscriptEntry[]>([]);
+
+  // Mic-listen: real browser speech recognition (FREE)
+  const speech = useSpeechTranscription({
+    lang: "es-MX",
+    isActive: isMicMode && phase === "active",
+  });
 
   // Post-call
   const [isGeneratingSummary, setIsGeneratingSummary] = useState(false);
@@ -174,21 +182,20 @@ function CallPanel({
     return () => clearInterval(interval);
   }, [phase]);
 
-  // Simulate Quo API: POST /v1/calls → ringing → connected
+  // Simulate Quo API: POST /v1/calls → ringing → connected (non-mic modes)
   useEffect(() => {
-    if (phase === "ringing") {
-      const timeout = setTimeout(() => {
-        setQuoCallId("quo_call_" + Math.random().toString(36).slice(2, 10));
-        setQuoStatus("connected");
-        setPhase("active");
-      }, 2500);
-      return () => clearTimeout(timeout);
-    }
-  }, [phase]);
+    if (isMicMode || phase !== "ringing") return;
+    const timeout = setTimeout(() => {
+      setQuoCallId("quo_call_" + Math.random().toString(36).slice(2, 10));
+      setQuoStatus("connected");
+      setPhase("active");
+    }, 2500);
+    return () => clearTimeout(timeout);
+  }, [phase, isMicMode]);
 
-  // Simulate Quo live transcription via webhook
+  // Simulate Quo live transcription via webhook (non-mic modes only)
   useEffect(() => {
-    if (phase !== "active") return;
+    if (isMicMode || phase !== "active") return;
     const contactFirstName = contact.name.split(" ")[0]!;
     const simulated = getSimulatedTranscript(contactFirstName);
     const timeouts: ReturnType<typeof setTimeout>[] = [];
@@ -210,17 +217,28 @@ function CallPanel({
     });
 
     return () => timeouts.forEach(clearTimeout);
-  }, [phase, contact.name]);
+  }, [phase, contact.name, isMicMode]);
+
+  // In mic mode, use real speech entries
+  const activeTranscript = isMicMode ? speech.entries : transcriptEntries;
 
   const handleHangup = useCallback(() => {
     setQuoStatus("disconnected");
+    if (isMicMode) speech.stop();
     setPhase("summary");
     setIsGeneratingSummary(true);
 
-    // Simulate Quo API: GET /v1/calls/{id}/summary + our AI enrichment
+    const transcriptText = (isMicMode ? speech.entries : transcriptEntries)
+      .filter((e) => e.isFinal)
+      .map((e) => e.text)
+      .join("\n");
+
+    // Simulate AI summary generation from transcript
     setTimeout(() => {
       setSummary(
-        `Resumen generado por Quo AI + contexto del deal:\n\n` +
+        (isMicMode
+          ? `Resumen generado por IA (transcripción vía micrófono):\n\n`
+          : `Resumen generado por Quo AI + contexto del deal:\n\n`) +
         `Llamada de seguimiento con ${contact.name} (${contact.company}) sobre "${deal.name}".\n\n` +
         `Puntos clave:\n` +
         `• El cliente confirmó haber recibido la cotización y está en revisión con finanzas\n` +
@@ -246,7 +264,7 @@ function CallPanel({
       setSelectedTaskIds(new Set(["t1", "t2", "t3"]));
       setIsGeneratingSummary(false);
     }, 3000);
-  }, [contact, deal, notes]);
+  }, [contact, deal, notes, isMicMode, speech, transcriptEntries]);
 
   const handleToggleTask = (taskId: string) => {
     setSelectedTaskIds((prev) => {
@@ -299,11 +317,22 @@ function CallPanel({
               quoStatus === "disconnected" && "bg-muted-foreground",
             )} />
             <span className="text-[11px] font-medium text-muted-foreground">
-              {quoStatus === "connected" && (isHybrid ? "Llamada en tu teléfono" : "Quo conectado")}
+              {quoStatus === "connected" && (isMicMode ? "Micrófono activo" : isHybrid ? "Llamada en tu teléfono" : "Quo conectado")}
               {quoStatus === "connecting" && "Conectando..."}
               {quoStatus === "disconnected" && "Llamada terminada"}
             </span>
-            {quoCallId && (
+            {isMicMode && speech.isListening && (
+              <div className="flex items-center gap-0.5 ml-1">
+                {Array.from({ length: 5 }).map((_, i) => (
+                  <div
+                    key={i}
+                    className="w-0.5 rounded-full bg-success transition-all duration-150"
+                    style={{ height: `${Math.max(4, speech.audioLevel * 16 * (1 + Math.sin(i)))}px` }}
+                  />
+                ))}
+              </div>
+            )}
+            {!isMicMode && quoCallId && (
               <span className="text-[10px] font-mono text-muted-foreground/60">{quoCallId.slice(0, 14)}</span>
             )}
           </div>
@@ -336,7 +365,7 @@ function CallPanel({
                 <span className="relative inline-flex rounded-full h-2.5 w-2.5 bg-warning" />
               </span>
               <span className="text-sm font-medium text-warning">
-                {isHybrid ? "Conectando con tu teléfono..." : "Llamando vía Quo..."}
+                {isMicMode ? "Activando micrófono..." : isHybrid ? "Conectando con tu teléfono..." : "Llamando vía Quo..."}
               </span>
             </div>
           )}
@@ -378,18 +407,20 @@ function CallPanel({
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Transcripción completa
                   </span>
-                  <Badge variant="muted" className="text-[9px] ml-auto gap-1">vía Quo API</Badge>
+                  <Badge variant="muted" className="text-[9px] ml-auto gap-1">
+                    {isMicMode ? "Web Speech API" : "vía Quo API"}
+                  </Badge>
                 </div>
                 <div className="rounded-lg border bg-muted/30 p-3 max-h-[280px] overflow-y-auto">
-                  {transcriptEntries.length > 0 ? (
+                  {activeTranscript.filter((e) => e.isFinal).length > 0 ? (
                     <div className="space-y-2.5">
-                      {transcriptEntries.map((entry) => (
+                      {activeTranscript.filter((e) => e.isFinal).map((entry) => (
                         <div key={entry.id} className="text-sm">
                           <span className={cn(
                             "font-semibold text-xs",
                             entry.speaker === "rep" ? "text-primary" : "text-foreground"
                           )}>
-                            {entry.speaker === "rep" ? "Rep" : contact.name.split(" ")[0]}
+                            {entry.speaker === "rep" ? (isMicMode ? "Mic" : "Rep") : contact.name.split(" ")[0]}
                           </span>
                           <span className="text-[10px] text-muted-foreground font-mono ml-2">{entry.timestamp}</span>
                           <p className="text-sm text-foreground mt-0.5">{entry.text}</p>
@@ -411,7 +442,9 @@ function CallPanel({
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
                     Seguimiento SMS
                   </span>
-                  <Badge variant="blue" className="text-[9px] ml-auto gap-1">Quo Messages API</Badge>
+                  <Badge variant="blue" className="text-[9px] ml-auto gap-1">
+                    {isMicMode ? "WhatsApp / SMS" : "Quo Messages API"}
+                  </Badge>
                 </div>
                 {smsSent ? (
                   <div className="rounded-lg border border-success/30 bg-[var(--success-100)] p-3">
@@ -436,7 +469,7 @@ function CallPanel({
                       </span>
                       <Button size="sm" onClick={handleSendSms} disabled={!smsMessage.trim() || isGeneratingSummary}>
                         <i className="fa-solid fa-paper-plane mr-1 text-xs" />
-                        Enviar SMS vía Quo
+                        {isMicMode ? "Enviar seguimiento" : "Enviar SMS vía Quo"}
                       </Button>
                     </div>
                   </>
@@ -450,17 +483,19 @@ function CallPanel({
                 <div className="flex items-center gap-2 mb-2">
                   <i className="fa-solid fa-server text-muted-foreground text-xs" />
                   <span className="text-xs font-semibold text-muted-foreground uppercase tracking-wide">
-                    Datos de Quo API
+                    {isMicMode ? "Datos de sesión" : "Datos de Quo API"}
                   </span>
                 </div>
                 <div className="rounded-lg bg-muted/50 p-3 font-mono text-[11px] text-muted-foreground space-y-1">
-                  <div className="flex justify-between"><span>call_id</span><span>{quoCallId ?? "—"}</span></div>
+                  {!isMicMode && <div className="flex justify-between"><span>call_id</span><span>{quoCallId ?? "—"}</span></div>}
                   <div className="flex justify-between"><span>duration</span><span>{elapsed}s</span></div>
                   <div className="flex justify-between"><span>direction</span><span>outbound</span></div>
-                  <div className="flex justify-between"><span>transcript_segments</span><span>{transcriptEntries.length}</span></div>
+                  <div className="flex justify-between"><span>transcript_segments</span><span>{activeTranscript.filter((e) => e.isFinal).length}</span></div>
+                  <div className="flex justify-between"><span>transcript_source</span><span className="text-success">{isMicMode ? "web_speech_api" : "quo_ai"}</span></div>
                   <div className="flex justify-between"><span>ai_summary</span><span className="text-success">available</span></div>
-                  <div className="flex justify-between"><span>recording</span><span className="text-success">saved</span></div>
+                  {!isMicMode && <div className="flex justify-between"><span>recording</span><span className="text-success">saved</span></div>}
                   <div className="flex justify-between"><span>synced_to_crm</span><span className="text-success">supabase + zoho</span></div>
+                  {isMicMode && <div className="flex justify-between"><span>cost</span><span className="text-success">$0.00</span></div>}
                 </div>
               </div>
             </div>
@@ -598,8 +633,8 @@ function CallPanel({
                   >
                     <i className="fa-solid fa-closed-captioning mr-2 text-xs" />
                     Transcripción en vivo
-                    {transcriptEntries.length > 0 && (
-                      <Badge variant="muted" className="text-[10px] ml-2">{transcriptEntries.length}</Badge>
+                    {activeTranscript.length > 0 && (
+                      <Badge variant="muted" className="text-[10px] ml-2">{activeTranscript.length}</Badge>
                     )}
                   </button>
                   <button
@@ -617,11 +652,40 @@ function CallPanel({
                 {/* Tab content */}
                 <div className="flex-1 p-5 overflow-hidden">
                   {centerTab === "transcript" ? (
-                    <LiveTranscript
-                      entries={transcriptEntries}
-                      isActive={phase === "active"}
-                      contactName={contact.name.split(" ")[0]!}
-                    />
+                    <>
+                      {isMicMode && !speech.isSupported && (
+                        <div className="mb-3 rounded-lg border border-warning/30 bg-[var(--orange-100)] p-3 text-sm text-[var(--orange-600)]">
+                          <i className="fa-solid fa-triangle-exclamation mr-2" />
+                          Tu navegador no soporta Web Speech API. Usa Chrome o Edge para transcripción gratuita.
+                        </div>
+                      )}
+                      {isMicMode && speech.error && (
+                        <div className="mb-3 rounded-lg border border-destructive/30 bg-destructive/5 p-3 text-sm text-destructive">
+                          <i className="fa-solid fa-circle-exclamation mr-2" />
+                          {speech.error}
+                        </div>
+                      )}
+                      {isMicMode && speech.isListening && (
+                        <div className="mb-3 flex items-center gap-2 text-xs text-success">
+                          <div className="h-2 w-2 rounded-full bg-success animate-pulse" />
+                          Escuchando vía micrófono · Web Speech API · $0
+                          <div className="flex items-center gap-0.5 ml-2">
+                            {Array.from({ length: 8 }).map((_, i) => (
+                              <div
+                                key={i}
+                                className="w-1 rounded-full bg-success/60 transition-all duration-100"
+                                style={{ height: `${Math.max(3, speech.audioLevel * 20 * (0.5 + Math.random()))}px` }}
+                              />
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                      <LiveTranscript
+                        entries={activeTranscript}
+                        isActive={phase === "active"}
+                        contactName={contact.name.split(" ")[0]!}
+                      />
+                    </>
                   ) : (
                     <CallNotes value={notes} onChange={setNotes} />
                   )}
@@ -655,6 +719,7 @@ function CallPanel({
                     {callMode === "voip" && `Llamada VoIP vía Quo API · Cifrado SRTP · ${contact.phone}`}
                     {callMode === "hybrid-quo" && `Llamada telefónica vía Quo Bridge · ${contact.phone}`}
                     {callMode === "hybrid-device" && `Audio capturado desde ${audioDevice ?? "dispositivo"} · ${contact.phone}`}
+                    {callMode === "mic-listen" && `Micrófono capturando audio · Web Speech API (gratis) · ${contact.phone}`}
                   </p>
                 </div>
               </div>
@@ -751,14 +816,22 @@ function CallPanel({
               </div>
               <div className="space-y-2">
                 <div className="flex items-center gap-2.5 text-sm">
-                  <div className={cn("h-2 w-2 rounded-full", callMode !== "hybrid-device" ? "bg-success" : "bg-muted-foreground")} />
+                  <div className={cn("h-2 w-2 rounded-full", callMode !== "hybrid-device" && !isMicMode ? "bg-success" : "bg-muted-foreground")} />
                   <span className="font-medium">Quo</span>
                   <span className="text-xs text-muted-foreground ml-auto">
                     {callMode === "voip" && "VoIP + SMS + Transcripción"}
                     {callMode === "hybrid-quo" && "Bridge + SMS + Transcripción"}
                     {callMode === "hybrid-device" && "Inactivo (modo dispositivo)"}
+                    {callMode === "mic-listen" && "No utilizado"}
                   </span>
                 </div>
+                {isMicMode && (
+                  <div className="flex items-center gap-2.5 text-sm">
+                    <div className={cn("h-2 w-2 rounded-full", speech.isListening ? "bg-success animate-pulse" : "bg-muted-foreground")} />
+                    <span className="font-medium">Micrófono</span>
+                    <span className="text-xs text-muted-foreground ml-auto">Web Speech API ($0)</span>
+                  </div>
+                )}
                 <div className="flex items-center gap-2.5 text-sm">
                   <div className="h-2 w-2 rounded-full bg-success" />
                   <span className="font-medium">Supabase</span>
