@@ -126,6 +126,38 @@ const SUPERVISOR_METRICS = {
   ],
 };
 
+// Detailed metrics per rep for visualization
+const REP_DETAILED_METRICS = {
+  calls: [
+    { rep: "Miriam", value: 78, color: "text-emerald-600" },
+    { rep: "Juan", value: 65, color: "text-blue-600" },
+    { rep: "Laura", value: 71, color: "text-purple-600" },
+    { rep: "Carlos", value: 52, color: "text-orange-600" },
+    { rep: "Ana", value: 42, color: "text-pink-600" },
+  ],
+  conversions: [
+    { rep: "Miriam", value: 38, color: "text-emerald-600" },
+    { rep: "Juan", value: 31, color: "text-blue-600" },
+    { rep: "Laura", value: 35, color: "text-purple-600" },
+    { rep: "Carlos", value: 19, color: "text-orange-600" },
+    { rep: "Ana", value: 24, color: "text-pink-600" },
+  ],
+  proposals: [
+    { rep: "Miriam", value: 6, color: "text-emerald-600" },
+    { rep: "Juan", value: 5, color: "text-blue-600" },
+    { rep: "Laura", value: 5, color: "text-purple-600" },
+    { rep: "Carlos", value: 4, color: "text-orange-600" },
+    { rep: "Ana", value: 3, color: "text-pink-600" },
+  ],
+  systemTime: [
+    { rep: "Miriam", value: 2.8, color: "text-emerald-600" },
+    { rep: "Juan", value: 3.1, color: "text-blue-600" },
+    { rep: "Laura", value: 3.4, color: "text-purple-600" },
+    { rep: "Carlos", value: 3.6, color: "text-orange-600" },
+    { rep: "Ana", value: 3.9, color: "text-pink-600" },
+  ],
+};
+
 const REP_INSIGHTS: RepInsight[] = [
   { rep: "Miriam", insight: "Top performer — 3 cierres en período, tasa más alta", severity: "positive", metric: "3 cierres" },
   { rep: "Juan", insight: "Conversión sólida pero revisar propuestas rechazadas", severity: "neutral", metric: "2 cierres" },
@@ -276,6 +308,68 @@ function AgentActivityLog({ activities }: { activities: AgentActivity[] }) {
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   Strategic Metric Chart Component
+   ════════════════════════════════════════════════════════════════════════════ */
+
+interface MetricChartData {
+  rep: string;
+  value: number;
+  color: string;
+}
+
+function MetricChart({ data, label, unit, median }: { data: MetricChartData[]; label: string; unit: string; median: number }) {
+  const maxValue = Math.max(...data.map((d) => d.value));
+  const medianPercent = (median / maxValue) * 100;
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <h4 className="text-sm font-semibold text-foreground mb-4">{label}</h4>
+      
+      <div className="space-y-3">
+        {data.map((item, idx) => {
+          const percentage = (item.value / maxValue) * 100;
+          const isAboveMedian = item.value > median;
+          
+          return (
+            <div key={idx}>
+              <div className="flex items-center justify-between mb-1">
+                <span className="text-xs font-medium text-foreground">{item.rep}</span>
+                <span className={cn("text-xs font-semibold", item.color)}>
+                  {item.value}{unit} {isAboveMedian ? "↑" : item.value < median ? "↓" : "→"}
+                </span>
+              </div>
+              <div className="relative h-6 bg-muted rounded-md overflow-hidden flex items-center">
+                <div
+                  className={cn("h-full rounded-md transition-all", item.color.replace("text-", "bg-").replace("-600", "-200"))}
+                  style={{ width: `${percentage}%` }}
+                />
+                <div className="absolute inset-0 flex items-center px-2">
+                  <span className="text-[10px] font-semibold text-muted-foreground">{item.value}{unit}</span>
+                </div>
+              </div>
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Median line reference */}
+      <div className="mt-4 pt-3 border-t border-border">
+        <div className="flex items-center justify-between text-xs">
+          <span className="text-muted-foreground flex items-center gap-1">
+            <i className="fa-solid fa-minus text-primary" />
+            Mediana
+          </span>
+          <span className="font-semibold text-foreground">{median}{unit}</span>
+        </div>
+        <div className="text-[10px] text-muted-foreground mt-1">
+          {data.filter((d) => d.value > median).length} encima • {data.filter((d) => d.value < median).length} debajo
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    Filter Component
    ════════════════════════════════════════════════════════════════════════════ */
 
@@ -398,6 +492,7 @@ function FilterPanel({ onFilterChange }: { onFilterChange?: () => void }) {
 
 export default function ReportingPage() {
   const [userRole, setUserRole] = useState<UserRole>("director");
+  const [selectedRep, setSelectedRep] = useState<string | null>(null);
 
   const getRoleConfig = (role: UserRole) => {
     switch (role) {
@@ -414,6 +509,12 @@ export default function ReportingPage() {
 
   const isDirector = userRole === "director";
   const isSupervisor = userRole === "supervisor";
+
+  // Calculate medians for metrics
+  const callsMedian = 65;
+  const conversionsMedian = 32;
+  const proposalsMedian = 5;
+  const systemTimeMedian = 3.4;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -522,23 +623,217 @@ export default function ReportingPage() {
           {/* Supervisor View: Team Performance & Insights */}
           {isSupervisor && (
             <>
-              <div>
-                <Card>
-                  <CardContent className="p-6">
-                    <h2 className="text-lg font-semibold text-foreground mb-4">Desempeño Detallado del Equipo</h2>
-                    <TeamPerformanceTable data={SUPERVISOR_METRICS.teamPerformance} />
-                  </CardContent>
-                </Card>
-              </div>
-
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Insights & Flags por Rep</h2>
-                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
-                  {REP_INSIGHTS.map((insight, idx) => (
-                    <RepInsightCard key={idx} insight={insight} />
-                  ))}
+              {/* Rep Selector */}
+              <div className="flex items-center gap-3">
+                <span className="text-sm font-semibold text-foreground">Vista:</span>
+                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
+                  <Button
+                    size="sm"
+                    variant={selectedRep === null ? "default" : "ghost"}
+                    onClick={() => setSelectedRep(null)}
+                    className="h-8 gap-1.5 text-xs"
+                  >
+                    <i className="fa-solid fa-users" />
+                    Equipo Completo
+                  </Button>
+                  <Separator orientation="vertical" className="h-6" />
+                  <select
+                    value={selectedRep || ""}
+                    onChange={(e) => setSelectedRep(e.target.value || null)}
+                    className="h-8 px-2 rounded bg-background border border-border text-xs font-medium text-foreground cursor-pointer"
+                  >
+                    <option value="">Seleccionar Rep...</option>
+                    {SUPERVISOR_METRICS.teamPerformance.map((rep) => (
+                      <option key={rep.rep} value={rep.rep}>
+                        {rep.rep}
+                      </option>
+                    ))}
+                  </select>
                 </div>
               </div>
+
+              {/* Metric Charts with Agent Comparison - Team View */}
+              {selectedRep === null && (
+                <div>
+                  <h2 className="text-lg font-semibold text-foreground mb-4">📊 Métricas Detalladas por Agente</h2>
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    <MetricChart 
+                      data={REP_DETAILED_METRICS.calls}
+                      label="Actividad de Seguimiento (Llamadas)"
+                      unit=""
+                      median={callsMedian}
+                    />
+                    <MetricChart 
+                      data={REP_DETAILED_METRICS.conversions}
+                      label="Tasa de Conversión (%)"
+                      unit="%"
+                      median={conversionsMedian}
+                    />
+                    <MetricChart 
+                      data={REP_DETAILED_METRICS.proposals}
+                      label="Propuestas Enviadas"
+                      unit=""
+                      median={proposalsMedian}
+                    />
+                    <MetricChart 
+                      data={REP_DETAILED_METRICS.systemTime}
+                      label="Tiempo Promedio en Sistema (hrs)"
+                      unit=""
+                      median={systemTimeMedian}
+                    />
+                  </div>
+
+                  {/* Team Performance Table */}
+                  <div className="mt-6">
+                    <Card>
+                      <CardContent className="p-6">
+                        <h2 className="text-lg font-semibold text-foreground mb-4">Desempeño Detallado del Equipo</h2>
+                        <TeamPerformanceTable data={SUPERVISOR_METRICS.teamPerformance} />
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Insights & Flags */}
+                  <div className="mt-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Insights & Flags por Rep</h2>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                      {REP_INSIGHTS.map((insight, idx) => (
+                        <RepInsightCard key={idx} insight={insight} />
+                      ))}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Individual Rep Detail View */}
+              {selectedRep && (
+                <div>
+                  <div className="space-y-4">
+                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
+                      <h2 className="text-lg font-semibold text-foreground mb-2">Detalle: {selectedRep}</h2>
+                      <p className="text-sm text-muted-foreground">Comparación con equipo y análisis individual</p>
+                    </div>
+
+                    {/* Show median comparison for selected rep */}
+                    {(() => {
+                      const repData = SUPERVISOR_METRICS.teamPerformance.find((r) => r.rep === selectedRep);
+                      const repCalls = REP_DETAILED_METRICS.calls.find((d) => d.rep === selectedRep)?.value || 0;
+                      const repConversions = REP_DETAILED_METRICS.conversions.find((d) => d.rep === selectedRep)?.value || 0;
+                      const repProposals = REP_DETAILED_METRICS.proposals.find((d) => d.rep === selectedRep)?.value || 0;
+                      const repSystemTime = REP_DETAILED_METRICS.systemTime.find((d) => d.rep === selectedRep)?.value || 0;
+
+                      return (
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                          <Card>
+                            <CardContent className="p-4">
+                              <h3 className="text-sm font-semibold text-foreground mb-3">Comparación vs Mediana</h3>
+                              <div className="space-y-2 text-xs">
+                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
+                                  <span className="text-muted-foreground">Llamadas</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{repCalls}</span>
+                                    {repCalls > callsMedian ? (
+                                      <Badge variant="success" className="text-[10px]">
+                                        +{repCalls - callsMedian} vs mediana
+                                      </Badge>
+                                    ) : repCalls < callsMedian ? (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        {repCalls - callsMedian} vs mediana
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
+                                  <span className="text-muted-foreground">Conversión</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{repConversions}%</span>
+                                    {repConversions > conversionsMedian ? (
+                                      <Badge variant="success" className="text-[10px]">
+                                        +{repConversions - conversionsMedian}% vs mediana
+                                      </Badge>
+                                    ) : repConversions < conversionsMedian ? (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        {repConversions - conversionsMedian}% vs mediana
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
+                                  <span className="text-muted-foreground">Propuestas</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{repProposals}</span>
+                                    {repProposals > proposalsMedian ? (
+                                      <Badge variant="success" className="text-[10px]">
+                                        +{Math.round((repProposals - proposalsMedian) * 10) / 10} vs mediana
+                                      </Badge>
+                                    ) : repProposals < proposalsMedian ? (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        {Math.round((repProposals - proposalsMedian) * 10) / 10} vs mediana
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
+                                    )}
+                                  </div>
+                                </div>
+
+                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
+                                  <span className="text-muted-foreground">Tiempo Sistema</span>
+                                  <div className="flex items-center gap-2">
+                                    <span className="font-semibold">{repSystemTime} hrs</span>
+                                    {repSystemTime < systemTimeMedian ? (
+                                      <Badge variant="success" className="text-[10px]">
+                                        -{Math.round((systemTimeMedian - repSystemTime) * 10) / 10} hrs vs mediana
+                                      </Badge>
+                                    ) : repSystemTime > systemTimeMedian ? (
+                                      <Badge variant="secondary" className="text-[10px]">
+                                        +{Math.round((repSystemTime - systemTimeMedian) * 10) / 10} hrs vs mediana
+                                      </Badge>
+                                    ) : (
+                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
+                                    )}
+                                  </div>
+                                </div>
+                              </div>
+                            </CardContent>
+                          </Card>
+
+                          <Card>
+                            <CardContent className="p-4">
+                              <h3 className="text-sm font-semibold text-foreground mb-3">Información del Rep</h3>
+                              <div className="space-y-2 text-xs">
+                                {repData && (
+                                  <>
+                                    <div className="flex items-center justify-between p-2 rounded bg-muted/40">
+                                      <span className="text-muted-foreground">Cierres</span>
+                                      <span className="font-semibold">{repData.closes}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-2 rounded bg-muted/40">
+                                      <span className="text-muted-foreground">Precisión</span>
+                                      <span className="font-semibold text-emerald-600">{repData.accuracy}</span>
+                                    </div>
+                                    <div className="flex items-center justify-between p-2 rounded bg-muted/40">
+                                      <span className="text-muted-foreground">Tendencia</span>
+                                      <span className="font-semibold">
+                                        <i className={cn("text-xs", repData.trend === "up" ? "fa-solid fa-arrow-up text-emerald-600" : repData.trend === "down" ? "fa-solid fa-arrow-down text-destructive" : "fa-solid fa-minus text-muted-foreground")} />
+                                      </span>
+                                    </div>
+                                  </>
+                                )}
+                              </div>
+                            </CardContent>
+                          </Card>
+                        </div>
+                      );
+                    })()}
+                  </div>
+                </div>
+              )}
             </>
           )}
 
