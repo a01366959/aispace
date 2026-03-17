@@ -37,7 +37,6 @@ interface Agent {
 
 interface ClientThread {
   id: string;
-  agentId: string;
   clientName: string;
   company: string;
   initials: string;
@@ -46,6 +45,7 @@ interface ClientThread {
   preview: string;
   time: string;
   unread: boolean;
+  category: "sla-risk" | "hot-deal" | "new" | "active";
 }
 
 interface Reaction {
@@ -110,44 +110,121 @@ const AGENTS: Agent[] = [
 ];
 
 const CLIENT_THREADS: ClientThread[] = [
-  { id: "t1", agentId: "follow-up", clientName: "Carlos Mendoza", company: "Cervecería Toluca", initials: "CM", segment: "ballenas", stage: "cotización_enviada", preview: "Tarea de seguimiento creada — 6 días sin actividad", time: "10:32", unread: true },
-  { id: "t2", agentId: "follow-up", clientName: "Ana Torres", company: "Plásticos Industriales", initials: "AT", segment: "tiburones", stage: "seguimiento", preview: "Seguimiento programado para mañana", time: "09:15", unread: true },
-  { id: "t3", agentId: "sales-assistant", clientName: "Carlos Mendoza", company: "Cervecería Toluca", initials: "CM", segment: "ballenas", stage: "cotización_enviada", preview: "Cotización audiometrías — $42,000 MXN", time: "10:22", unread: true },
-  { id: "t4", agentId: "sales-assistant", clientName: "Roberto Juárez", company: "Metalúrgica del Valle", initials: "RJ", segment: "atunes", stage: "descubrimiento", preview: "Resumen de llamada generado", time: "Ayer", unread: false },
-  { id: "t5", agentId: "supervisor", clientName: "Patricia Sánchez", company: "Grupo Farmacéutico GT", initials: "PS", segment: "ballenas", stage: "seguimiento", preview: "Plan de reactivación listo", time: "08:00", unread: false },
+  { id: "t1", clientName: "Cervecería Toluca", company: "Cervecería", initials: "CT", segment: "ballenas", stage: "cotización_enviada", preview: "Cotización $285K + seguimiento de audiometrías — 6 días sin actividad", time: "10:32", unread: true, category: "sla-risk" },
+  { id: "t2", clientName: "Plásticos Industriales", company: "Manufactura", initials: "PI", segment: "tiburones", stage: "seguimiento", preview: "Campaña ocupacional $180K — Esperan auditoría interna", time: "09:15", unread: true, category: "sla-risk" },
+  { id: "t3", clientName: "Metalúrgica del Valle", company: "Manufactura", initials: "MV", segment: "atunes", stage: "descubrimiento", preview: "45 exámenes nuevas contrataciones — Propuesta 3 opciones lista", time: "Hoy", unread: false, category: "hot-deal" },
+  { id: "t4", clientName: "Grupo Farmacéutico GT", company: "Farmacéutica", initials: "GF", segment: "ballenas", stage: "primer_contacto", preview: "Reactivación oportunidad $420K — Asignado a Miriam", time: "08:00", unread: false, category: "hot-deal" },
+  { id: "t5", clientName: "Tecnológica Avanzada", company: "IT", initials: "TA", segment: "truchas", stage: "prospecto", preview: "Nueva oportunidad en exploración — Primera reunión pendiente", time: "Ayer", unread: false, category: "new" },
 ];
 
-const MESSAGES: Message[] = [
-  {
-    id: "m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:00",
-    text: "Buenos días. Completé el escaneo matutino del pipeline.",
-    agentTag: "Escaneo diario",
-    reactions: [{ emoji: "👍", count: 1, reacted: false }],
-    threadCount: 2,
-  },
-  {
-    id: "m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:01",
-    text: "Cervecería Toluca lleva 6 días sin actividad. Creé tarea de seguimiento y borrador de llamada para mañana 10:00 AM.",
-    action: { label: "Tarea creada automáticamente", body: "Seguimiento: Llamar a Carlos Mendoza — Cervecería Toluca. Deal $285,000 MXN en etapa Cotización Enviada.", status: "auto-applied" },
-    reactions: [{ emoji: "✅", count: 2, reacted: true }],
-  },
-  {
-    id: "m3", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:02",
-    text: "Plásticos Industriales tiene 4 días sin actividad. SLA Tiburones en riesgo. Creé recordatorio urgente.",
-    action: { label: "Tarea urgente creada", body: "Ana Torres — Plásticos Industriales. Pipeline $180,000 MXN. SLA en riesgo.", status: "auto-applied" },
-  },
-  {
-    id: "m4", sender: "Tú", avatar: "MR", type: "user", time: "08:15",
-    text: "Perfecto, gracias. ¿Hay algo más pendiente?",
-  },
-  {
-    id: "m5", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16",
-    text: "Grupo Farmacéutico GT sin contacto en 47 días. Creé oportunidad de reactivación y lo pasé al Supervisor.",
-    replyTo: { sender: "Tú", text: "Perfecto, gracias. ¿Hay algo más pendiente?" },
-    action: { label: "Reactivación iniciada", body: "Deal de reactivación creado para Grupo Farmacéutico GT (Ballena). Borrador de llamada preparado.", status: "auto-applied" },
-    threadCount: 4,
-  },
-];
+// Unified client messages - all agents participate in one chat per client
+const CLIENT_MESSAGES: Record<string, Message[]> = {
+  t1: [
+    {
+      id: "t1-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16",
+      text: "Contexto: Cervecería Toluca (Ballena) — 6 días sin actividad. Deal $285K en Cotización Audiometrías Enviada.",
+      agentTag: "Seguimiento",
+    },
+    {
+      id: "t1-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:17",
+      text: "Creé tarea de seguimiento para llamada mañana 10:00 AM. SLA en límite.",
+      action: { label: "Tarea creada", body: "Seguimiento: Llamar a Carlos Mendoza. Cotización $285K en espera de aprobación presupuestaria.", status: "auto-applied" },
+      agentTag: "Seguimiento",
+    },
+    {
+      id: "t1-m3", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:22",
+      text: "Cotización de audiometrías revisada: $42,000 MXN. Borrador de email preparado.",
+      action: { label: "Borrador de correo listo", body: "Hola Carlos,\n\nAdjunto cotización para exámenes audiométricos. Vigencia: 30 días.\n\n¿Confirmamos?", status: "pending-approval", buttons: [{ label: "Enviar", variant: "primary" }] },
+      agentTag: "Ventas",
+    },
+    {
+      id: "t1-m4", sender: "Tú", avatar: "MR", type: "user", time: "10:25",
+      text: "Bien. Hoy llamo a Carlos primero para saber status presupuesto.",
+    },
+  ],
+
+  t2: [
+    {
+      id: "t2-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:15",
+      text: "Alerta: Plásticos Industriales (Tiburón) — 4 días esperando respuesta. SLA en riesgo.",
+      agentTag: "Seguimiento",
+    },
+    {
+      id: "t2-m2", sender: "Supervisor", avatar: "SV", type: "agent", time: "09:30",
+      text: "Deal en riesgo flagged. Ana está trabajando auditoría interna. Recomiendo presión suave hoy.",
+      agentTag: "Supervisor",
+    },
+    {
+      id: "t2-m3", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:40",
+      text: "Creé recordatorio urgente. Campaña ocupacional $180K. Si no responden hoy escalamos a directora.",
+      action: { label: "Recordatorio urgente", body: "Ana Torres: ¿Status de auditoría? Necesitamos avanzar para cerrar este mes.", status: "auto-applied" },
+      agentTag: "Seguimiento",
+    },
+    {
+      id: "t2-m4", sender: "Tú", avatar: "MR", type: "user", time: "10:00",
+      text: "Perfecto. Yo le envío un mensaje después de comer.",
+    },
+  ],
+
+  t3: [
+    {
+      id: "t3-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Ayer 14:30",
+      text: "Resumen de tu llamada con Roberto (Jefe de RH): 45 nuevas contrataciones, presupuesto confirmado.",
+      agentTag: "Ventas",
+      action: { label: "Resumen de llamada", body: "Empresa: Metalúrgica del Valle\nContacto: Roberto Juárez\nNecesidad: 45 exámenes entrada\nPresupuesto: Aprobado\nSiguiente: Propuesta 3 opciones", status: "auto-applied" },
+    },
+    {
+      id: "t3-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "15:00",
+      text: "Preparé 3 propuestas: Básico $2K, Estándar $4K (recomendado), Premium $6K. Listas para revisar.",
+      agentTag: "Ventas",
+      reactions: [{ emoji: "⚡", count: 1, reacted: true }],
+    },
+    {
+      id: "t3-m3", sender: "Tú", avatar: "MR", type: "user", time: "16:00",
+      text: "Envía Estándar con opción de upgrade a Premium.",
+    },
+    {
+      id: "t3-m4", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "16:05",
+      text: "Propuesta Estándar enviada. ETA de respuesta: 2-3 días.",
+      agentTag: "Ventas",
+      reactions: [{ emoji: "✅", count: 1, reacted: true }],
+    },
+  ],
+
+  t4: [
+    {
+      id: "t4-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:30",
+      text: "Oportunidad de reactivación detectada: Grupo Farmacéutico GT. Sin contacto 47 días. Historial: $380K.",
+      agentTag: "Seguimiento",
+    },
+    {
+      id: "t4-m2", sender: "Supervisor", avatar: "SV", type: "agent", time: "08:35",
+      text: "Excelente find. Asigné a Miriam Reyes por su experiencia. Deal: $420K estimado.",
+      agentTag: "Supervisor",
+      action: { label: "Deal de reactivación creado", body: "Cliente: Grupo Farmacéutico GT (Ballena)\nValor: $420K MXN\nAsignado: Miriam Reyes\nEstatus: Primer contacto", status: "auto-applied" },
+    },
+    {
+      id: "t4-m3", sender: "Tú", avatar: "MR", type: "user", time: "09:00",
+      text: "Perfecto. Mañana temprano llamo para reactivar la relación.",
+    },
+  ],
+
+  t5: [
+    {
+      id: "t5-m1", sender: "Supervisor", avatar: "SV", type: "agent", time: "Ayer 17:00",
+      text: "Nueva oportunidad en prospección: Tecnológica Avanzada. Segmento Trucha. Primeros contactos en exploración.",
+      agentTag: "Supervisor",
+    },
+    {
+      id: "t5-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Mañana 09:00",
+      text: "Propuesta inicial lista. Servicios de salud ocupacional para 80 empleados.",
+      agentTag: "Ventas",
+    },
+  ],
+};
+
+// Fallback MESSAGES for main chat
+const MESSAGES: Message[] = [];
 
 const MAIN_CHAT_MESSAGES: Message[] = [
   {
@@ -309,51 +386,8 @@ const AGENT_MESSAGES: Record<string, Message[]> = {
   ],
 };
 
-// Per-thread conversations
-const THREAD_MESSAGES_BY_THREAD: Record<string, Message[]> = {
-  // t1: Cervecería Toluca - Follow-up
-  t1: [
-    { id: "t1-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16", text: "Contexto: Cervecería Toluca (Ballena) — 6 días sin actividad. Deal $285K en Cotización Enviada." },
-    { id: "t1-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:17", text: "Creé tarea de seguimiento y borrador de llamada para mañana 10:00 AM.", action: { label: "Tarea creada", body: "Seguimiento: Carlos Mendoza (Cervecería Toluca). Llamar sobre cotización audiometrías $285K.", status: "auto-applied" } },
-    { id: "t1-m3", sender: "Tú", avatar: "MR", type: "user", time: "09:00", text: "¿Hay que presionar o dejar que confirme?" },
-    { id: "t1-m4", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:02", text: "6 días es límite del SLA Ballena. Sugiero tono consultivo hoy: 'Confirmamos la cotización'", reactions: [{ emoji: "✅", count: 1, reacted: true }] },
-  ],
-
-  // t2: Plásticos Industriales - Follow-up
-  t2: [
-    { id: "t2-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:15", text: "Alerta: Plásticos Industriales (Tiburón) — 4 días sin respuesta. SLA en riesgo." },
-    { id: "t2-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:16", text: "Esperan resultado de auditoría interna antes de proceder ($180K campaign).", agentTag: "Contexto" },
-    { id: "t2-m3", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:17", text: "Creé recordatorio urgente para hoy. Si no responden, escalamos mañana.", action: { label: "Recordatorio urgente", body: "Ana Torres: Plásticos Industriales. Seguimiento: Auditoría + presupuesto. Valor: $180K MXN.", status: "auto-applied" } },
-    { id: "t2-m4", sender: "Tú", avatar: "MR", type: "user", time: "10:00", text: "Perfecto, veré si puedo llamar a las 11." },
-  ],
-
-  // t3: Cervecería Toluca - Sales Assistant (different deal)
-  t3: [
-    { id: "t3-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:22", text: "Cotización lista: Audiometrías — Cervecería Toluca. $42,000 MXN." },
-    { id: "t3-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:23", text: "Preparé borrador de correo. Solo necesita tu aprobación antes de enviar a Carlos.", action: { label: "Borrador de correo listo", body: "Asunto: Cotización Audiometrías — Cervecería Toluca\\n\\nHola Carlos,\\nAdjunto cotización para los exámenes audiométricos solicitados. Vigencia: 30 días.\\n\\n¿Podemos agendar una llamada para confirmar?", status: "pending-approval", buttons: [{ label: "Enviar", variant: "primary" }, { label: "Editar", variant: "outline" }] } },
-    { id: "t3-m3", sender: "Tú", avatar: "MR", type: "user", time: "10:25", text: "Ajusta el monto a $44,500 por el descuento volumétrico." },
-    { id: "t3-m4", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:26", text: "Actualicé cotización y correo. Listo para enviar cuando apruebes.", agentTag: "Actualizado", reactions: [{ emoji: "✅", count: 1, reacted: true }] },
-  ],
-
-  // t4: Metalúrgica del Valle - Sales Assistant (call summary)
-  t4: [
-    { id: "t4-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Ayer", text: "Resumen de llamada generado automáticamente.", agentTag: "Resumen" },
-    { id: "t4-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Ayer", text: "Jefe de RH (Roberto Juárez): Busca exámenes para 45 nuevas contrataciones. Presupuesto confirmado.", action: { label: "Resumen de llamada", body: "Fecha: hoy 14:30\\nCliente: Roberto Juárez — Jefe de RH\\nEmpresa: Metalúrgica del Valle\\nPrioridad: Alta (45 empleados x exámenes)\\nSiguiente: Enviar propuesta con 3 opciones de paquete.", status: "auto-applied" } },
-    { id: "t4-m3", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Ayer", text: "Creé 3 propuestas: Básico ($2K), Estándar ($4K), Premium ($6K). Listas para revisar." },
-    { id: "t4-m4", sender: "Tú", avatar: "MR", type: "user", time: "Ayer", text: "Excelente. Envía el Estándar como default con opción de upgrade." },
-  ],
-
-  // t5: Grupo Farmacéutico GT - Supervisor (reactivation)
-  t5: [
-    { id: "t5-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16", text: "Contexto: Grupo Farmacéutico GT (Ballena) — sin compras ni contacto en 47 días." },
-    { id: "t5-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:17", text: "Creé deal de reactivación y borrador de contacto. Lo pasé al Supervisor para asignación.", action: { label: "Deal creado", body: "Reactivación — Grupo Farmacéutico GT. Valor estimado: $420,000 MXN. Pendiente asignación de vendedor.", status: "auto-applied" } },
-    { id: "t5-m3", sender: "Supervisor", avatar: "SV", type: "agent", time: "08:30", text: "Asigné a Miriam Reyes. Buen candidato para reactivación dado su historial de compra.", agentTag: "Auto-asignación", reactions: [{ emoji: "👍", count: 1, reacted: false }] },
-    { id: "t5-m4", sender: "Tú", avatar: "MR", type: "user", time: "09:00", text: "Yo me encargo. Llamaré mañana temprano." },
-  ],
-};
-
-// Fallback for old THREAD_MESSAGES
-const THREAD_MESSAGES: Message[] = THREAD_MESSAGES_BY_THREAD.t5;
+// Fallback for old thread messages (unused in new design)
+const THREAD_MESSAGES: Message[] = [];
 
 const SLASH_COMMANDS: SlashCommand[] = [
   { command: "/tarea", label: "Crear tarea", icon: "fa-solid fa-circle-check", description: "Nueva tarea para ti o tu equipo" },
@@ -792,10 +826,8 @@ function MessageBubble({
    ════════════════════════════════════════════════════════════════════════════ */
 
 export default function InboxPage() {
-  const [selectedAgent, setSelectedAgent] = useState("gdt-main");
-  const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set(["follow-up", "sales-assistant"]));
-  const [threadOpen, setThreadOpen] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
+  const [threadOpen, setThreadOpen] = useState<string | null>(null);
 
   // Call state
   const [activeCallThreadId, setActiveCallThreadId] = useState<string | null>(null);
@@ -807,35 +839,15 @@ export default function InboxPage() {
     }
   };
 
-  const openThread = (threadId: string) => {
-    const thread = CLIENT_THREADS.find((item) => item.id === threadId);
-    if (!thread) {
-      return;
-    }
-
-    setSelectedChannel(thread.id);
-    setSelectedAgent(thread.agentId);
-    setThreadOpen(null);
-  };
-
-  const toggleAgent = (agentId: string) => {
-    setExpandedAgents((prev) => {
-      const next = new Set(prev);
-      next.has(agentId) ? next.delete(agentId) : next.add(agentId);
-      return next;
-    });
-  };
-
-  const activeAgent = AGENTS.find((a) => a.id === selectedAgent);
   const activeChannel = selectedChannel ? CLIENT_THREADS.find((t) => t.id === selectedChannel) : null;
-  const primaryAgent = AGENTS.find((agent) => agent.role === "primary");
-  const specialistAgents = AGENTS.filter((agent) => agent.role === "specialist");
-  const isMainWorkspace = !activeChannel && selectedAgent === "gdt-main";
-  const composerPlaceholder = isMainWorkspace
-    ? "Escribe a GDT para coordinar clientes, seguimientos, tareas o reportes"
-    : activeChannel
-    ? `Mensaje para ${activeChannel.clientName}...`
-    : `Mensaje para ${activeAgent?.name ?? "el agente"}...`;
+  
+  // Group threads by category
+  const categorizedThreads = {
+    "sla-risk": CLIENT_THREADS.filter((t) => t.category === "sla-risk"),
+    "hot-deal": CLIENT_THREADS.filter((t) => t.category === "hot-deal"),
+    "new": CLIENT_THREADS.filter((t) => t.category === "new"),
+    "active": CLIENT_THREADS.filter((t) => t.category === "active"),
+  };
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -873,269 +885,213 @@ export default function InboxPage() {
       </nav>
 
       {/* ── Sidebar ──────────────────────────────────────────────── */}
-      <aside className="flex w-[260px] min-w-[260px] flex-col border-r border-border bg-card">
-        <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-sm font-semibold text-foreground">GDT</h1>
-          <Button variant="ghost" size="icon-sm" className="h-7 w-7 text-muted-foreground">
-            <i className="fa-solid fa-pen-to-square text-xs" />
+      <aside className="flex w-[280px] min-w-[280px] flex-col border-r border-border bg-card">
+        {/* Header */}
+        <div className="flex items-center justify-between px-4 py-3 border-b border-border">
+          <h1 className="text-sm font-semibold text-foreground">Clientes</h1>
+          <Button variant="ghost" size="icon-sm" className="h-7 w-7 text-muted-foreground hover:text-foreground">
+            <i className="fa-solid fa-filter text-xs" />
           </Button>
         </div>
-        <Separator />
+
+        {/* Search */}
         <div className="px-3 py-2">
           <div className="flex items-center gap-2 rounded-md border border-transparent bg-muted px-2.5 py-1.5 text-sm transition-colors focus-within:border-ring focus-within:bg-background">
             <i className="fa-solid fa-magnifying-glass text-[11px] text-muted-foreground" />
-            <input type="text" placeholder="Buscar..." className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
+            <input type="text" placeholder="Buscar clientes..." className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
           </div>
         </div>
 
+        {/* Conversations grouped by category */}
         <div className="flex-1 overflow-y-auto">
-          {primaryAgent && (
-            <div className="px-3 pb-2 pt-1">
-              <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Experiencia principal</div>
-              <button
-                onClick={() => { setSelectedAgent(primaryAgent.id); setSelectedChannel(null); setThreadOpen(null); }}
-                className={cn(
-                  "flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
-                  selectedAgent === primaryAgent.id && !selectedChannel ? "border-primary/20 bg-primary/5" : "border-border hover:bg-muted/40"
-                )}
-              >
-                <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
-                  <i className={cn(primaryAgent.icon, "text-sm")} />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-sm font-semibold text-foreground">{primaryAgent.name}</span>
-                    <Badge variant="outline" className="text-[10px]">Chat principal</Badge>
+          {/* SLA Risk */}
+          {categorizedThreads["sla-risk"].length > 0 && (
+            <div className="px-3 py-2">
+              <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-destructive/80 flex items-center gap-1.5">
+                <i className="fa-solid fa-exclamation-circle text-[9px]" /> En riesgo ({categorizedThreads["sla-risk"].length})
+              </div>
+              {categorizedThreads["sla-risk"].map((thread) => (
+                <button
+                  key={thread.id}
+                  onClick={() => setSelectedChannel(thread.id)}
+                  className={cn(
+                    "flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors mb-1",
+                    selectedChannel === thread.id ? "bg-destructive/10 border border-destructive/20" : "hover:bg-muted/50"
+                  )}
+                >
+                  <Avatar size="sm" className={cn("h-7 w-7 text-[11px] shrink-0", AVATAR_BG[thread.initials] ?? "bg-muted-foreground")} initials={thread.initials} />
+                  <div className="flex-1 min-w-0">
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-[13px] font-semibold text-foreground truncate">{thread.clientName}</span>
+                      {thread.unread && <span className="h-1.5 w-1.5 rounded-full bg-destructive shrink-0" />}
+                    </div>
+                    <span className="block truncate text-[11px] text-muted-foreground mt-0.5">{thread.preview}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">{thread.time}</span>
                   </div>
-                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{primaryAgent.description}</p>
-                </div>
-              </button>
+                </button>
+              ))}
             </div>
           )}
 
-          <div className="px-5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Agentes especializados</div>
-
-          {specialistAgents.map((agent) => {
-            const threads = CLIENT_THREADS.filter((t) => t.agentId === agent.id);
-            const isExpanded = expandedAgents.has(agent.id);
-            const isSelected = selectedAgent === agent.id && !selectedChannel;
-
-            return (
-              <div key={agent.id}>
-                <div className="flex items-center px-3 py-0.5">
-                  {threads.length > 0 && (
-                    <button onClick={() => toggleAgent(agent.id)} className="mr-1 flex h-5 w-5 items-center justify-center rounded text-muted-foreground hover:text-foreground">
-                      <i className={cn("fa-solid fa-chevron-right text-[9px] transition-transform", isExpanded && "rotate-90")} />
-                    </button>
-                  )}
-                  <button
-                    onClick={() => { setSelectedAgent(agent.id); setSelectedChannel(null); setThreadOpen(null); }}
-                    className={cn("flex flex-1 items-center gap-2 rounded-md px-2 py-1.5 text-left text-sm transition-colors", isSelected ? "bg-muted font-medium text-foreground" : "text-muted-foreground hover:bg-muted/50 hover:text-foreground")}
-                  >
-                    <i className={cn(agent.icon, "text-xs w-4 text-center")} />
-                    <span className="truncate">{agent.name}</span>
-                    {agent.unread > 0 && <span className="ml-auto h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-                  </button>
-                </div>
-
-                {isExpanded && threads.map((thread) => {
-                  const isActive = selectedChannel === thread.id;
-                  const hasContact = !!CALL_CONTACTS[thread.id];
-                  return (
-                    <div key={thread.id} className="flex items-center group">
-                      <button
-                        onClick={() => { setSelectedChannel(thread.id); setSelectedAgent(thread.agentId); setThreadOpen(null); }}
-                        className={cn("flex flex-1 items-center gap-2 py-1 pl-12 pr-1 text-left transition-colors min-w-0", isActive ? "bg-muted" : "hover:bg-muted/40")}
-                      >
-                        <Avatar size="sm" className={cn("h-6 w-6 text-[10px] shrink-0", AVATAR_BG[thread.initials] ?? "bg-muted-foreground")} initials={thread.initials} />
-                        <div className="flex-1 min-w-0">
-                          <div className="flex items-center gap-1.5">
-                            <span className={cn("truncate text-[13px]", thread.unread ? "font-semibold text-foreground" : "text-muted-foreground")}>{thread.clientName}</span>
-                            {thread.unread && <span className="h-1.5 w-1.5 rounded-full bg-primary shrink-0" />}
-                          </div>
-                          <span className="block truncate text-[11px] text-muted-foreground">{thread.preview}</span>
-                        </div>
-                        <span className="shrink-0 text-[10px] text-muted-foreground">{thread.time}</span>
-                      </button>
-                      {hasContact && (
-                        <Tooltip content="Llamar" side="right">
-                          <button
-                            onClick={(e) => { e.stopPropagation(); startCallFromThread(thread.id); }}
-                            className="shrink-0 h-6 w-6 mr-2 rounded flex items-center justify-center text-muted-foreground opacity-0 group-hover:opacity-100 hover:text-foreground transition-all"
-                          >
-                            <i className="fa-solid fa-phone text-[10px]" />
-                          </button>
-                        </Tooltip>
-                      )}
-                    </div>
-                  );
-                })}
+          {/* Hot Deals */}
+          {categorizedThreads["hot-deal"].length > 0 && (
+            <div className="px-3 py-2">
+              <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-amber-600 flex items-center gap-1.5">
+                <i className="fa-solid fa-fire text-[9px]" /> Oportunidades ({categorizedThreads["hot-deal"].length})
               </div>
-            );
-          })}
+              {categorizedThreads["hot-deal"].map((thread) => (
+                <button
+                  key={thread.id}
+                  onClick={() => setSelectedChannel(thread.id)}
+                  className={cn(
+                    "flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors mb-1",
+                    selectedChannel === thread.id ? "bg-amber-50 border border-amber-200/50" : "hover:bg-muted/50"
+                  )}
+                >
+                  <Avatar size="sm" className={cn("h-7 w-7 text-[11px] shrink-0", AVATAR_BG[thread.initials] ?? "bg-muted-foreground")} initials={thread.initials} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-semibold text-foreground truncate block">{thread.clientName}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground mt-0.5">{thread.preview}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">{thread.time}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* New */}
+          {categorizedThreads["new"].length > 0 && (
+            <div className="px-3 py-2">
+              <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-primary flex items-center gap-1.5">
+                <i className="fa-solid fa-star text-[9px]" /> Nuevos ({categorizedThreads["new"].length})
+              </div>
+              {categorizedThreads["new"].map((thread) => (
+                <button
+                  key={thread.id}
+                  onClick={() => setSelectedChannel(thread.id)}
+                  className={cn(
+                    "flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors mb-1",
+                    selectedChannel === thread.id ? "bg-primary/10 border border-primary/20" : "hover:bg-muted/50"
+                  )}
+                >
+                  <Avatar size="sm" className={cn("h-7 w-7 text-[11px] shrink-0", AVATAR_BG[thread.initials] ?? "bg-muted-foreground")} initials={thread.initials} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-semibold text-foreground truncate block">{thread.clientName}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground mt-0.5">{thread.preview}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">{thread.time}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
+
+          {/* Active / Others */}
+          {categorizedThreads["active"].length > 0 && (
+            <div className="px-3 py-2">
+              <div className="mb-2 px-2 text-[10px] font-semibold uppercase tracking-wider text-muted-foreground flex items-center gap-1.5">
+                <i className="fa-solid fa-circle-check text-[9px]" /> Activos ({categorizedThreads["active"].length})
+              </div>
+              {categorizedThreads["active"].map((thread) => (
+                <button
+                  key={thread.id}
+                  onClick={() => setSelectedChannel(thread.id)}
+                  className={cn(
+                    "flex w-full items-start gap-2.5 rounded-lg px-3 py-2.5 text-left transition-colors mb-1",
+                    selectedChannel === thread.id ? "bg-muted" : "hover:bg-muted/50"
+                  )}
+                >
+                  <Avatar size="sm" className={cn("h-7 w-7 text-[11px] shrink-0", AVATAR_BG[thread.initials] ?? "bg-muted-foreground")} initials={thread.initials} />
+                  <div className="flex-1 min-w-0">
+                    <span className="text-[13px] font-semibold text-foreground truncate block">{thread.clientName}</span>
+                    <span className="block truncate text-[11px] text-muted-foreground mt-0.5">{thread.preview}</span>
+                    <span className="text-[10px] text-muted-foreground mt-1">{thread.time}</span>
+                  </div>
+                </button>
+              ))}
+            </div>
+          )}
         </div>
       </aside>
 
       {/* ── Main Chat ────────────────────────────────────────────── */}
       <main className="flex flex-1 flex-col min-w-0 overflow-x-hidden">
-        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-2.5">
-          <div className="flex items-center gap-2.5 min-w-0">
-            {activeChannel ? (
-              <>
-                <Avatar size="sm" className={AVATAR_BG[activeChannel.initials] ?? "bg-muted-foreground"} initials={activeChannel.initials} />
-                <div className="min-w-0">
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="text-sm font-semibold text-foreground truncate">{activeChannel.clientName}</span>
-                    <span className="text-xs text-muted-foreground shrink-0">{STAGE_LABELS[activeChannel.stage]}</span>
-                  </div>
-                  <p className="text-xs text-muted-foreground truncate">
-                    {activeChannel.company}
-                    {CALL_CONTACTS[activeChannel.id] && (
-                      <> · <span className="font-mono">{CALL_CONTACTS[activeChannel.id]!.phone}</span></>
-                    )}
-                  </p>
+        <header className="flex items-center justify-between border-b border-border bg-card px-4 py-3">
+          {activeChannel ? (
+            <div className="flex items-center gap-3">
+              <Avatar size="sm" className={AVATAR_BG[activeChannel.initials] ?? "bg-muted-foreground"} initials={activeChannel.initials} />
+              <div>
+                <div className="text-sm font-semibold text-foreground">{activeChannel.clientName}</div>
+                <div className="text-xs text-muted-foreground">
+                  {activeChannel.company} · {STAGE_LABELS[activeChannel.stage]} · {SEGMENT_LABELS[activeChannel.segment]}
                 </div>
-              </>
-            ) : (
-              <>
-                <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", selectedAgent === "gdt-main" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
-                  <i className={cn(activeAgent?.icon ?? "fa-solid fa-robot", "text-sm")} />
-                </div>
-                <div>
-                  <span className="text-sm font-semibold text-foreground">{activeAgent?.name}</span>
-                  <p className="text-xs text-muted-foreground">{activeAgent?.description}</p>
-                </div>
-              </>
-            )}
-          </div>
-          <div className="flex items-center gap-0.5">
+              </div>
+            </div>
+          ) : (
+            <div className="text-sm font-semibold text-muted-foreground">Selecciona un cliente para comenzar</div>
+          )}
+          <div className="flex items-center gap-1">
             {activeChannel && (
-              <Tooltip content={callMode === "mic-listen" ? "Llamar (micrófono)" : callMode === "hybrid-quo" ? "Llamar (Quo → tu teléfono)" : callMode === "hybrid-device" ? "Llamar (dispositivo BT)" : "Llamar (VoIP)"} side="bottom">
+              <Tooltip content="Llamar" side="bottom">
                 <Button
                   variant="ghost"
                   size="icon-sm"
                   className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => startCallFromThread(activeChannel.id)}
+                  onClick={() => activeChannel && startCallFromThread(activeChannel.id)}
                 >
                   <i className="fa-solid fa-phone text-xs" />
                 </Button>
               </Tooltip>
             )}
-            <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground"><i className="fa-solid fa-thumbtack text-xs" /></Button>
-            <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground"><i className="fa-solid fa-ellipsis-vertical text-xs" /></Button>
+            <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground">
+              <i className="fa-solid fa-ellipsis-vertical text-xs" />
+            </Button>
           </div>
         </header>
 
-        <div className="flex-1 overflow-y-auto py-4">
-          {isMainWorkspace && (
-            <section className="px-4 pb-4">
-              <div className="rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/8 via-primary/5 to-transparent p-4">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">Entrada principal</Badge>
-                  <Badge variant="outline">Crea o reutiliza hilos</Badge>
-                  <Badge variant="outline">Redirige al mejor agente</Badge>
-                </div>
-                <h2 className="mt-3 text-lg font-semibold text-foreground">Empieza en GDT y entra al hilo correcto ya con contexto.</h2>
-                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
-                  El chat principal detecta intención, decide el agente ideal y te abre el hilo especialista con el contexto ya preparado para ejecutar.
-                </p>
-                <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
-                  <span className="rounded-full border border-border bg-background px-3 py-1">"¿Qué urge hoy con Cervecería Toluca?"</span>
-                  <span className="rounded-full border border-border bg-background px-3 py-1">"Prepara seguimiento para los deals sin respuesta"</span>
-                  <span className="rounded-full border border-border bg-background px-3 py-1">"Dame resumen y siguiente paso para Grupo Farmacéutico GT"</span>
-                </div>
-              </div>
-
-              <div className="mt-4 grid gap-3 xl:grid-cols-3">
-                {MAIN_ROUTE_CARDS.map((card) => (
-                  <button
-                    key={card.id}
-                    onClick={() => openThread(card.threadId)}
-                    className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/20 hover:bg-muted/30"
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div>
-                        <div className="text-sm font-semibold text-foreground">{card.title}</div>
-                        <div className="mt-1 text-xs text-muted-foreground">{card.agentLabel}</div>
-                      </div>
-                      <Badge variant="outline" className="text-[10px]">{card.status}</Badge>
-                    </div>
-                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{card.summary}</p>
-                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
-                      <span>Ir al hilo especialista</span>
-                      <i className="fa-solid fa-arrow-right text-[11px]" />
-                    </div>
-                  </button>
-                ))}
-              </div>
-            </section>
-          )}
-
-          <div className="flex items-center gap-3 px-4 mb-3">
-            <Separator className="flex-1" />
-            <span className="text-[11px] font-medium text-muted-foreground px-2">Hoy</span>
-            <Separator className="flex-1" />
-          </div>
+        {activeChannel ? (
+          <div className="flex-1 overflow-y-auto py-4">
+            <div className="flex items-center gap-3 px-4 mb-3">
+              <Separator className="flex-1" />
+              <span className="text-[11px] font-medium text-muted-foreground px-2">Conversación</span>
+              <Separator className="flex-1" />
+            </div>
             <div className="flex flex-col gap-px px-4">
               {(() => {
-                let messagesToShow: Message[];
-                if (activeChannel) {
-                  // Show thread-specific messages for the selected client
-                  messagesToShow = THREAD_MESSAGES_BY_THREAD[activeChannel.id] ?? THREAD_MESSAGES;
-                } else {
-                  // Show agent-specific messages or default
-                  messagesToShow = AGENT_MESSAGES[selectedAgent] ?? MESSAGES;
-                }
-                return messagesToShow.map((msg) => (
+                const messages = CLIENT_MESSAGES[activeChannel.id] ?? [];
+                return messages.map((msg) => (
                   <MessageBubble key={msg.id} msg={msg} onOpenThread={(id) => setThreadOpen(id === threadOpen ? null : id)} onReply={() => {}} />
                 ));
               })()}
             </div>
-        </div>
+          </div>
+        ) : (
+          <div className="flex-1 flex items-center justify-center text-center">
+            <div>
+              <i className="fa-solid fa-comments text-6xl text-muted-foreground/20 mb-4" />
+              <p className="text-muted-foreground">Selecciona un cliente del sidebar para ver la conversación</p>
+            </div>
+          </div>
+        )}
 
-        <Composer placeholder={composerPlaceholder} />
+        <Composer placeholder={activeChannel ? `Mensaje sobre ${activeChannel.clientName}...` : "Selecciona un cliente primero..."} />
       </main>
 
       {/* ── Thread Panel (Slack-style) ───────────────────────────── */}
-      {threadOpen && (
-        <aside className="flex w-[380px] min-w-[380px] flex-col border-l border-border bg-card">
-          <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
+      {threadOpen && activeChannel && (
+        <aside className="flex w-[360px] min-w-[360px] flex-col border-l border-border bg-card">
+          <header className="flex items-center justify-between border-b border-border px-4 py-3">
             <div>
-              <h3 className="text-sm font-semibold text-foreground">Hilo</h3>
-              <p className="text-xs text-muted-foreground">{(() => {
-                const threadMessages = activeChannel && THREAD_MESSAGES_BY_THREAD[activeChannel.id] ? THREAD_MESSAGES_BY_THREAD[activeChannel.id] : THREAD_MESSAGES;
-                return threadMessages.length;
-              })()} respuestas</p>
+              <h3 className="text-sm font-semibold text-foreground">Hilo interno</h3>
+              <p className="text-xs text-muted-foreground">Discusión dentro de {activeChannel.clientName}</p>
             </div>
             <Button variant="ghost" size="icon-sm" className="h-7 w-7 text-muted-foreground" onClick={() => setThreadOpen(null)}>
               <i className="fa-solid fa-xmark text-xs" />
             </Button>
           </header>
 
-          <div className="border-b border-border px-1 py-3">
-            {(() => {
-              const parent = MESSAGES.find((m) => m.id === threadOpen);
-              if (!parent) return null;
-              return <MessageBubble msg={parent} />;
-            })()}
-          </div>
-
-          <div className="flex-1 overflow-y-auto py-3">
-            <div className="flex items-center gap-3 px-4 mb-3">
-              <Separator className="flex-1" />
-              <span className="text-[11px] text-muted-foreground">{(() => {
-                const threadMessages = activeChannel && THREAD_MESSAGES_BY_THREAD[activeChannel.id] ? THREAD_MESSAGES_BY_THREAD[activeChannel.id] : THREAD_MESSAGES;
-                return threadMessages.length;
-              })()} respuestas</span>
-              <Separator className="flex-1" />
-            </div>
-            <div className="flex flex-col gap-px">
-              {(() => {
-                const threadMessages = activeChannel && THREAD_MESSAGES_BY_THREAD[activeChannel.id] ? THREAD_MESSAGES_BY_THREAD[activeChannel.id] : THREAD_MESSAGES;
-                return threadMessages.map((msg) => (
-                  <MessageBubble key={msg.id} msg={msg} onReply={() => {}} />
-                ));
-              })()}
+          <div className="flex-1 overflow-y-auto py-3 px-1">
+            <div className="px-3 py-2 text-xs text-muted-foreground">
+              Los hilos agrupan discusiones específicas sobre este cliente. Perfecto para coordinación entre agentes.
             </div>
           </div>
 
