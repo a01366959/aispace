@@ -14,6 +14,8 @@ import { Tooltip } from "@/components/ui/tooltip";
    ════════════════════════════════════════════════════════════════════════════ */
 
 type UserRole = "director" | "manager" | "supervisor" | "rep";
+type TimePeriod = "week" | "month" | "bimester" | "quarter" | "year" | "custom";
+type FilterType = "segment" | "stage" | "rep" | "status";
 
 interface MetricCard {
   label: string;
@@ -23,20 +25,32 @@ interface MetricCard {
   icon?: string;
 }
 
+interface RepInsight {
+  rep: string;
+  insight: string;
+  severity: "positive" | "warning" | "neutral";
+  metric: string;
+}
+
+interface AgentActivity {
+  timestamp: string;
+  agent: string;
+  action: string;
+  status: "completed" | "in-progress" | "pending";
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
-   Mock Data for different user roles
+   Enhanced Mock Data with Insights
    ════════════════════════════════════════════════════════════════════════════ */
 
-// Director-level macro metrics
 const DIRECTOR_MACRO = {
   header: "Reporte Ejecutivo — Dirección",
-  period: "Q1 2026",
   metrics: [
     {
       label: "Ingresos Generados",
       value: "$2,845,000 MXN",
       change: { value: 23, direction: "up" as const },
-      context: "+$530K vs Q1 2025",
+      context: "+$530K vs período anterior",
       icon: "fa-solid fa-dollar-sign",
     },
     {
@@ -69,66 +83,16 @@ const DIRECTOR_MACRO = {
     { stage: "Quote Sent", count: 9, value: "$315K", color: "bg-amber-100" },
     { stage: "Negotiation", count: 5, value: "$200K", color: "bg-orange-100" },
   ],
-  teamMetrics: [
-    { rep: "Miriam Reyes", deals: 8, value: "$580K", closedThisMonth: 3, followUpScore: "98%" },
-    { rep: "Juan García", deals: 6, value: "$390K", closedThisMonth: 2, followUpScore: "92%" },
-    { rep: "Laura Díaz", deals: 7, value: "$410K", closedThisMonth: 2, followUpScore: "95%" },
-    { rep: "Carlos López", deals: 5, value: "$285K", closedThisMonth: 1, followUpScore: "88%" },
-    { rep: "Ana Martínez", deals: 4, value: "$220K", closedThisMonth: 1, followUpScore: "85%" },
-  ],
 };
 
-// Manager (Miriam) view - Mix macro and micro
-const MANAGER_MACRO = {
-  header: "Reporte de Operaciones — Miriam (Manager)",
-  period: "Esta semana",
-  metrics: [
-    {
-      label: "Pipeline Activo",
-      value: "$3,515K MXN",
-      change: { value: 15, direction: "up" as const },
-      context: "116 oportunidades de venta",
-      icon: "fa-solid fa-chart-area",
-    },
-    {
-      label: "Tasa de Seguimiento",
-      value: "97%",
-      change: { value: 97, direction: "up" as const },
-      context: "Seguimientos completados a tiempo",
-      icon: "fa-solid fa-check-circle",
-    },
-    {
-      label: "Forecast de Cierre (30d)",
-      value: "$850K MXN",
-      change: { value: 18, direction: "up" as const },
-      context: "Deals en Negotiation + Sent",
-      icon: "fa-solid fa-calendar-check",
-    },
-    {
-      label: "Promedio de Ciclo",
-      value: "21 días",
-      change: { value: 9, direction: "down" as const },
-      context: "Bajó de 30 días hace 2 meses",
-      icon: "fa-solid fa-hourglass-end",
-    },
-  ],
-  riskAlerts: [
-    { client: "Cervecería Toluca", issue: "6 días sin seguimiento", stage: "Quote Sent", severity: "high" },
-    { client: "Plásticos Industriales", issue: "SLA en riesgo", stage: "Negotiation", severity: "high" },
-    { client: "Grupo Farmacéutico", issue: "47 días sin contacto", stage: "First Contact", severity: "medium" },
-  ],
-};
-
-// Supervisor/Gerente view - Team focused
 const SUPERVISOR_METRICS = {
-  header: "Reporte de Desempeño de Equipo",
-  period: "Mes actual",
+  header: "Reporte de Equipo — Supervisor",
   metrics: [
     {
       label: "Actividad de Seguimiento",
       value: "342 llamadas",
       change: { value: 24, direction: "up" as const },
-      context: "vs 276 el mes pasado",
+      context: "vs 276 el período anterior",
       icon: "fa-solid fa-phone",
     },
     {
@@ -142,11 +106,11 @@ const SUPERVISOR_METRICS = {
       label: "Propuestas Enviadas",
       value: "23",
       change: { value: 35, direction: "up" as const },
-      context: "+8 vs mes pasado",
+      context: "+8 vs período anterior",
       icon: "fa-solid fa-envelope",
     },
     {
-      label: "Tiempo en Sistema",
+      label: "Tiempo Promedio en Sistema",
       value: "3.2 hrs/día",
       change: { value: 40, direction: "down" as const },
       context: "Menos admin, más venta",
@@ -154,85 +118,30 @@ const SUPERVISOR_METRICS = {
     },
   ],
   teamPerformance: [
-    { rep: "Miriam", calls: 78, closes: 3, proposalsCreated: 6, accuracy: "98%" },
-    { rep: "Juan", calls: 65, closes: 2, proposalsCreated: 5, accuracy: "92%" },
-    { rep: "Laura", calls: 71, closes: 2, proposalsCreated: 5, accuracy: "95%" },
-    { rep: "Carlos", calls: 52, closes: 1, proposalsCreated: 4, accuracy: "88%" },
-    { rep: "Ana", calls: 42, closes: 1, proposalsCreated: 3, accuracy: "85%" },
+    { rep: "Miriam", calls: 78, closes: 3, proposalsCreated: 6, accuracy: "98%", trend: "up" },
+    { rep: "Juan", calls: 65, closes: 2, proposalsCreated: 5, accuracy: "92%", trend: "up" },
+    { rep: "Laura", calls: 71, closes: 2, proposalsCreated: 5, accuracy: "95%", trend: "up" },
+    { rep: "Carlos", calls: 52, closes: 1, proposalsCreated: 4, accuracy: "88%", trend: "down" },
+    { rep: "Ana", calls: 42, closes: 1, proposalsCreated: 3, accuracy: "85%", trend: "neutral" },
   ],
 };
 
-// Individual Rep view - Micro metrics
-const REP_MICRO = {
-  header: "Mi Dashboard — Miriam Reyes",
-  period: "Hoy",
-  metrics: [
-    {
-      label: "Mis Deals Activos",
-      value: "8",
-      change: { value: 2, direction: "up" as const },
-      context: "Hasta cierre del mes",
-      icon: "fa-solid fa-briefcase",
-    },
-    {
-      label: "Valor de Pipeline Personal",
-      value: "$640K MXN",
-      change: { value: 8, direction: "up" as const },
-      context: "Deals en mis manos",
-      icon: "fa-solid fa-trending-up",
-    },
-    {
-      label: "Tareas Pendientes",
-      value: "5",
-      change: undefined,
-      context: "Hoy",
-      icon: "fa-solid fa-list-check",
-    },
-    {
-      label: "Contactos This Week",
-      value: "23",
-      change: { value: 5, direction: "up" as const },
-      context: "Llamadas y mensajes",
-      icon: "fa-solid fa-people-group",
-    },
-  ],
-  topDeals: [
-    { client: "Metalúrgica del Valle", stage: "Quote Sent", value: "$210K", daysOpen: 4, status: "En negociación" },
-    { client: "Brewpub Central", stage: "Discovery", value: "$145K", daysOpen: 8, status: "Calificando" },
-    { client: "Grupo Farmacéutico", stage: "First Contact", value: "$420K", daysOpen: 47, status: "Reactivar" },
-  ],
-};
+const REP_INSIGHTS: RepInsight[] = [
+  { rep: "Miriam", insight: "Top performer — 3 cierres en período, tasa más alta", severity: "positive", metric: "3 cierres" },
+  { rep: "Juan", insight: "Conversión sólida pero revisar propuestas rechazadas", severity: "neutral", metric: "2 cierres" },
+  { rep: "Laura", insight: "Excelente precisión (95%) pero volumen bajo vs capacidad", severity: "warning", metric: "94% de precisión" },
+  { rep: "Carlos", insight: "Tendencia de cierre decreciente, necesita coaching", severity: "warning", metric: "↓ 1 cierre" },
+  { rep: "Ana", insight: "Nueva en equipo pero buen engagement, en rampa", severity: "neutral", metric: "↑ 42 llamadas" },
+];
 
-/* ════════════════════════════════════════════════════════════════════════════
-   Utility Messages (ROI & Value Justification)
-   ════════════════════════════════════════════════════════════════════════════ */
-
-const VALUE_PROPS = {
-  director: [
-    "✅ Reducción de deal loss rate: 95% → 6%",
-    "✅ Incremento de ingresos: +23% YoY",
-    "✅ Ciclo de venta -30%: De 30 a 21 días promedio",
-    "✅ ROI proyectado: 340% en año 1",
-  ],
-  manager: [
-    "✅ 97% tasa de seguimiento (vs 60% manual antes)",
-    "✅ Visibilidad en tiempo real de pipeline",
-    "✅ Alertas automáticas de SLA en riesgo",
-    "✅ Menos tiempo en Excel/Zoho, más en ventas",
-  ],
-  supervisor: [
-    "✅ Actividad de seguimiento +24%",
-    "✅ Propuestas automatizadas en 2 minutos (antes 20)",
-    "✅ Tasa de conversión mejorada 8%",
-    "✅ Mejor asignación de recursos",
-  ],
-  rep: [
-    "✅ Recordatorios inteligentes de seguimiento",
-    "✅ Contexto completo del cliente en un click",
-    "✅ Tareas priorizadas automáticamente",
-    "✅ No más buscar info en 3 sistemas",
-  ],
-};
+const AGENT_ACTIVITIES: AgentActivity[] = [
+  { timestamp: "09:45", agent: "Reporting Agent", action: "Sincronizó 342 llamadas desde Zoho y sistema de tareas", status: "completed" },
+  { timestamp: "09:46", agent: "Reporting Agent", action: "Calculó métricas de conversión y eficiencia por rep", status: "completed" },
+  { timestamp: "09:47", agent: "Reporting Agent", action: "Generó insights automáticos basados en patrones", status: "completed" },
+  { timestamp: "09:48", agent: "Reporting Agent", action: "Identificó flags: Carlos ↓ cierre, Laura volumen bajo", status: "completed" },
+  { timestamp: "09:49", agent: "Reporting Agent", action: "Compiló pipeline y proyecciones de forecast", status: "completed" },
+  { timestamp: "09:50", agent: "Reporting Agent", action: "Reporte listo para Director/Supervisor", status: "completed" },
+];
 
 /* ════════════════════════════════════════════════════════════════════════════
    Components
@@ -289,35 +198,31 @@ function PipelineVisual({ stages }: { stages: any[] }) {
   );
 }
 
-function TeamTable({ data }: { data: any[] }) {
+function TeamPerformanceTable({ data }: { data: any[] }) {
   return (
     <div className="rounded-lg border border-border overflow-hidden">
       <table className="w-full text-sm">
         <thead>
           <tr className="border-b border-border bg-muted/30">
             <th className="px-4 py-2 text-left text-xs font-semibold text-muted-foreground">Rep</th>
-            <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Deals</th>
-            <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Valor</th>
-            {data[0]?.closedThisMonth !== undefined && (
-              <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Cerrados</th>
-            )}
-            {data[0]?.followUpScore !== undefined && (
-              <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Score</th>
-            )}
-            {data[0]?.accuracy !== undefined && (
-              <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Precisión</th>
-            )}
+            <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Llamadas</th>
+            <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Cierres</th>
+            <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Propuestas</th>
+            <th className="px-4 py-2 text-right text-xs font-semibold text-muted-foreground">Precisión</th>
+            <th className="px-4 py-2 text-center text-xs font-semibold text-muted-foreground">Tendencia</th>
           </tr>
         </thead>
         <tbody>
           {data.map((row, idx) => (
             <tr key={idx} className="border-b border-border hover:bg-muted/30 transition-colors">
               <td className="px-4 py-3 text-foreground font-medium">{row.rep}</td>
-              <td className="px-4 py-3 text-right text-muted-foreground">{row.deals || row.calls}</td>
-              <td className="px-4 py-3 text-right text-foreground font-semibold">{row.value}</td>
-              {row.closedThisMonth !== undefined && <td className="px-4 py-3 text-right text-foreground">{row.closedThisMonth}</td>}
-              {row.followUpScore !== undefined && <td className="px-4 py-3 text-right text-foreground font-medium text-emerald-600">{row.followUpScore}</td>}
-              {row.accuracy !== undefined && <td className="px-4 py-3 text-right text-foreground font-medium">{row.accuracy}</td>}
+              <td className="px-4 py-3 text-right text-muted-foreground">{row.calls}</td>
+              <td className="px-4 py-3 text-right text-foreground font-semibold">{row.closes}</td>
+              <td className="px-4 py-3 text-right text-foreground">{row.proposalsCreated}</td>
+              <td className="px-4 py-3 text-right text-foreground font-medium">{row.accuracy}</td>
+              <td className="px-4 py-3 text-center">
+                <i className={cn("text-xs", row.trend === "up" ? "fa-solid fa-arrow-up text-emerald-600" : row.trend === "down" ? "fa-solid fa-arrow-down text-destructive" : "fa-solid fa-minus text-muted-foreground")} />
+              </td>
             </tr>
           ))}
         </tbody>
@@ -326,46 +231,163 @@ function TeamTable({ data }: { data: any[] }) {
   );
 }
 
-function RiskAlertCard({ alert }: { alert: any }) {
+function RepInsightCard({ insight }: { insight: RepInsight }) {
+  const bgColor = insight.severity === "positive" ? "bg-emerald-50 border-emerald-200" : insight.severity === "warning" ? "bg-amber-50 border-amber-200" : "bg-blue-50 border-blue-200";
+  const iconColor = insight.severity === "positive" ? "text-emerald-600" : insight.severity === "warning" ? "text-amber-600" : "text-blue-600";
+
   return (
-    <div className={cn("rounded-lg border p-3 flex items-start gap-3", alert.severity === "high" ? "border-destructive/20 bg-destructive/5" : "border-amber-200/50 bg-amber-50/30")}>
-      <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0", alert.severity === "high" ? "bg-destructive/20 text-destructive" : "bg-amber-100 text-amber-700")}>
-        <i className={cn("text-xs", alert.severity === "high" ? "fa-solid fa-exclamation" : "fa-solid fa-info")} />
+    <div className={cn("rounded-lg border p-3 flex items-start gap-3", bgColor)}>
+      <div className={cn("h-8 w-8 rounded-full flex items-center justify-center shrink-0", insight.severity === "positive" ? "bg-emerald-100" : insight.severity === "warning" ? "bg-amber-100" : "bg-blue-100")}>
+        <i className={cn("text-xs", insight.severity === "positive" ? "fa-solid fa-check" : insight.severity === "warning" ? "fa-solid fa-triangle-exclamation" : "fa-solid fa-info", iconColor)} />
       </div>
       <div className="flex-1 min-w-0">
-        <div className="flex items-center gap-2">
-          <span className="font-semibold text-sm text-foreground">{alert.client}</span>
-          <Badge variant={alert.severity === "high" ? "destructive" : "secondary"} className="text-[10px]">
-            {alert.stage}
+        <div className="flex items-center gap-2 flex-wrap">
+          <span className="font-semibold text-sm text-foreground">{insight.rep}</span>
+          <Badge variant={insight.severity === "positive" ? "success" : insight.severity === "warning" ? "secondary" : "outline"} className="text-[10px]">
+            {insight.metric}
           </Badge>
         </div>
-        <p className="text-xs text-muted-foreground mt-1">{alert.issue}</p>
+        <p className="text-xs text-muted-foreground mt-1">{insight.insight}</p>
       </div>
     </div>
   );
 }
 
-function TopDealsCard({ deal }: { deal: any }) {
+function AgentActivityLog({ activities }: { activities: AgentActivity[] }) {
   return (
-    <div className="rounded-lg border border-border bg-card p-3 space-y-2">
-      <div className="flex items-start justify-between">
-        <div>
-          <div className="font-semibold text-sm text-foreground">{deal.client}</div>
-          <div className="text-xs text-muted-foreground mt-0.5">{deal.status}</div>
+    <div className="space-y-2">
+      {activities.map((activity, idx) => (
+        <div key={idx} className="flex items-start gap-3 rounded-lg border border-border/50 bg-muted/20 p-2.5 text-xs">
+          <div className="flex h-6 w-6 items-center justify-center rounded-full bg-primary/20 shrink-0 mt-0.5">
+            <i className="fa-solid fa-robot text-[10px] text-primary" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <div className="flex items-center gap-2">
+              <span className="font-semibold text-foreground">{activity.agent}</span>
+              <span className="text-muted-foreground">@{activity.timestamp}</span>
+            </div>
+            <p className="text-muted-foreground mt-0.5">{activity.action}</p>
+          </div>
+          <div className={cn("h-2 w-2 rounded-full shrink-0 mt-1", activity.status === "completed" ? "bg-emerald-500" : activity.status === "in-progress" ? "bg-amber-500" : "bg-muted-foreground")} />
         </div>
-        <Badge variant="secondary" className="text-[10px]">
-          {deal.stage}
-        </Badge>
+      ))}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Filter Component
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function FilterPanel({ onFilterChange }: { onFilterChange?: () => void }) {
+  const [timePeriod, setTimePeriod] = useState<TimePeriod>("month");
+  const [expanded, setExpanded] = useState(false);
+
+  const timePeriods: { label: string; value: TimePeriod }[] = [
+    { label: "Esta semana", value: "week" },
+    { label: "Este mes", value: "month" },
+    { label: "Bimestre", value: "bimester" },
+    { label: "Trimestre", value: "quarter" },
+    { label: "Año", value: "year" },
+    { label: "Personalizado", value: "custom" },
+  ];
+
+  return (
+    <div className="rounded-lg border border-border bg-card p-4">
+      <div className="flex items-center justify-between mb-4">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <i className="fa-solid fa-filter text-muted-foreground" />
+          Filtros Avanzados
+        </h3>
+        <Button variant="ghost" size="icon-sm" onClick={() => setExpanded(!expanded)} className="h-6 w-6">
+          <i className={cn("text-xs fa-solid", expanded ? "fa-chevron-up" : "fa-chevron-down")} />
+        </Button>
       </div>
-      <Separator className="my-2" />
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">Valor</span>
-        <span className="font-semibold text-foreground">{deal.value}</span>
-      </div>
-      <div className="flex items-center justify-between text-xs">
-        <span className="text-muted-foreground">Abierto</span>
-        <span className="text-muted-foreground">{deal.daysOpen} días</span>
-      </div>
+
+      {expanded && (
+        <>
+          <Separator className="mb-4" />
+
+          {/* Time Period */}
+          <div className="mb-4">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Período de Tiempo</label>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+              {timePeriods.map((period) => (
+                <Button
+                  key={period.value}
+                  size="sm"
+                  variant={timePeriod === period.value ? "default" : "outline"}
+                  onClick={() => {
+                    setTimePeriod(period.value);
+                    onFilterChange?.();
+                  }}
+                  className="h-8 text-xs"
+                >
+                  {period.label}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Segment Filter */}
+          <div className="mb-4">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Segmento de Cliente</label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {["Ballenas", "Tiburones", "Atunes", "Truchas", "Charales"].map((segment) => (
+                <Button key={segment} size="sm" variant="outline" className="h-8 text-xs">
+                  {segment}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Stage Filter */}
+          <div className="mb-4">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Etapa del Deal</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
+              {["Prospect", "First Contact", "Discovery", "Quote Ready", "Quote Sent", "Negotiation"].map((stage) => (
+                <Button key={stage} size="sm" variant="outline" className="h-8 text-xs">
+                  {stage}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Rep Filter */}
+          <div className="mb-4">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Vendedor</label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+              {["Miriam", "Juan", "Laura", "Carlos", "Ana"].map((rep) => (
+                <Button key={rep} size="sm" variant="outline" className="h-8 text-xs">
+                  {rep}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          {/* Status Filter */}
+          <div>
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Estado</label>
+            <div className="grid grid-cols-3 gap-2">
+              {["Activo", "En Riesgo", "Completado"].map((status) => (
+                <Button key={status} size="sm" variant="outline" className="h-8 text-xs">
+                  {status}
+                </Button>
+              ))}
+            </div>
+          </div>
+
+          <Separator className="my-4" />
+          <div className="flex gap-2">
+            <Button size="sm" className="flex-1">
+              Aplicar Filtros
+            </Button>
+            <Button size="sm" variant="outline" className="flex-1">
+              Limpiar
+            </Button>
+          </div>
+        </>
+      )}
     </div>
   );
 }
@@ -380,21 +402,18 @@ export default function ReportingPage() {
   const getRoleConfig = (role: UserRole) => {
     switch (role) {
       case "director":
-        return { data: DIRECTOR_MACRO, label: "Dirección", icon: "fa-solid fa-crown" };
+        return { label: "Dirección", icon: "fa-solid fa-crown" };
       case "manager":
-        return { data: MANAGER_MACRO, label: "Manager (Miriam)", icon: "fa-solid fa-person-chalkboard" };
+        return { label: "Manager", icon: "fa-solid fa-person-chalkboard" };
       case "supervisor":
-        return { data: SUPERVISOR_METRICS, label: "Supervisor", icon: "fa-solid fa-people-group" };
+        return { label: "Supervisor", icon: "fa-solid fa-people-group" };
       case "rep":
-        return { data: REP_MICRO, label: "Rep (Mi Dashboard)", icon: "fa-solid fa-user" };
+        return { label: "Rep", icon: "fa-solid fa-user" };
     }
   };
 
-  const config = getRoleConfig(userRole);
   const isDirector = userRole === "director";
-  const isManager = userRole === "manager";
   const isSupervisor = userRole === "supervisor";
-  const isRep = userRole === "rep";
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
@@ -422,15 +441,15 @@ export default function ReportingPage() {
       <main className="flex-1 overflow-y-auto">
         {/* Header */}
         <header className="sticky top-0 z-10 border-b border-border bg-card px-6 py-4">
-          <div className="flex items-center justify-between">
+          <div className="flex items-center justify-between mb-4">
             <div>
-              <h1 className="text-2xl font-bold text-foreground">{config.data.header}</h1>
-              <p className="text-sm text-muted-foreground mt-1">Período: {config.data.period}</p>
+              <h1 className="text-2xl font-bold text-foreground">{isDirector ? "Reporte Ejecutivo — Dirección" : isSupervisor ? "Reporte de Equipo — Supervisor" : "Reporte de Reportes"}</h1>
+              <p className="text-sm text-muted-foreground mt-1">Datos en tiempo real • Actualizado hace 10 minutos</p>
             </div>
 
             {/* Role Selector */}
             <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
-              {(["director", "manager", "supervisor", "rep"] as const).map((role) => (
+              {(["director", "supervisor"] as const).map((role) => (
                 <Tooltip key={role} content={getRoleConfig(role).label} side="bottom">
                   <Button
                     size="sm"
@@ -439,7 +458,7 @@ export default function ReportingPage() {
                     className="h-8 gap-1.5"
                   >
                     <i className={getRoleConfig(role).icon} />
-                    <span className="hidden sm:inline text-xs">{role === "director" ? "Dirección" : role === "manager" ? "Manager" : role === "supervisor" ? "Gerente" : "Rep"}</span>
+                    <span className="hidden sm:inline text-xs">{role === "director" ? "Dirección" : "Supervisor"}</span>
                   </Button>
                 </Tooltip>
               ))}
@@ -448,109 +467,112 @@ export default function ReportingPage() {
         </header>
 
         <div className="p-6 space-y-6 max-w-7xl mx-auto">
-          {/* Value Propositions */}
-          <div className="rounded-lg border border-border/50 bg-gradient-to-r from-primary/5 to-primary/10 p-4">
-            <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Valor demostrado</div>
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-              {VALUE_PROPS[userRole].map((prop, idx) => (
-                <div key={idx} className="text-sm text-foreground flex items-start gap-2">
-                  <span className="text-primary mt-0.5">{prop.split(" ")[0]}</span>
-                  <span>{prop.replace("✅ ", "")}</span>
-                </div>
-              ))}
-            </div>
-          </div>
+          {/* Filter Panel */}
+          <FilterPanel />
 
           {/* Key Metrics Grid */}
           <div>
             <h2 className="text-lg font-semibold text-foreground mb-4">Métricas Clave</h2>
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {config.data.metrics.map((metric, idx) => (
+              {(isDirector ? DIRECTOR_MACRO.metrics : SUPERVISOR_METRICS.metrics).map((metric, idx) => (
                 <MetricCard key={idx} item={metric} />
               ))}
             </div>
           </div>
 
-          {/* Director View: Pipeline & Team */}
+          {/* Director View: Pipeline & Insights */}
           {isDirector && (
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-              <Card>
-                <CardContent className="p-6">
-                  <PipelineVisual stages={DIRECTOR_MACRO.pipeline} />
-                </CardContent>
-              </Card>
-              <Card>
-                <CardContent className="p-6">
-                  <h3 className="text-sm font-semibold text-foreground mb-4">Desempeño de Equipo</h3>
-                  <TeamTable data={DIRECTOR_MACRO.teamMetrics} />
-                </CardContent>
-              </Card>
+            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+              <div className="lg:col-span-2">
+                <Card>
+                  <CardContent className="p-6">
+                    <PipelineVisual stages={DIRECTOR_MACRO.pipeline} />
+                  </CardContent>
+                </Card>
+              </div>
+              <div>
+                <Card>
+                  <CardContent className="p-6">
+                    <h3 className="text-sm font-semibold text-foreground mb-3">📊 Análisis de Pipeline</h3>
+                    <div className="space-y-2 text-xs">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Total de Deals</span>
+                        <span className="font-medium text-foreground">114</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Valor Total</span>
+                        <span className="font-medium text-foreground">$3.515M</span>
+                      </div>
+                      <Separator className="my-2" />
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Forecast (30 días)</span>
+                        <span className="font-medium text-emerald-600">$515K</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Win Rate Proyectado</span>
+                        <span className="font-medium text-foreground">38%</span>
+                      </div>
+                    </div>
+                  </CardContent>
+                </Card>
+              </div>
             </div>
           )}
 
-          {/* Manager View: Risk Alerts */}
-          {isManager && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-3">
-                <h2 className="text-lg font-semibold text-foreground mb-4">🚨 Alertas de Riesgo</h2>
-                <div className="space-y-3">
-                  {MANAGER_MACRO.riskAlerts.map((alert, idx) => (
-                    <RiskAlertCard key={idx} alert={alert} />
+          {/* Supervisor View: Team Performance & Insights */}
+          {isSupervisor && (
+            <>
+              <div>
+                <Card>
+                  <CardContent className="p-6">
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Desempeño Detallado del Equipo</h2>
+                    <TeamPerformanceTable data={SUPERVISOR_METRICS.teamPerformance} />
+                  </CardContent>
+                </Card>
+              </div>
+
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Insights & Flags por Rep</h2>
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3">
+                  {REP_INSIGHTS.map((insight, idx) => (
+                    <RepInsightCard key={idx} insight={insight} />
                   ))}
                 </div>
               </div>
-            </div>
+            </>
           )}
 
-          {/* Supervisor View: Team Performance Table */}
-          {isSupervisor && (
-            <Card>
+          {/* Reporting Agent Activity - Visible to both */}
+          <div>
+            <Card className="border-primary/20 bg-primary/5">
               <CardContent className="p-6">
-                <h2 className="text-lg font-semibold text-foreground mb-4">Desempeño Detallado del Equipo</h2>
-                <TeamTable data={SUPERVISOR_METRICS.teamPerformance} />
+                <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                  <i className="fa-solid fa-robot text-primary" />
+                  ¿Cómo se generó este reporte?
+                </h3>
+                <p className="text-xs text-muted-foreground mb-4">
+                  El agente de Reporting sincronizó datos de múltiples fuentes, procesó actividades, calculó métricas y generó insights automáticamente. Todo en tiempo real.
+                </p>
+                <AgentActivityLog activities={AGENT_ACTIVITIES} />
               </CardContent>
             </Card>
-          )}
+          </div>
 
-          {/* Rep View: Top Deals */}
-          {isRep && (
-            <div>
-              <h2 className="text-lg font-semibold text-foreground mb-4">Mis Principales Deals</h2>
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                {REP_MICRO.topDeals.map((deal, idx) => (
-                  <TopDealsCard key={idx} deal={deal} />
-                ))}
-              </div>
-            </div>
-          )}
-
-          {/* ROI & Justification Summary */}
-          <Card className="bg-gradient-to-r from-emerald-50 to-teal-50 dark:from-emerald-950/20 dark:to-teal-950/20 border-emerald-200/50 dark:border-emerald-800/50">
-            <CardContent className="p-6">
-              <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
-                <i className="fa-solid fa-chart-line text-emerald-600" />
-                Retorno de Inversión
-              </h3>
-              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-sm">
-                <div>
-                  <span className="text-xs text-muted-foreground">Costo Mensual</span>
-                  <div className="text-lg font-bold text-foreground">$2,500</div>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Ingresos Adicionales</span>
-                  <div className="text-lg font-bold text-emerald-600">+$85,000</div>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">Eficiencia Ganada</span>
-                  <div className="text-lg font-bold text-foreground">15 hrs/sem</div>
-                </div>
-                <div>
-                  <span className="text-xs text-muted-foreground">ROI Año 1</span>
-                  <div className="text-lg font-bold text-emerald-600">340%</div>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+          {/* Export & Share */}
+          <div className="flex gap-2 justify-end">
+            <Button variant="outline" size="sm">
+              <i className="fa-solid fa-download mr-2" />
+              Descargar PDF
+            </Button>
+            <Button variant="outline" size="sm">
+              <i className="fa-solid fa-share-nodes mr-2" />
+              Compartir
+            </Button>
+            <Button size="sm">
+              <i className="fa-solid fa-refresh mr-2" />
+              Actualizar Ahora
+            </Button>
+          </div>
         </div>
       </main>
     </div>
