@@ -558,9 +558,9 @@ const BTN_MAP: Record<string, "default" | "outline" | "success" | "destructive">
 const NAV_ITEMS = [
   { icon: "fa-solid fa-inbox", label: "Inbox", active: true, badge: 3 },
   { icon: "fa-solid fa-dollar-sign", label: "Deals" },
-  { icon: "fa-solid fa-circle-check", label: "Tareas" },
+  { icon: "fa-solid fa-circle-check", label: "Tareas", href: "/tasks" },
   { icon: "fa-solid fa-calendar-days", label: "Calendario" },
-  { icon: "fa-solid fa-chart-column", label: "Reportes" },
+  { icon: "fa-solid fa-chart-column", label: "Reportes", href: "/reporting" },
   { icon: "fa-solid fa-microphone", label: "Transcripción", href: "/transcribe" },
 ];
 
