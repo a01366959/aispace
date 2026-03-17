@@ -171,48 +171,189 @@ const MAIN_CHAT_MESSAGES: Message[] = [
   },
 ];
 
-// Per-agent demo messages for the main agent view
+// Per-agent demo messages with multiple use cases
 const AGENT_MESSAGES: Record<string, Message[]> = {
   "gdt-main": MAIN_CHAT_MESSAGES,
+  
   "follow-up": [
-    MESSAGES[0],
-    MESSAGES[1],
-    MESSAGES[2],
-  ],
-  "sales-assistant": [
+    // Use case 1: Daily pipeline scan and SLA alerts
     {
-      id: "sa1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:22",
+      id: "fu-uc1-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:00",
+      text: "Buenos días. Completé el escaneo matutino del pipeline.",
+      agentTag: "Escaneo diario",
+      reactions: [{ emoji: "👍", count: 1, reacted: false }],
+      threadCount: 2,
+    },
+    {
+      id: "fu-uc1-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:01",
+      text: "Cervecería Toluca lleva 6 días sin actividad. Creé tarea de seguimiento y borrador de llamada para mañana 10:00 AM.",
+      action: { label: "Tarea creada automáticamente", body: "Seguimiento: Llamar a Carlos Mendoza — Cervecería Toluca. Deal $285,000 MXN en etapa Cotización Enviada.", status: "auto-applied" },
+      reactions: [{ emoji: "✅", count: 2, reacted: true }],
+    },
+    {
+      id: "fu-uc1-m3", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:02",
+      text: "Plásticos Industriales tiene 4 días sin actividad. SLA Tiburones en riesgo. Creé recordatorio urgente.",
+      action: { label: "Tarea urgente creada", body: "Ana Torres — Plásticos Industriales. Pipeline $180,000 MXN. SLA en riesgo.", status: "auto-applied" },
+    },
+    {
+      id: "fu-uc1-m4", sender: "Tú", avatar: "MR", type: "user", time: "08:15",
+      text: "Perfecto, gracias. ¿Hay algo más pendiente?",
+    },
+    {
+      id: "fu-uc1-m5", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16",
+      text: "Grupo Farmacéutico GT sin contacto en 47 días. Creé oportunidad de reactivación y lo pasé al Supervisor.",
+      replyTo: { sender: "Tú", text: "Perfecto, gracias. ¿Hay algo más pendiente?" },
+      action: { label: "Reactivación iniciada", body: "Deal de reactivación creado para Grupo Farmacéutico GT (Ballena). Borrador de llamada preparado.", status: "auto-applied" },
+      threadCount: 4,
+    },
+  ],
+  
+  "sales-assistant": [
+    // Use case 1: Draft and prepare quote for approval
+    {
+      id: "sa-uc1-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:22",
       text: "Resumen del cliente: Cervecería Toluca — 200 empleados. Cotización audiometrías lista ($42,000 MXN).",
       agentTag: "Resumen",
     },
     {
-      id: "sa2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:24",
-      text: "Sugerencia: Enviar recordatorio por WhatsApp mañana 10:00 AM.",
-      action: { label: "Borrador de mensaje", body: "Hola Carlos, ¿confirmamos envío de cotización?", status: "pending-approval" },
+      id: "sa-uc1-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:24",
+      text: "Borrador de correo preparado. Incluye cotización, vigencia y CTA para confirmar.",
+      action: { label: "Borrador de mensaje listo", body: "Hola Carlos,\n\nCotización para audiometrías: $42,000 MXN.\nVigencia: 30 días.\n\n¿Confirmamos?", status: "pending-approval", buttons: [{ label: "Enviar", variant: "primary" }, { label: "Editar", variant: "outline" }] },
+    },
+    
+    // Use case 2: Call summary and next steps
+    {
+      id: "sa-uc2-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "15:00",
+      text: "Resumen de tu llamada con Roberto (Metalúrgica) generado automáticamente.",
+      agentTag: "Resumen de llamada",
+    },
+    {
+      id: "sa-uc2-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "15:01",
+      text: "Roberto confirmó presupuesto para 45 exámenes. Preparé 3 propuestas: Básico, Estándar, Premium.",
+      action: { label: "Propuestas generadas", body: "Básico: $2,000 MXN\nEstándar: $4,000 MXN (recomendado)\nPremium: $6,000 MXN\n\nListas en your email. Sugiero enviar Estándar como default.", status: "auto-applied" },
+    },
+    {
+      id: "sa-uc2-m3", sender: "Tú", avatar: "MR", type: "user", time: "15:05",
+      text: "Perfecto. Env ía el Estándar.",
+    },
+    
+    // Use case 3: WhatsApp draft for verification
+    {
+      id: "sa-uc3-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "18:30",
+      text: "Borrador de WhatsApp para Patricia (Farmacéutico GT) — seguimiento de cotización.",
+      agentTag: "Para verificar y enviar",
+    },
+    {
+      id: "sa-uc3-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "18:31",
+      text: "Mensaje preparado con link a documento y emoticon para tono cálido.",
+      action: { label: "Mensaje WhatsApp", body: "Hola Patricia 👋\n\nQuería recordarte la cotización que enviamos la semana pasada para el programa de salud ocupacional.\n\n¿Alguna pregunta? Estoy disponible para aclarar 😊", status: "pending-approval", buttons: [{ label: "Enviar", variant: "primary" }, { label: "Editar", variant: "outline" }, { label: "No enviar", variant: "outline" }] },
     },
   ],
+  
   "supervisor": [
+    // Use case 1: Daily pipeline summary
     {
-      id: "sv1", sender: "Supervisor", avatar: "SV", type: "agent", time: "07:00",
-      text: "Resumen diario: 43 llamadas, 8 cotizaciones, 2 cierres. Revisar deals > $100K.",
-      agentTag: "Pipeline",
+      id: "sv-uc1-m1", sender: "Supervisor", avatar: "SV", type: "agent", time: "07:00",
+      text: "Resumen diario del pipeline: 43 llamadas, 8 cotizaciones, 2 cierres. Top 3 reps: Miriam, Juan, Laura.",
+      agentTag: "Pipeline diario",
+    },
+    {
+      id: "sv-uc1-m2", sender: "Supervisor", avatar: "SV", type: "agent", time: "07:02",
+      text: "Deals > $100K en estado 'Cotización Enviada': 5 deals. 3 de ellos pasan los 5 días — SLA en riesgo.",
+      action: { label: "Alerta de SLA", body: "5 deals premium en cotización enviada.\n3 están > 5 días sin respuesta.\n\nRecomendación: Escalada de seguimiento hoy.", status: "info" },
+    },
+    {
+      id: "sv-uc1-m3", sender: "Tú", avatar: "MR", type: "user", time: "07:15",
+      text: "¿Quién está en cada uno?",
+    },
+    {
+      id: "sv-uc1-m4", sender: "Supervisor", avatar: "SV", type: "agent", time: "07:16",
+      text: "Miriam: 2. Juan: 1. Laura: 2. Todos tienen capacidad para un push hoy.",
+      reactions: [{ emoji: "✅", count: 1, reacted: true }],
+    },
+    
+    // Use case 2: Reactivation opportunity detection
+    {
+      id: "sv-uc2-m1", sender: "Supervisor", avatar: "SV", type: "agent", time: "08:30",
+      text: "Detecté oportunidad de reactivación: Grupo Farmacéutico GT (Ballena) — sin contacto 47 días.",
+      agentTag: "Oportunidad de reactivación",
+    },
+    {
+      id: "sv-uc2-m2", sender: "Supervisor", avatar: "SV", type: "agent", time: "08:31",
+      text: "Historial: $380K MXN el año pasado. Asignado automáticamente a Miriam Reyes.",
+      action: { label: "Deal de reactivación creado", body: "Cliente: Grupo Farmacéutico GT\nValor estimado: $420,000 MXN\nAsignado a: Miriam Reyes\nPlan: Llamada amable + propuesta de valor actualizada.", status: "auto-applied" },
     },
   ],
+  
   "reporting": [
+    // Use case 1: Weekly sales report
     {
-      id: "r1", sender: "Reporting", avatar: "AI", type: "agent", time: "17:00",
-      text: "Reporte semanal listo. Top 3 reps: Miriam, Juan, Laura.",
+      id: "r-uc1-m1", sender: "Reportes", avatar: "AI", type: "agent", time: "17:00",
+      text: "Reporte semanal listo.",
       agentTag: "Reporte",
+    },
+    {
+      id: "r-uc1-m2", sender: "Reportes", avatar: "AI", type: "agent", time: "17:01",
+      text: "Semana 11 (11-17 Mar): $2,450,000 MXN en ventas totales. +15% vs semana anterior.",
+      action: { label: "Resumen semanal", body: "Ventas cerradas: $2,450,000 MXN ✓\nCotizaciones: 12\nTasa de conversión: 18%\n\nTop 3 vendedoras:\n1. Miriam Reyes — $1,200,000\n2. Laura Díaz — $800,000\n3. Juan García — $450,000", status: "auto-applied" },
+    },
+    {
+      id: "r-uc1-m3", sender: "Tú", avatar: "MR", type: "user", time: "17:15",
+      text: "Excelente. ¿Cuál es el outlook para la próxima semana?",
+    },
+    {
+      id: "r-uc1-m4", sender: "Reportes", avatar: "AI", type: "agent", time: "17:16",
+      text: "Deals en pipeline para próxima semana: $1,890,000 MXN. 7 están en cotización lista. Proyección: $2.1M si se cierran 2 Ballenas.",
+      reactions: [{ emoji: "⚡", count: 1, reacted: true }],
     },
   ],
 };
 
-const THREAD_MESSAGES: Message[] = [
-  { id: "th1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16", text: "Contexto: Grupo Farmacéutico GT (Ballena) — sin compras ni contacto en 47 días." },
-  { id: "th2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:17", text: "Creé deal de reactivación y borrador de contacto. Lo pasé al Supervisor para asignación.", action: { label: "Deal creado", body: "Reactivación — Grupo Farmacéutico GT. Valor estimado: $420,000 MXN. Pendiente asignación de vendedor.", status: "auto-applied" } },
-  { id: "th3", sender: "Supervisor", avatar: "SV", type: "agent", time: "08:30", text: "Asigné a Miriam Reyes. Buen candidato para reactivación dado su historial de compra.", agentTag: "Auto-asignación", reactions: [{ emoji: "👍", count: 1, reacted: false }] },
-  { id: "th4", sender: "Tú", avatar: "MR", type: "user", time: "09:00", text: "Yo me encargo. Llamaré mañana temprano." },
-];
+// Per-thread conversations
+const THREAD_MESSAGES_BY_THREAD: Record<string, Message[]> = {
+  // t1: Cervecería Toluca - Follow-up
+  t1: [
+    { id: "t1-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16", text: "Contexto: Cervecería Toluca (Ballena) — 6 días sin actividad. Deal $285K en Cotización Enviada." },
+    { id: "t1-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:17", text: "Creé tarea de seguimiento y borrador de llamada para mañana 10:00 AM.", action: { label: "Tarea creada", body: "Seguimiento: Carlos Mendoza (Cervecería Toluca). Llamar sobre cotización audiometrías $285K.", status: "auto-applied" } },
+    { id: "t1-m3", sender: "Tú", avatar: "MR", type: "user", time: "09:00", text: "¿Hay que presionar o dejar que confirme?" },
+    { id: "t1-m4", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:02", text: "6 días es límite del SLA Ballena. Sugiero tono consultivo hoy: 'Confirmamos la cotización'", reactions: [{ emoji: "✅", count: 1, reacted: true }] },
+  ],
+
+  // t2: Plásticos Industriales - Follow-up
+  t2: [
+    { id: "t2-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:15", text: "Alerta: Plásticos Industriales (Tiburón) — 4 días sin respuesta. SLA en riesgo." },
+    { id: "t2-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:16", text: "Esperan resultado de auditoría interna antes de proceder ($180K campaign).", agentTag: "Contexto" },
+    { id: "t2-m3", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "09:17", text: "Creé recordatorio urgente para hoy. Si no responden, escalamos mañana.", action: { label: "Recordatorio urgente", body: "Ana Torres: Plásticos Industriales. Seguimiento: Auditoría + presupuesto. Valor: $180K MXN.", status: "auto-applied" } },
+    { id: "t2-m4", sender: "Tú", avatar: "MR", type: "user", time: "10:00", text: "Perfecto, veré si puedo llamar a las 11." },
+  ],
+
+  // t3: Cervecería Toluca - Sales Assistant (different deal)
+  t3: [
+    { id: "t3-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:22", text: "Cotización lista: Audiometrías — Cervecería Toluca. $42,000 MXN." },
+    { id: "t3-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:23", text: "Preparé borrador de correo. Solo necesita tu aprobación antes de enviar a Carlos.", action: { label: "Borrador de correo listo", body: "Asunto: Cotización Audiometrías — Cervecería Toluca\\n\\nHola Carlos,\\nAdjunto cotización para los exámenes audiométricos solicitados. Vigencia: 30 días.\\n\\n¿Podemos agendar una llamada para confirmar?", status: "pending-approval", buttons: [{ label: "Enviar", variant: "primary" }, { label: "Editar", variant: "outline" }] } },
+    { id: "t3-m3", sender: "Tú", avatar: "MR", type: "user", time: "10:25", text: "Ajusta el monto a $44,500 por el descuento volumétrico." },
+    { id: "t3-m4", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "10:26", text: "Actualicé cotización y correo. Listo para enviar cuando apruebes.", agentTag: "Actualizado", reactions: [{ emoji: "✅", count: 1, reacted: true }] },
+  ],
+
+  // t4: Metalúrgica del Valle - Sales Assistant (call summary)
+  t4: [
+    { id: "t4-m1", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Ayer", text: "Resumen de llamada generado automáticamente.", agentTag: "Resumen" },
+    { id: "t4-m2", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Ayer", text: "Jefe de RH (Roberto Juárez): Busca exámenes para 45 nuevas contrataciones. Presupuesto confirmado.", action: { label: "Resumen de llamada", body: "Fecha: hoy 14:30\\nCliente: Roberto Juárez — Jefe de RH\\nEmpresa: Metalúrgica del Valle\\nPrioridad: Alta (45 empleados x exámenes)\\nSiguiente: Enviar propuesta con 3 opciones de paquete.", status: "auto-applied" } },
+    { id: "t4-m3", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "Ayer", text: "Creé 3 propuestas: Básico ($2K), Estándar ($4K), Premium ($6K). Listas para revisar." },
+    { id: "t4-m4", sender: "Tú", avatar: "MR", type: "user", time: "Ayer", text: "Excelente. Envía el Estándar como default con opción de upgrade." },
+  ],
+
+  // t5: Grupo Farmacéutico GT - Supervisor (reactivation)
+  t5: [
+    { id: "t5-m1", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:16", text: "Contexto: Grupo Farmacéutico GT (Ballena) — sin compras ni contacto en 47 días." },
+    { id: "t5-m2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:17", text: "Creé deal de reactivación y borrador de contacto. Lo pasé al Supervisor para asignación.", action: { label: "Deal creado", body: "Reactivación — Grupo Farmacéutico GT. Valor estimado: $420,000 MXN. Pendiente asignación de vendedor.", status: "auto-applied" } },
+    { id: "t5-m3", sender: "Supervisor", avatar: "SV", type: "agent", time: "08:30", text: "Asigné a Miriam Reyes. Buen candidato para reactivación dado su historial de compra.", agentTag: "Auto-asignación", reactions: [{ emoji: "👍", count: 1, reacted: false }] },
+    { id: "t5-m4", sender: "Tú", avatar: "MR", type: "user", time: "09:00", text: "Yo me encargo. Llamaré mañana temprano." },
+  ],
+};
+
+// Fallback for old THREAD_MESSAGES
+const THREAD_MESSAGES: Message[] = THREAD_MESSAGES_BY_THREAD.t5;
 
 const SLASH_COMMANDS: SlashCommand[] = [
   { command: "/tarea", label: "Crear tarea", icon: "fa-solid fa-circle-check", description: "Nueva tarea para ti o tu equipo" },
@@ -937,7 +1078,14 @@ export default function InboxPage() {
           </div>
             <div className="flex flex-col gap-px px-4">
               {(() => {
-                const messagesToShow = activeChannel ? MESSAGES : (AGENT_MESSAGES[selectedAgent] ?? MESSAGES);
+                let messagesToShow: Message[];
+                if (activeChannel) {
+                  // Show thread-specific messages for the selected client
+                  messagesToShow = THREAD_MESSAGES_BY_THREAD[activeChannel.id] ?? THREAD_MESSAGES;
+                } else {
+                  // Show agent-specific messages or default
+                  messagesToShow = AGENT_MESSAGES[selectedAgent] ?? MESSAGES;
+                }
                 return messagesToShow.map((msg) => (
                   <MessageBubble key={msg.id} msg={msg} onOpenThread={(id) => setThreadOpen(id === threadOpen ? null : id)} onReply={() => {}} />
                 ));
@@ -954,7 +1102,10 @@ export default function InboxPage() {
           <header className="flex items-center justify-between border-b border-border px-4 py-2.5">
             <div>
               <h3 className="text-sm font-semibold text-foreground">Hilo</h3>
-              <p className="text-xs text-muted-foreground">{THREAD_MESSAGES.length} respuestas</p>
+              <p className="text-xs text-muted-foreground">{(() => {
+                const threadMessages = activeChannel && THREAD_MESSAGES_BY_THREAD[activeChannel.id] ? THREAD_MESSAGES_BY_THREAD[activeChannel.id] : THREAD_MESSAGES;
+                return threadMessages.length;
+              })()} respuestas</p>
             </div>
             <Button variant="ghost" size="icon-sm" className="h-7 w-7 text-muted-foreground" onClick={() => setThreadOpen(null)}>
               <i className="fa-solid fa-xmark text-xs" />
@@ -972,13 +1123,19 @@ export default function InboxPage() {
           <div className="flex-1 overflow-y-auto py-3">
             <div className="flex items-center gap-3 px-4 mb-3">
               <Separator className="flex-1" />
-              <span className="text-[11px] text-muted-foreground">{THREAD_MESSAGES.length} respuestas</span>
+              <span className="text-[11px] text-muted-foreground">{(() => {
+                const threadMessages = activeChannel && THREAD_MESSAGES_BY_THREAD[activeChannel.id] ? THREAD_MESSAGES_BY_THREAD[activeChannel.id] : THREAD_MESSAGES;
+                return threadMessages.length;
+              })()} respuestas</span>
               <Separator className="flex-1" />
             </div>
             <div className="flex flex-col gap-px">
-              {THREAD_MESSAGES.map((msg) => (
-                <MessageBubble key={msg.id} msg={msg} onReply={() => {}} />
-              ))}
+              {(() => {
+                const threadMessages = activeChannel && THREAD_MESSAGES_BY_THREAD[activeChannel.id] ? THREAD_MESSAGES_BY_THREAD[activeChannel.id] : THREAD_MESSAGES;
+                return threadMessages.map((msg) => (
+                  <MessageBubble key={msg.id} msg={msg} onReply={() => {}} />
+                ));
+              })()}
             </div>
           </div>
 
