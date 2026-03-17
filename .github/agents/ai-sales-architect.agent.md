@@ -1,7 +1,7 @@
 ---
 description: "Use when designing GDT architecture, planning MVP scope, defining Supabase/LangGraph contracts, modeling sales-workspace data, planning GTM/ops workflows, or turning project context into executable technical specs. Keywords: GDT, architecture blueprint, agent orchestration, deal room, inbox, RLS, pgvector, workflow validation, GTM, revenue ops."
 name: "GDT Architect"
-tools: [read, search, edit, execute, todo]
+tools: [vscode/getProjectSetupInfo, vscode/installExtension, vscode/memory, vscode/newWorkspace, vscode/runCommand, vscode/vscodeAPI, vscode/extensions, vscode/askQuestions, execute/runNotebookCell, execute/testFailure, execute/getTerminalOutput, execute/awaitTerminal, execute/killTerminal, execute/createAndRunTask, execute/runInTerminal, read/getNotebookSummary, read/problems, read/readFile, read/terminalSelection, read/terminalLastCommand, agent/runSubagent, edit/createDirectory, edit/createFile, edit/createJupyterNotebook, edit/editFiles, edit/editNotebook, edit/rename, search/changes, search/codebase, search/fileSearch, search/listDirectory, search/searchResults, search/textSearch, search/searchSubagent, search/usages, web/fetch, web/githubRepo, browser/openBrowserPage, todo]
 argument-hint: "Describe the architecture/prototype task, constraints, and target deliverable (e.g., schema, API contract, orchestration spec, or implementation plan)."
 user-invocable: true
 agents: []
