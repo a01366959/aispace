@@ -1,4 +1,4 @@
-# AI Sales OS — Your Task Checklist
+# GDT — Your Task Checklist
 
 > These are **only** the tasks that require your manual action (accounts, credentials, config, testing, deploys). Everything else (code, schemas, scaffolds, tests, tooling) is handled in-repo.
 >
@@ -8,7 +8,7 @@
 
 ## Phase 0 — Accounts & Infrastructure
 
-- [ ] Create Supabase project (org: AI Sales OS)
+- [ ] Create Supabase project (org: GDT)
 - [ ] Enable pgvector extension (`CREATE EXTENSION vector;` in Supabase SQL editor)
 - [ ] Create Vercel project → link to `a01366959/aispace` repo
 - [ ] Create Railway project → link to `a01366959/aispace` repo (for `apps/agents` service)

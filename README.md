@@ -1,10 +1,10 @@
-# AI Sales OS
+# GDT
 
-AI-native operating system for revenue teams where humans and specialized AI agents collaborate in a shared workspace.
+Workspace operativo con agentes especializados para el equipo comercial de GDT.
 
 ## What This Repo Contains
 
-- Product and architecture context for AI Sales OS
+- Product and architecture context for GDT
 - Initial multi-agent prompt package
 - LangGraph runtime structure notes for prototype implementation
 

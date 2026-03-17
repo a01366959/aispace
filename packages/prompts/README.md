@@ -1,6 +1,6 @@
 # Prompts Package
 
-This folder contains system prompts and orchestration policies for the AI Sales OS agent system.
+This folder contains system prompts and orchestration policies for the GDT agent system.
 
 ## Files
 

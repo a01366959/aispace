@@ -1,4 +1,4 @@
-# AI Sales OS — Epics, User Stories & Tasks
+# GDT — Epics, User Stories & Tasks
 
 ## Document Control
 
@@ -109,7 +109,7 @@ Tasks:
 
 ### Story 2.2 — Zoho Read Sync
 
-> As a sales rep, I want to see my Zoho accounts, contacts, deals, quotes, and activities in AI Sales OS so that I have a single place to work.
+> As a sales rep, I want to see my Zoho accounts, contacts, deals, quotes, and activities in GDT so that I have a single place to work.
 
 Acceptance Criteria:
 - Accounts, Contacts, Deals, Quotes, Activities synced to Supabase

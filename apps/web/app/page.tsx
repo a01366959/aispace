@@ -32,6 +32,7 @@ interface Agent {
   icon: string;
   description: string;
   unread: number;
+  role: "primary" | "specialist";
 }
 
 interface ClientThread {
@@ -86,15 +87,26 @@ interface Mention {
   role: string;
 }
 
+interface MainRouteCard {
+  id: string;
+  title: string;
+  summary: string;
+  agentId: string;
+  agentLabel: string;
+  threadId: string;
+  status: string;
+}
+
 /* ════════════════════════════════════════════════════════════════════════════
    Mock Data
    ════════════════════════════════════════════════════════════════════════════ */
 
 const AGENTS: Agent[] = [
-  { id: "follow-up", name: "Seguimiento", icon: "fa-solid fa-bell", description: "Tratos estancados y seguimientos", unread: 2 },
-  { id: "sales-assistant", name: "Asistente Ventas", icon: "fa-solid fa-handshake", description: "Borradores y resúmenes", unread: 1 },
-  { id: "supervisor", name: "Supervisor", icon: "fa-solid fa-eye", description: "Pipeline y riesgos", unread: 0 },
-  { id: "reporting", name: "Reportes", icon: "fa-solid fa-chart-pie", description: "Reportes semanales", unread: 0 },
+  { id: "gdt-main", name: "GDT", icon: "fa-solid fa-sparkles", description: "Entrada principal. Entiende, decide y redirige.", unread: 3, role: "primary" },
+  { id: "follow-up", name: "Seguimiento", icon: "fa-solid fa-bell", description: "Tratos estancados y seguimientos", unread: 2, role: "specialist" },
+  { id: "sales-assistant", name: "Asistente Ventas", icon: "fa-solid fa-handshake", description: "Borradores y resúmenes", unread: 1, role: "specialist" },
+  { id: "supervisor", name: "Supervisor", icon: "fa-solid fa-eye", description: "Pipeline y riesgos", unread: 0, role: "specialist" },
+  { id: "reporting", name: "Reportes", icon: "fa-solid fa-chart-pie", description: "Reportes semanales", unread: 0, role: "specialist" },
 ];
 
 const CLIENT_THREADS: ClientThread[] = [
@@ -137,8 +149,31 @@ const MESSAGES: Message[] = [
   },
 ];
 
+const MAIN_CHAT_MESSAGES: Message[] = [
+  {
+    id: "gm1", sender: "GDT", avatar: "GT", type: "agent", time: "08:00",
+    text: "Buenos días. Ya revisé el pipeline y dejé listos tres frentes prioritarios para hoy.",
+    agentTag: "Entrada principal",
+  },
+  {
+    id: "gm2", sender: "Tú", avatar: "MR", type: "user", time: "08:03",
+    text: "¿Qué urge hoy con Cervecería Toluca, Plásticos Industriales y Grupo Farmacéutico GT?",
+  },
+  {
+    id: "gm3", sender: "GDT", avatar: "GT", type: "agent", time: "08:03",
+    text: "Abrí un hilo con Asistente de Ventas para Cervecería Toluca, otro con Seguimiento para Plásticos Industriales y mandé Grupo Farmacéutico GT con Supervisor para reactivación.",
+    action: { label: "Redirección lista", body: "Cervecería Toluca -> Asistente Ventas. Plásticos Industriales -> Seguimiento. Grupo Farmacéutico GT -> Supervisor. Si el hilo ya existía, lo reutilicé.", status: "info" },
+  },
+  {
+    id: "gm4", sender: "GDT", avatar: "GT", type: "agent", time: "08:04",
+    text: "También preparé el contexto para cada hilo para que puedas entrar directo a ejecutar.",
+    reactions: [{ emoji: "⚡", count: 1, reacted: true }],
+  },
+];
+
 // Per-agent demo messages for the main agent view
 const AGENT_MESSAGES: Record<string, Message[]> = {
+  "gdt-main": MAIN_CHAT_MESSAGES,
   "follow-up": [
     MESSAGES[0],
     MESSAGES[1],
@@ -192,9 +227,40 @@ const MENTIONS: Mention[] = [
   { id: "miriam", name: "Miriam Reyes", initials: "MR", role: "Vendedora Sr." },
   { id: "juan", name: "Juan García", initials: "JG", role: "Vendedor" },
   { id: "laura", name: "Laura Díaz", initials: "LD", role: "Gerente Comercial" },
+  { id: "gdt-main-m", name: "GDT", initials: "GT", role: "Chat principal" },
   { id: "follow-up-m", name: "Agente de Seguimiento", initials: "AI", role: "Agente AI" },
   { id: "supervisor-m", name: "Supervisor", initials: "AI", role: "Agente AI" },
   { id: "sales-assistant-m", name: "Asistente de Ventas", initials: "AI", role: "Agente AI" },
+];
+
+const MAIN_ROUTE_CARDS: MainRouteCard[] = [
+  {
+    id: "route-1",
+    title: "Cervecería Toluca",
+    summary: "Cotización de audiometrías y siguiente mensaje listos en el hilo de Asistente de Ventas.",
+    agentId: "sales-assistant",
+    agentLabel: "Asistente Ventas",
+    threadId: "t3",
+    status: "Hilo reutilizado",
+  },
+  {
+    id: "route-2",
+    title: "Plásticos Industriales",
+    summary: "Seguimiento urgente creado por riesgo de SLA. Tarea y llamada sugerida ya están listas.",
+    agentId: "follow-up",
+    agentLabel: "Seguimiento",
+    threadId: "t2",
+    status: "Hilo activo",
+  },
+  {
+    id: "route-3",
+    title: "Grupo Farmacéutico GT",
+    summary: "Reactivación enviada al Supervisor con asignación y plan de rescate preparados.",
+    agentId: "supervisor",
+    agentLabel: "Supervisor",
+    threadId: "t5",
+    status: "Hilo creado",
+  },
 ];
 
 const EMOJI_PICKER = ["👍", "✅", "🔥", "👀", "❤️", "😂", "🎉", "⚡"];
@@ -272,7 +338,7 @@ const STAGE_LABELS: Record<Stage, string> = {
 const SEGMENT_LABELS: Record<Segment, string> = { ballenas: "Ballena", tiburones: "Tiburón", atunes: "Atún", truchas: "Trucha", charales: "Charal" };
 const SEGMENT_BADGE: Record<Segment, "blue" | "warning" | "success" | "muted" | "outline"> = { ballenas: "outline", tiburones: "outline", atunes: "outline", truchas: "muted", charales: "muted" };
 const STAGE_BADGE: Record<string, "blue" | "warning" | "success" | "muted" | "destructive" | "outline" | "secondary"> = { cotización_enviada: "secondary", seguimiento: "secondary", descubrimiento: "secondary", prospecto: "muted", cerrado_ganado: "success", cerrado_perdido: "destructive" };
-const AVATAR_BG: Record<string, string> = { CM: "bg-blue-100 text-blue-700", AT: "bg-amber-100 text-amber-700", RJ: "bg-emerald-100 text-emerald-700", PS: "bg-violet-100 text-violet-700", AI: "bg-muted text-muted-foreground", SV: "bg-muted text-muted-foreground", MR: "bg-primary text-primary-foreground" };
+const AVATAR_BG: Record<string, string> = { CM: "bg-blue-100 text-blue-700", AT: "bg-amber-100 text-amber-700", RJ: "bg-emerald-100 text-emerald-700", PS: "bg-violet-100 text-violet-700", AI: "bg-muted text-muted-foreground", SV: "bg-muted text-muted-foreground", GT: "bg-primary text-primary-foreground", MR: "bg-primary text-primary-foreground" };
 const BTN_MAP: Record<string, "default" | "outline" | "success" | "destructive"> = { primary: "default", outline: "outline", success: "success", danger: "destructive" };
 
 const NAV_ITEMS = [
@@ -585,7 +651,7 @@ function MessageBubble({
    ════════════════════════════════════════════════════════════════════════════ */
 
 export default function InboxPage() {
-  const [selectedAgent, setSelectedAgent] = useState("follow-up");
+  const [selectedAgent, setSelectedAgent] = useState("gdt-main");
   const [expandedAgents, setExpandedAgents] = useState<Set<string>>(new Set(["follow-up", "sales-assistant"]));
   const [threadOpen, setThreadOpen] = useState<string | null>(null);
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
@@ -600,6 +666,17 @@ export default function InboxPage() {
     }
   };
 
+  const openThread = (threadId: string) => {
+    const thread = CLIENT_THREADS.find((item) => item.id === threadId);
+    if (!thread) {
+      return;
+    }
+
+    setSelectedChannel(thread.id);
+    setSelectedAgent(thread.agentId);
+    setThreadOpen(null);
+  };
+
   const toggleAgent = (agentId: string) => {
     setExpandedAgents((prev) => {
       const next = new Set(prev);
@@ -610,12 +687,20 @@ export default function InboxPage() {
 
   const activeAgent = AGENTS.find((a) => a.id === selectedAgent);
   const activeChannel = selectedChannel ? CLIENT_THREADS.find((t) => t.id === selectedChannel) : null;
+  const primaryAgent = AGENTS.find((agent) => agent.role === "primary");
+  const specialistAgents = AGENTS.filter((agent) => agent.role === "specialist");
+  const isMainWorkspace = !activeChannel && selectedAgent === "gdt-main";
+  const composerPlaceholder = isMainWorkspace
+    ? "Escribe a GDT para coordinar clientes, seguimientos, tareas o reportes"
+    : activeChannel
+    ? `Mensaje para ${activeChannel.clientName}...`
+    : `Mensaje para ${activeAgent?.name ?? "el agente"}...`;
 
   return (
     <div className="flex h-screen overflow-hidden bg-background">
       {/* ── Nav Rail ─────────────────────────────────────────────── */}
       <nav className="flex w-[52px] min-w-[52px] flex-col items-center gap-0.5 bg-sidebar py-3" aria-label="Navegación principal">
-        <div className="mb-4 grid h-8 w-8 place-content-center rounded-lg bg-primary text-xs font-bold text-white">AI</div>
+        <div className="mb-4 grid h-8 w-8 place-content-center rounded-lg bg-primary text-[10px] font-bold text-white">GDT</div>
         {NAV_ITEMS.map((item) => (
           <Tooltip key={item.label} content={item.label} side="right">
             {item.href ? (
@@ -649,7 +734,7 @@ export default function InboxPage() {
       {/* ── Sidebar ──────────────────────────────────────────────── */}
       <aside className="flex w-[260px] min-w-[260px] flex-col border-r border-border bg-card">
         <div className="flex items-center justify-between px-4 py-3">
-          <h1 className="text-sm font-semibold text-foreground">AI Sales OS</h1>
+          <h1 className="text-sm font-semibold text-foreground">GDT</h1>
           <Button variant="ghost" size="icon-sm" className="h-7 w-7 text-muted-foreground">
             <i className="fa-solid fa-pen-to-square text-xs" />
           </Button>
@@ -663,7 +748,33 @@ export default function InboxPage() {
         </div>
 
         <div className="flex-1 overflow-y-auto">
-          {AGENTS.map((agent) => {
+          {primaryAgent && (
+            <div className="px-3 pb-2 pt-1">
+              <div className="mb-2 px-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Experiencia principal</div>
+              <button
+                onClick={() => { setSelectedAgent(primaryAgent.id); setSelectedChannel(null); setThreadOpen(null); }}
+                className={cn(
+                  "flex w-full items-start gap-3 rounded-xl border px-3 py-3 text-left transition-colors",
+                  selectedAgent === primaryAgent.id && !selectedChannel ? "border-primary/20 bg-primary/5" : "border-border hover:bg-muted/40"
+                )}
+              >
+                <div className="mt-0.5 flex h-8 w-8 items-center justify-center rounded-lg bg-primary text-white">
+                  <i className={cn(primaryAgent.icon, "text-sm")} />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <div className="flex items-center gap-2">
+                    <span className="text-sm font-semibold text-foreground">{primaryAgent.name}</span>
+                    <Badge variant="outline" className="text-[10px]">Chat principal</Badge>
+                  </div>
+                  <p className="mt-1 text-xs leading-relaxed text-muted-foreground">{primaryAgent.description}</p>
+                </div>
+              </button>
+            </div>
+          )}
+
+          <div className="px-5 pb-1 pt-2 text-[11px] font-semibold uppercase tracking-[0.14em] text-muted-foreground">Agentes especializados</div>
+
+          {specialistAgents.map((agent) => {
             const threads = CLIENT_THREADS.filter((t) => t.agentId === agent.id);
             const isExpanded = expandedAgents.has(agent.id);
             const isSelected = selectedAgent === agent.id && !selectedChannel;
@@ -746,7 +857,7 @@ export default function InboxPage() {
               </>
             ) : (
               <>
-                <div className="flex h-8 w-8 items-center justify-center rounded-md bg-muted text-muted-foreground">
+                <div className={cn("flex h-8 w-8 items-center justify-center rounded-md", selectedAgent === "gdt-main" ? "bg-primary text-primary-foreground" : "bg-muted text-muted-foreground")}>
                   <i className={cn(activeAgent?.icon ?? "fa-solid fa-robot", "text-sm")} />
                 </div>
                 <div>
@@ -775,6 +886,50 @@ export default function InboxPage() {
         </header>
 
         <div className="flex-1 overflow-y-auto py-4">
+          {isMainWorkspace && (
+            <section className="px-4 pb-4">
+              <div className="rounded-2xl border border-primary/15 bg-gradient-to-r from-primary/8 via-primary/5 to-transparent p-4">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">Entrada principal</Badge>
+                  <Badge variant="outline">Crea o reutiliza hilos</Badge>
+                  <Badge variant="outline">Redirige al mejor agente</Badge>
+                </div>
+                <h2 className="mt-3 text-lg font-semibold text-foreground">Empieza en GDT y entra al hilo correcto ya con contexto.</h2>
+                <p className="mt-1 max-w-3xl text-sm text-muted-foreground">
+                  El chat principal detecta intención, decide el agente ideal y te abre el hilo especialista con el contexto ya preparado para ejecutar.
+                </p>
+                <div className="mt-3 flex flex-wrap gap-2 text-xs text-muted-foreground">
+                  <span className="rounded-full border border-border bg-background px-3 py-1">"¿Qué urge hoy con Cervecería Toluca?"</span>
+                  <span className="rounded-full border border-border bg-background px-3 py-1">"Prepara seguimiento para los deals sin respuesta"</span>
+                  <span className="rounded-full border border-border bg-background px-3 py-1">"Dame resumen y siguiente paso para Grupo Farmacéutico GT"</span>
+                </div>
+              </div>
+
+              <div className="mt-4 grid gap-3 xl:grid-cols-3">
+                {MAIN_ROUTE_CARDS.map((card) => (
+                  <button
+                    key={card.id}
+                    onClick={() => openThread(card.threadId)}
+                    className="rounded-xl border border-border bg-card p-4 text-left transition-colors hover:border-primary/20 hover:bg-muted/30"
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div>
+                        <div className="text-sm font-semibold text-foreground">{card.title}</div>
+                        <div className="mt-1 text-xs text-muted-foreground">{card.agentLabel}</div>
+                      </div>
+                      <Badge variant="outline" className="text-[10px]">{card.status}</Badge>
+                    </div>
+                    <p className="mt-3 text-sm leading-relaxed text-muted-foreground">{card.summary}</p>
+                    <div className="mt-4 flex items-center justify-between text-xs text-muted-foreground">
+                      <span>Ir al hilo especialista</span>
+                      <i className="fa-solid fa-arrow-right text-[11px]" />
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </section>
+          )}
+
           <div className="flex items-center gap-3 px-4 mb-3">
             <Separator className="flex-1" />
             <span className="text-[11px] font-medium text-muted-foreground px-2">Hoy</span>
@@ -790,7 +945,7 @@ export default function InboxPage() {
             </div>
         </div>
 
-        <Composer />
+        <Composer placeholder={composerPlaceholder} />
       </main>
 
       {/* ── Thread Panel (Slack-style) ───────────────────────────── */}

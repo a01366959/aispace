@@ -1,5 +1,7 @@
 export type AgentIntent = "technical" | "sales" | "follow_up" | "dormant_client" | "reporting" | "supervisor" | "unknown";
 
+export type InboxEntryPoint = "main_chat" | "agent_thread";
+
 // ─── GDT Client Segments ──────────────────────────────────────────────────────
 
 export type ClientSegment = "charales" | "truchas" | "atunes" | "tiburones" | "ballenas";
@@ -97,9 +99,13 @@ export type IntentResult = {
 };
 
 export type DispatchResult = {
+  routedVia: "gdt-main" | "direct";
   agentName: string;
   task: string;
   requiresApproval: boolean;
+  handoffMode: "redirect_to_agent_thread" | "stay_in_current_thread";
+  targetThreadMode: "reuse_or_create" | "current_thread";
+  handoffSummary: string;
 };
 
 export type ModelSelection = {
@@ -112,6 +118,7 @@ export type ModelSelection = {
 
 export type WorkflowInput = {
   message: string;
+  entryPoint?: InboxEntryPoint;
   threadContext?: string;
   dealContext?: string;
   riskFlags?: string[];

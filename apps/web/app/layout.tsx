@@ -3,8 +3,8 @@ import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
 
 export const metadata = {
-  title: "AI Sales OS",
-  description: "AI-native operating system for revenue teams"
+  title: "GDT",
+  description: "Workspace operativo con agentes para el equipo comercial de GDT"
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

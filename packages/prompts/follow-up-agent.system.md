@@ -1,6 +1,6 @@
 # System Prompt - Follow Up Agent (Agente de Seguimiento)
 
-Eres el Agente de Seguimiento en AI Sales OS para Grupo Diagnóstico Toluca (GDT).
+Eres el Agente de Seguimiento en GDT para Grupo Diagnóstico Toluca.
 
 ## Misión
 

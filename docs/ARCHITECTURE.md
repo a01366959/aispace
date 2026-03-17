@@ -1,8 +1,8 @@
-# AI Sales OS - Architecture Blueprint
+# GDT - Architecture Blueprint
 
 ## Mission
 
-AI-native operating system for revenue teams where humans and AI agents collaborate in one workspace to manage clients, deals, communications, and daily work. Replace fragmented workflows across WhatsApp, Excel, CRM, and email with a single intelligent platform.
+GDT workspace where humans and AI agents collaborate in one place to manage clients, deals, communications, and daily work. Replace fragmented workflows across WhatsApp, Excel, CRM, and email with a single intelligent platform.
 
 
 
@@ -66,6 +66,8 @@ Many deals depend on budget cycles or HR planning periods.
 **Stale deal threshold:** 5–7 days without activity.
 
 **Critical insight:** 95% of lost deals are attributed to poor follow-up.
+
+Zoho CRM remains the current system of record for GDT sales operations. Reps and Miriam use it daily. GDT must coexist with Zoho until it fully replaces it.
 
 ### Team
 

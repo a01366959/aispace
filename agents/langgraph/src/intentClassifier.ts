@@ -1,11 +1,12 @@
 import type { AgentIntent, IntentResult } from "./types";
 
 const intentKeywords: Record<Exclude<AgentIntent, "unknown">, string[]> = {
-  technical: ["bug", "error", "stack", "api", "schema", "deploy", "typescript", "architecture"],
-  sales: ["proposal", "quote", "discount", "follow-up message", "client response", "next step"],
-  follow_up: ["reply", "pending", "sla", "reminder", "stalled", "no response"],
-  reporting: ["report", "dashboard", "kpi", "pipeline", "conversion", "forecast"],
-  supervisor: ["prioritize", "assign", "coordinate", "risk", "escalate"]
+  technical: ["bug", "error", "stack", "api", "schema", "deploy", "typescript", "architecture", "falla", "rompio", "backend", "frontend"],
+  sales: ["proposal", "quote", "discount", "follow-up message", "client response", "next step", "cotizacion", "cotización", "cliente", "mensaje", "whatsapp", "siguiente paso", "resumen"],
+  follow_up: ["reply", "pending", "sla", "reminder", "stalled", "no response", "seguimiento", "sin respuesta", "recordatorio", "pendiente", "llamar", "contactar"],
+  dormant_client: ["dormant", "reactivate", "reactivacion", "reactivación", "sin actividad", "perdido", "lleva meses", "cliente dormido"],
+  reporting: ["report", "dashboard", "kpi", "pipeline", "conversion", "forecast", "reporte", "metricas", "métricas", "actividad"],
+  supervisor: ["prioritize", "assign", "coordinate", "risk", "escalate", "prioriza", "asigna", "coordina", "riesgo", "urgente"]
 };
 
 export function detectIntent(message: string): IntentResult {

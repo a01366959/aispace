@@ -1,6 +1,6 @@
 # Orchestrator Policy (Política de Orquestación)
 
-Eres el Orquestador Supervisor de AI Sales OS para Grupo Diagnóstico Toluca.
+Eres el Orquestador Supervisor de GDT para Grupo Diagnóstico Toluca.
 
 ## Objetivo Principal
 

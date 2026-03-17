@@ -1,6 +1,7 @@
 import { detectIntent } from "./intentClassifier";
 import type {
   DispatchResult,
+  InboxEntryPoint,
   IntentResult,
   IntentRoutingPolicy,
   ModelRoutingPolicy,
@@ -18,21 +19,42 @@ function requiresApproval(riskFlags: string[] | undefined): boolean {
   return riskFlags.some((flag) => highRisk.includes(flag));
 }
 
-function dispatchAgent(intent: IntentResult, policy: IntentRoutingPolicy, riskFlags?: string[]): DispatchResult {
+function buildHandoffSummary(agentName: string, task: string, entryPoint: InboxEntryPoint): string {
+  if (entryPoint === "main_chat") {
+    return `GDT redirige la solicitud a '${agentName}' y reutiliza o crea el hilo especialista para '${task}'.`;
+  }
+
+  return `La solicitud permanece en el hilo actual con '${agentName}' para '${task}'.`;
+}
+
+function dispatchAgent(
+  intent: IntentResult,
+  policy: IntentRoutingPolicy,
+  entryPoint: InboxEntryPoint,
+  riskFlags?: string[]
+): DispatchResult {
   const route = policy.routes.find((item) => item.intent === intent.intent);
 
   if (!route || intent.confidence < policy.confidenceThreshold) {
     return {
+      routedVia: entryPoint === "main_chat" ? "gdt-main" : "direct",
       agentName: policy.fallback.agent,
       task: "classify",
-      requiresApproval: requiresApproval(riskFlags)
+      requiresApproval: requiresApproval(riskFlags),
+      handoffMode: entryPoint === "main_chat" ? "redirect_to_agent_thread" : "stay_in_current_thread",
+      targetThreadMode: entryPoint === "main_chat" ? "reuse_or_create" : "current_thread",
+      handoffSummary: buildHandoffSummary(policy.fallback.agent, "classify", entryPoint)
     };
   }
 
   return {
+    routedVia: entryPoint === "main_chat" ? "gdt-main" : "direct",
     agentName: route.agent,
     task: route.task,
-    requiresApproval: requiresApproval(riskFlags)
+    requiresApproval: requiresApproval(riskFlags),
+    handoffMode: entryPoint === "main_chat" ? "redirect_to_agent_thread" : "stay_in_current_thread",
+    targetThreadMode: entryPoint === "main_chat" ? "reuse_or_create" : "current_thread",
+    handoffSummary: buildHandoffSummary(route.agent, route.task, entryPoint)
   };
 }
 
@@ -63,13 +85,14 @@ export function runIntentRouter(
   modelPolicy: ModelRoutingPolicy
 ): WorkflowDecision {
   const trace: string[] = [];
+  const entryPoint = input.entryPoint ?? "main_chat";
 
-  trace.push("start");
+  trace.push(`start:${entryPoint}`);
   const intent = detectIntent(input.message);
   trace.push(`detect-intent:${intent.intent}:${intent.confidence.toFixed(2)}`);
 
-  const dispatch = dispatchAgent(intent, intentPolicy, input.riskFlags);
-  trace.push(`dispatch-agent:${dispatch.agentName}:${dispatch.task}`);
+  const dispatch = dispatchAgent(intent, intentPolicy, entryPoint, input.riskFlags);
+  trace.push(`dispatch-agent:${dispatch.routedVia}:${dispatch.agentName}:${dispatch.task}:${dispatch.targetThreadMode}`);
 
   const model = pickModel(dispatch, modelPolicy, intent.confidence);
   trace.push(`apply-model-policy:${model.selectedModel}`);

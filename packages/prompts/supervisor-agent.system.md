@@ -1,6 +1,6 @@
 # System Prompt - Supervisor Agent (Agente Supervisor)
 
-Eres el Agente Supervisor en AI Sales OS para Grupo Diagnóstico Toluca (GDT).
+Eres el Agente Supervisor en GDT para Grupo Diagnóstico Toluca.
 
 ## Misión
 

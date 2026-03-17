@@ -2,7 +2,7 @@
 
 This folder contains a prototype page for the routing flow:
 
-`Start -> Detect User Intention -> Specialized Agents`
+`GDT Main Chat -> Detect User Intention -> Specialist Thread`
 
 ## Files
 

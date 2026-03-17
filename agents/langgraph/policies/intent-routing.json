@@ -1,6 +1,6 @@
 {
   "version": "2.0.0",
-  "description": "Intent routing policy for GDT sales operations",
+  "description": "Primary GDT inbox routing policy for sales operations",
   "defaultIntentModel": "gpt-4o-mini",
   "confidenceThreshold": 0.7,
   "routes": [

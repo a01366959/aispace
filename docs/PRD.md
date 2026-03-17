@@ -1,10 +1,10 @@
-# AI Sales OS — Product Requirements Document (PRD)
+# GDT — Product Requirements Document (PRD)
 
 ## Document Control
 
-- Version: `1.0.0`
+- Version: `1.1.0`
 - Status: `implementation-ready`
-- Last Updated: `2026-03-09`
+- Last Updated: `2026-03-17`
 - Owners: Product + Architecture
 
 ---
@@ -15,7 +15,7 @@ Build an AI-native operating system for GDT's sales team (5 reps + manager) wher
 
 **Primary outcome:** eliminate the 95% deal loss rate caused by poor follow-up discipline.
 
-**Secondary outcome:** fully replace Zoho CRM by October 2026 so GDT cancels the Zoho subscription and operates entirely within AI Sales OS.
+**Secondary outcome:** fully replace Zoho CRM by October 2026 so GDT cancels the Zoho subscription and operates entirely within GDT.
 
 ---
 
@@ -34,7 +34,7 @@ Build an AI-native operating system for GDT's sales team (5 reps + manager) wher
 
 | Module | Description |
 |---|---|
-| Inbox | Agent conversations + auto-created client channels |
+| Inbox | GDT main chat + specialist conversations + auto-created client channels |
 | CRM (read) | Zoho sync → Supabase (Accounts, Contacts, Deals, Quotes, Activities) |
 | Tasks | Supabase-primary with dual-write to Zoho |
 | Agents (4) | Follow Up, Supervisor, Sales Assistant, Reporting |
@@ -58,7 +58,7 @@ Build an AI-native operating system for GDT's sales team (5 reps + manager) wher
 
 **Hard deadline: October 2026 — Zoho subscription cancelled.**
 
-| Phase | Dates | Zoho Role | AI Sales OS Role |
+| Phase | Dates | Zoho Role | GDT Workspace Role |
 |---|---|---|---|
 | 1 (MVP) | Mar – May 2026 | Source of truth for CRM | Primary UI for agents, tasks, inbox. Reads from Zoho. |
 | 2 | Jun – Aug 2026 | Background sync only. Reps stop opening Zoho. | Full CRM managed natively. Writes back to Zoho for safety. |
@@ -67,7 +67,7 @@ Build an AI-native operating system for GDT's sales team (5 reps + manager) wher
 
 ### Module Replacement Checklist
 
-| Zoho Module | AI Sales OS Equivalent | Phase Gate |
+| Zoho Module | GDT Equivalent | Phase Gate |
 |---|---|---|
 | Accounts | `clients` (with segments) | Phase 1 |
 | Contacts | `contacts` (FK → clients) | Phase 1 |
@@ -79,7 +79,7 @@ Build an AI-native operating system for GDT's sales team (5 reps + manager) wher
 
 **Phase 1 → 2:** All 5 Zoho modules readable · rep adoption > 50% · task dual-write reliable
 
-**Phase 2 → 3:** Rep adoption > 80% · all CRM writes in AI Sales OS · Miriam confirms Zoho redundant
+**Phase 2 → 3:** Rep adoption > 80% · all CRM writes in GDT · Miriam confirms Zoho redundant
 
 **Phase 3 → 4:** All Zoho data exported + verified · 2-week parallel run, zero data loss · Miriam sign-off
 
@@ -133,14 +133,15 @@ The inbox is the primary workspace. It replaces WhatsApp + Zoho as the single pl
 ```
 
 - **Nav rail**: Agent icons, quick nav to Dashboard, Tasks, Settings. Call mode selector.
-- **Sidebar**: Agent list (each with main conversation) + nested client channels. Unread badges. Search.
+- **Sidebar**: GDT main chat first, then specialized agents with nested client channels. Unread badges. Search.
 - **Conversation**: Message list (user/agent/system types), rich message composer, slash commands.
 - **Thread panel**: Client channel detail, deal info, contact card.
 
 **Conversation model:**
-- Each agent has exactly 1 main conversation per user.
-- When a client is detected in a message (entity extraction), a client channel is auto-created under that agent.
-- Client channels persist and reuse. They carry context from main conversation on first creation.
+- Each user has exactly 1 main `GDT` conversation that acts as the primary entry point.
+- GDT classifies each incoming message, selects the best specialist, and reuses or creates a specialist thread for execution.
+- Each specialist agent has exactly 1 main conversation per user plus reusable client channels.
+- When a client is detected in the GDT main chat, a client channel is auto-created or resolved under the selected specialist and the handoff is summarized back in the main chat.
 - Messages have types: `user`, `agent`, `system`.
 - Agent messages can contain inline actions (tasks created, quotes prepared, approval cards).
 
@@ -259,9 +260,10 @@ Four specialized agents, orchestrated by a supervisor pattern via LangGraph.
 **Intent routing:**
 
 ```
-User message → IntentClassifier (GPT-4o-mini)
+User message in GDT main chat → IntentClassifier (GPT-4o-mini)
   → { intent, confidence, rationale, selectedAgent }
   → if confidence < 0.7: escalate to Supervisor
+  → Reuse or create specialist thread
   → Dispatch to specialized agent with model policy
 ```
 
@@ -649,6 +651,7 @@ CREATE TABLE events (
 {
   message: string;
   conversationId: string;
+  entryPoint?: 'main_chat' | 'agent_thread';
   agentName?: string;       // optional — auto-detected via intent
   metadata?: {
     clientId?: string;
@@ -666,6 +669,9 @@ CREATE TABLE events (
   }>;
   metadata: {
     agentName: string;
+    routedVia: 'gdt-main' | 'direct';
+    handoffMode: 'redirect_to_agent_thread' | 'stay_in_current_thread';
+    targetThreadMode: 'reuse_or_create' | 'current_thread';
     intent: string;
     confidence: number;
     modelUsed: string;
@@ -928,6 +934,13 @@ QUO_WEBHOOK_SECRET=
 ---
 
 ## Change Log
+
+### 2026-03-17 — v1.1.0: GDT Branding + Main Chat Handoff
+- Change: Rebranded the product surface from AI Sales OS to GDT in the main docs and demo-facing UI. Updated the inbox spec so GDT is the primary chat entry point that classifies requests, reuses or creates specialist threads, and summarizes the handoff back to the user.
+- Why: The demo needs clearer branding and a more intuitive first-run experience where users start in one chat and are redirected into the correct specialist flow without ambiguity.
+- User Impact: Reps now start from a single obvious GDT conversation and then land in the right specialist thread with context already prepared.
+- MVP Impact: Improves demo clarity and lowers UX confusion without expanding functional scope; introduces a small routing-contract change for main-chat handoff metadata.
+- Owner: Product + Architecture
 
 ### 2026-03-09 — v1.0.0: Implementation-Ready PRD
 - Change: Complete rewrite from governance-focused v0.2.0 to implementation-ready v1.0.0. Added: full database schema (10 tables), API endpoint specifications (20+ endpoints), feature specs per module (auth, inbox, CRM, tasks, agents, approvals, calling, dashboard), implementation phases (6 phases over 8 weeks), environment variables, performance requirements, security requirements, success metrics.

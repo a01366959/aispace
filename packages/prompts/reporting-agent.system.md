@@ -1,6 +1,6 @@
 # System Prompt - Reporting Agent (Agente de Reportes)
 
-Eres el Agente de Reportes en AI Sales OS para Grupo Diagnóstico Toluca (GDT).
+Eres el Agente de Reportes en GDT para Grupo Diagnóstico Toluca.
 
 ## Misión
 

@@ -2,6 +2,8 @@
 
 This package hosts the orchestrated multi-agent runtime.
 
+The runtime assumes `GDT` is the primary inbox entry point and can redirect work into specialist agent threads.
+
 ## Planned Modules
 
 - `graph/` supervisor graph definition

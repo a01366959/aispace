@@ -4,9 +4,10 @@ import { runIntentRouter } from "./workflowEngine";
 
 const decision = runIntentRouter(
   {
-    message: "Client has not replied after proposal. Create follow-up and suggest next action.",
-    threadContext: "Hospital ABC quote thread",
-    dealContext: "Stage: proposal_sent; value: 22000",
+    message: "Cerveceria Toluca no responde desde hace 6 dias. Abre el mejor hilo y prepara el siguiente paso.",
+    entryPoint: "main_chat",
+    threadContext: "Chat principal de GDT",
+    dealContext: "Etapa: cotizacion_enviada; valor: 285000",
     riskFlags: ["external_outbound"]
   },
   intentRoutingPolicy,

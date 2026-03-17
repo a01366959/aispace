@@ -157,9 +157,9 @@ export default function CallDemoPage() {
               <i className="fa-solid fa-phone text-white text-sm" />
             </div>
             <div>
-              <h1 className="text-lg font-semibold">Llamadas — AI Sales OS</h1>
+              <h1 className="text-lg font-semibold">Llamadas — GDT</h1>
               <p className="text-sm text-muted-foreground">
-                Haz clic en el teléfono de cualquier contacto para iniciar una llamada con contexto completo
+                Haz clic en cualquier contacto para abrir una llamada con contexto completo y seguimiento listo para el equipo
               </p>
             </div>
             <div className="ml-auto flex items-center gap-2">
@@ -275,7 +275,7 @@ export default function CallDemoPage() {
               Inicia la llamada
             </div>
             <p className="text-muted-foreground">
-              Clic en "Llamar" para abrir el panel de llamada. Simula marcando y conectando en 2.5 segundos.
+              Clic en "Llamar" para abrir el panel con contexto, historial y talking points. La demo simula marcación y conexión en 2.5 segundos.
             </p>
           </div>
           <div className="space-y-2">
@@ -284,7 +284,7 @@ export default function CallDemoPage() {
               Usa el contexto
             </div>
             <p className="text-muted-foreground">
-              Ve puntos a tratar (IA), historial, deal activo y métricas. Toma notas en vivo. Usa silenciar, espera, altavoz.
+              Ve puntos a tratar, historial, deal activo y métricas. Toma notas en vivo y mantén la llamada enfocada sin cambiar de herramienta.
             </p>
           </div>
           <div className="space-y-2">
@@ -293,7 +293,7 @@ export default function CallDemoPage() {
               Resumen automático
             </div>
             <p className="text-muted-foreground">
-              Al colgar, la IA genera un resumen y sugiere tareas. Edita, selecciona tareas y guarda. Todo se registra automáticamente.
+              Al colgar, GDT genera resumen, tareas sugeridas y siguiente mensaje. Edita, confirma y deja el seguimiento registrado automáticamente.
             </p>
           </div>
         </div>

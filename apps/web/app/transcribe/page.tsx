@@ -464,7 +464,7 @@ export default function TranscribePage() {
       {/* ── Footer ──────────────────────────────────── */}
       <footer className="border-t px-6 py-3">
         <div className="max-w-3xl mx-auto flex items-center justify-between text-xs text-muted-foreground">
-          <span>AI Sales OS — Transcripción gratuita</span>
+          <span>GDT — Transcripción gratuita</span>
           <div className="flex items-center gap-3">
             <span>Web Speech API</span>
             <span>·</span>
