@@ -85,6 +85,9 @@ interface Mention {
   name: string;
   initials: string;
   role: string;
+  icon?: string;
+  color?: string;
+  bgColor?: string;
 }
 
 interface MainRouteCard {
@@ -228,23 +231,39 @@ const MESSAGES: Message[] = [];
 
 const MAIN_CHAT_MESSAGES: Message[] = [
   {
-    id: "gm1", sender: "GDT", avatar: "GT", type: "agent", time: "08:00",
-    text: "Buenos días. Ya revisé el pipeline y dejé listos tres frentes prioritarios para hoy.",
-    agentTag: "Entrada principal",
+    id: "brief-1", sender: "GDT", avatar: "GT", type: "agent", time: "08:00",
+    text: "Buenos días, Miriam. Ya revisé el pipeline y tengo tu briefing diario.",
+    agentTag: "Coordinación",
   },
   {
-    id: "gm2", sender: "Tú", avatar: "MR", type: "user", time: "08:03",
-    text: "¿Qué urge hoy con Cervecería Toluca, Plásticos Industriales y Grupo Farmacéutico GT?",
+    id: "brief-2", sender: "Agente de Seguimiento", avatar: "AI", type: "agent", time: "08:01",
+    text: "Hay 2 deals en riesgo por SLA: Cervecería Toluca (6 días sin movimiento) y Plásticos Industriales (4 días, auditoría pendiente). Necesitan atención HOY.",
+    agentTag: "Seguimiento",
+    action: { label: "2 alertas SLA", body: "Cervecería Toluca: $285K. Plásticos Industriales: $180K. Ambas en riesgo.", status: "info" },
   },
   {
-    id: "gm3", sender: "GDT", avatar: "GT", type: "agent", time: "08:03",
-    text: "Abrí un hilo con Asistente de Ventas para Cervecería Toluca, otro con Seguimiento para Plásticos Industriales y mandé Grupo Farmacéutico GT con Supervisor para reactivación.",
-    action: { label: "Redirección lista", body: "Cervecería Toluca -> Asistente Ventas. Plásticos Industriales -> Seguimiento. Grupo Farmacéutico GT -> Supervisor. Si el hilo ya existía, lo reutilicé.", status: "info" },
+    id: "brief-3", sender: "Asistente Ventas", avatar: "AI", type: "agent", time: "08:02",
+    text: "Papelera lista: Cotización Cervecería $42K, Propuesta Metalúrgica 3 opciones. Todo aprobado por ti anoche.",
+    agentTag: "Ventas",
+    reactions: [{ emoji: "✅", count: 1, reacted: true }],
   },
   {
-    id: "gm4", sender: "GDT", avatar: "GT", type: "agent", time: "08:04",
-    text: "También preparé el contexto para cada hilo para que puedas entrar directo a ejecutar.",
+    id: "brief-4", sender: "Supervisor", avatar: "SV", type: "agent", time: "08:03",
+    text: "Oportunidad detectada: Grupo Farmacéutico GT (Ballena, $420K). Sin contacto 47 días. La asigné a ti por tu historial. Primer contacto hoy si es posible.",
+    agentTag: "Supervisor",
+    action: { label: "Reactivación lista", body: "Grupo Farmacéutico GT — $420K estimado. Deal creado. Borrador de llamada preparado.", status: "auto-applied" },
+  },
+  {
+    id: "brief-5", sender: "Reportes", avatar: "AI", type: "agent", time: "08:04",
+    text: "Pipeline hoy: $2.1M en oportunidades activas. Semana pasada cerramos $2.45M (+15%). Proyección: $2.8M si cierras Ballenas.",
+    agentTag: "Reportes",
     reactions: [{ emoji: "⚡", count: 1, reacted: true }],
+  },
+  {
+    id: "brief-6", sender: "GDT", avatar: "GT", type: "agent", time: "08:05",
+    text: "Tu agenda hoy: 2 llamadas urgentes (Cervecería, Plásticos), 1 reactivación (Farmacéutico), papelería para enviar. Tareas creadas en tu board.",
+    agentTag: "Plan del día",
+    action: { label: "Plan: 4 tareas críticas", body: "1. Llamar Cervecería (10:00)\n2. Seguimiento Plásticos (11:00)\n3. Primer contacto Farmacéutico (14:00)\n4. Enviar propuestas pendientes", status: "auto-applied", buttons: [{ label: "Ver tareas", variant: "primary" }] },
   },
 ];
 
@@ -402,10 +421,10 @@ const MENTIONS: Mention[] = [
   { id: "miriam", name: "Miriam Reyes", initials: "MR", role: "Vendedora Sr." },
   { id: "juan", name: "Juan García", initials: "JG", role: "Vendedor" },
   { id: "laura", name: "Laura Díaz", initials: "LD", role: "Gerente Comercial" },
-  { id: "gdt-main-m", name: "GDT", initials: "GT", role: "Chat principal" },
-  { id: "follow-up-m", name: "Agente de Seguimiento", initials: "AI", role: "Agente AI" },
-  { id: "supervisor-m", name: "Supervisor", initials: "AI", role: "Agente AI" },
-  { id: "sales-assistant-m", name: "Asistente de Ventas", initials: "AI", role: "Agente AI" },
+  { id: "gdt-main-m", name: "GDT", initials: "GT", role: "Chat principal", icon: "fa-solid fa-sparkles", color: "text-primary", bgColor: "bg-primary/10" },
+  { id: "follow-up-m", name: "Agente de Seguimiento", initials: "AI", role: "Agente AI", icon: "fa-solid fa-bell", color: "text-blue-600", bgColor: "bg-blue-100" },
+  { id: "supervisor-m", name: "Supervisor", initials: "AI", role: "Agente AI", icon: "fa-solid fa-eye", color: "text-purple-600", bgColor: "bg-purple-100" },
+  { id: "sales-assistant-m", name: "Asistente de Ventas", initials: "AI", role: "Agente AI", icon: "fa-solid fa-handshake", color: "text-emerald-600", bgColor: "bg-emerald-100" },
 ];
 
 const MAIN_ROUTE_CARDS: MainRouteCard[] = [
@@ -514,6 +533,26 @@ const SEGMENT_LABELS: Record<Segment, string> = { ballenas: "Ballena", tiburones
 const SEGMENT_BADGE: Record<Segment, "blue" | "warning" | "success" | "muted" | "outline"> = { ballenas: "outline", tiburones: "outline", atunes: "outline", truchas: "muted", charales: "muted" };
 const STAGE_BADGE: Record<string, "blue" | "warning" | "success" | "muted" | "destructive" | "outline" | "secondary"> = { cotización_enviada: "secondary", seguimiento: "secondary", descubrimiento: "secondary", prospecto: "muted", cerrado_ganado: "success", cerrado_perdido: "destructive" };
 const AVATAR_BG: Record<string, string> = { CM: "bg-blue-100 text-blue-700", AT: "bg-amber-100 text-amber-700", RJ: "bg-emerald-100 text-emerald-700", PS: "bg-violet-100 text-violet-700", AI: "bg-muted text-muted-foreground", SV: "bg-muted text-muted-foreground", GT: "bg-primary text-primary-foreground", MR: "bg-primary text-primary-foreground" };
+
+// Agent avatar config with icons and colors
+interface AgentConfig {
+  icon: string;
+  color: string;
+  bgColor: string;
+}
+
+const AGENT_CONFIGS: Record<string, AgentConfig> = {
+  "Agente de Seguimiento": { icon: "fa-solid fa-bell", color: "text-blue-600", bgColor: "bg-blue-100" },
+  "Asistente Ventas": { icon: "fa-solid fa-handshake", color: "text-emerald-600", bgColor: "bg-emerald-100" },
+  "Supervisor": { icon: "fa-solid fa-eye", color: "text-purple-600", bgColor: "bg-purple-100" },
+  "Reportes": { icon: "fa-solid fa-chart-pie", color: "text-orange-600", bgColor: "bg-orange-100" },
+  "GDT": { icon: "fa-solid fa-sparkles", color: "text-primary", bgColor: "bg-primary/10" },
+};
+
+const getAgentConfig = (sender: string): AgentConfig | null => {
+  return AGENT_CONFIGS[sender] ?? null;
+};
+
 const BTN_MAP: Record<string, "default" | "outline" | "success" | "destructive"> = { primary: "default", outline: "outline", success: "success", danger: "destructive" };
 
 const NAV_ITEMS = [
@@ -609,7 +648,13 @@ function Composer({ placeholder = "Mensaje... usa / para comandos, @ para mencio
               className="flex w-full items-center gap-3 px-3 py-2 text-left text-sm hover:bg-muted transition-colors"
               onMouseDown={(e) => { e.preventDefault(); insertMention(m); }}
             >
-              <Avatar size="sm" className={cn("h-6 w-6 text-[10px]", m.initials === "AI" ? "bg-foreground" : "bg-primary")} initials={m.initials} />
+              {m.icon && m.bgColor ? (
+                <div className={cn("h-6 w-6 rounded flex items-center justify-center shrink-0", m.bgColor)}>
+                  <i className={cn(m.icon, m.color, "text-sm")} />
+                </div>
+              ) : (
+                <Avatar size="sm" className={cn("h-6 w-6 text-[10px]", m.initials === "AI" ? "bg-foreground" : "bg-primary")} initials={m.initials} />
+              )}
               <div>
                 <span className="font-medium text-foreground">{m.name}</span>
                 <span className="ml-2 text-xs text-muted-foreground">{m.role}</span>
@@ -698,6 +743,7 @@ function MessageBubble({
 
   const isUser = msg.type === "user";
   const bubbleClass = isUser ? "bg-primary/5 text-foreground rounded-lg px-3 py-2 inline-block" : "";
+  const agentConfig = msg.type === "agent" ? getAgentConfig(msg.sender) : null;
 
   return (
     <div
@@ -710,7 +756,13 @@ function MessageBubble({
       onMouseLeave={() => { setHovering(false); setShowEmojiPicker(false); }}
     >
       {!isUser && (
-        <Avatar size="sm" className={cn("mt-0.5 shrink-0", AVATAR_BG[msg.avatar] ?? "bg-muted-foreground")} initials={msg.avatar} />
+        agentConfig ? (
+          <div className={cn("h-8 w-8 rounded-lg flex items-center justify-center shrink-0 mt-0.5", agentConfig.bgColor)}>
+            <i className={cn(agentConfig.icon, agentConfig.color, "text-sm")} />
+          </div>
+        ) : (
+          <Avatar size="sm" className={cn("mt-0.5 shrink-0", AVATAR_BG[msg.avatar] ?? "bg-muted-foreground")} initials={msg.avatar} />
+        )
       )}
 
       <div className={cn("flex-1 min-w-0", isUser ? "max-w-[70%] text-right" : "") }>
@@ -828,6 +880,7 @@ function MessageBubble({
 export default function InboxPage() {
   const [selectedChannel, setSelectedChannel] = useState<string | null>(null);
   const [threadOpen, setThreadOpen] = useState<string | null>(null);
+  const [clientInfoExpanded, setClientInfoExpanded] = useState(true);
 
   // Call state
   const [activeCallThreadId, setActiveCallThreadId] = useState<string | null>(null);
@@ -900,6 +953,25 @@ export default function InboxPage() {
             <i className="fa-solid fa-magnifying-glass text-[11px] text-muted-foreground" />
             <input type="text" placeholder="Buscar clientes..." className="w-full bg-transparent text-sm outline-none placeholder:text-muted-foreground" />
           </div>
+        </div>
+
+        {/* Briefing button */}
+        <div className="px-3 py-2 border-b border-border">
+          <button
+            onClick={() => setSelectedChannel(null)}
+            className={cn(
+              "flex w-full items-center gap-3 rounded-lg px-3 py-2.5 text-left transition-colors",
+              !selectedChannel ? "bg-primary/10 border border-primary/20" : "border border-border hover:bg-muted/50"
+            )}
+          >
+            <div className="flex h-7 w-7 items-center justify-center rounded-md bg-primary/20 text-primary">
+              <i className="fa-solid fa-sparkles text-xs" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <span className="text-[13px] font-semibold text-foreground block">Briefing diario</span>
+              <span className="text-[11px] text-muted-foreground block">Coordinación de agentes</span>
+            </div>
+          </button>
         </div>
 
         {/* Conversations grouped by category */}
@@ -1027,20 +1099,35 @@ export default function InboxPage() {
               </div>
             </div>
           ) : (
-            <div className="text-sm font-semibold text-muted-foreground">Selecciona un cliente para comenzar</div>
+            <div>
+              <div className="text-sm font-semibold text-foreground">Coordinación diaria</div>
+              <div className="text-xs text-muted-foreground">Briefing: Todos los agentes te actualizan sobre el día</div>
+            </div>
           )}
           <div className="flex items-center gap-1">
             {activeChannel && (
-              <Tooltip content="Llamar" side="bottom">
-                <Button
-                  variant="ghost"
-                  size="icon-sm"
-                  className="h-8 w-8 text-muted-foreground hover:text-foreground"
-                  onClick={() => activeChannel && startCallFromThread(activeChannel.id)}
-                >
-                  <i className="fa-solid fa-phone text-xs" />
-                </Button>
-              </Tooltip>
+              <>
+                <Tooltip content={clientInfoExpanded ? "Cerrar panel" : "Abrir panel"} side="bottom">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => setClientInfoExpanded(!clientInfoExpanded)}
+                  >
+                    <i className={cn("text-xs", clientInfoExpanded ? "fa-solid fa-chevron-right" : "fa-solid fa-chevron-left")} />
+                  </Button>
+                </Tooltip>
+                <Tooltip content="Llamar" side="bottom">
+                  <Button
+                    variant="ghost"
+                    size="icon-sm"
+                    className="h-8 w-8 text-muted-foreground hover:text-foreground"
+                    onClick={() => activeChannel && startCallFromThread(activeChannel.id)}
+                  >
+                    <i className="fa-solid fa-phone text-xs" />
+                  </Button>
+                </Tooltip>
+              </>
             )}
             <Button variant="ghost" size="icon-sm" className="h-8 w-8 text-muted-foreground">
               <i className="fa-solid fa-ellipsis-vertical text-xs" />
@@ -1048,35 +1135,175 @@ export default function InboxPage() {
           </div>
         </header>
 
-        {activeChannel ? (
-          <div className="flex-1 overflow-y-auto py-4">
-            <div className="flex items-center gap-3 px-4 mb-3">
-              <Separator className="flex-1" />
-              <span className="text-[11px] font-medium text-muted-foreground px-2">Conversación</span>
-              <Separator className="flex-1" />
-            </div>
-            <div className="flex flex-col gap-px px-4">
-              {(() => {
-                const messages = CLIENT_MESSAGES[activeChannel.id] ?? [];
-                return messages.map((msg) => (
-                  <MessageBubble key={msg.id} msg={msg} onOpenThread={(id) => setThreadOpen(id === threadOpen ? null : id)} onReply={() => {}} />
-                ));
-              })()}
-            </div>
-          </div>
-        ) : (
-          <div className="flex-1 flex items-center justify-center text-center">
-            <div>
-              <i className="fa-solid fa-comments text-6xl text-muted-foreground/20 mb-4" />
-              <p className="text-muted-foreground">Selecciona un cliente del sidebar para ver la conversación</p>
-            </div>
-          </div>
-        )}
+        <div className="flex-1 overflow-y-auto py-4">
+          {activeChannel ? (
+            // Client-specific conversation
+            <>
+              <div className="flex items-center gap-3 px-4 mb-3">
+                <Separator className="flex-1" />
+                <span className="text-[11px] font-medium text-muted-foreground px-2">Conversación con agentes sobre {activeChannel.clientName}</span>
+                <Separator className="flex-1" />
+              </div>
+              <div className="flex flex-col gap-px px-4">
+                {(() => {
+                  const messages = CLIENT_MESSAGES[activeChannel.id] ?? [];
+                  return messages.map((msg) => (
+                    <MessageBubble key={msg.id} msg={msg} onOpenThread={(id) => setThreadOpen(id === threadOpen ? null : id)} onReply={() => {}} />
+                  ));
+                })()}
+              </div>
+            </>
+          ) : (
+            // Main briefing from all agents
+            <>
+              <div className="flex items-center gap-3 px-4 mb-3">
+                <Separator className="flex-1" />
+                <span className="text-[11px] font-medium text-muted-foreground px-2">Briefing matutino — Hoy 08:00</span>
+                <Separator className="flex-1" />
+              </div>
+              <div className="flex flex-col gap-px px-4">
+                {MAIN_CHAT_MESSAGES.map((msg) => (
+                  <MessageBubble key={msg.id} msg={msg} onReply={() => {}} />
+                ))}
+              </div>
+            </>
+          )}
+        </div>
 
-        <Composer placeholder={activeChannel ? `Mensaje sobre ${activeChannel.clientName}...` : "Selecciona un cliente primero..."} />
+        <Composer placeholder={activeChannel ? `Coordina con agentes sobre ${activeChannel.clientName}...` : "Pregunta a los agentes sobre tus tareas o el día..."} />
       </main>
 
-      {/* ── Thread Panel (Slack-style) ───────────────────────────── */}
+      {/* ── Client Info Panel (Collapsible) ──────────────────────── */}
+      {activeChannel && clientInfoExpanded && CALL_CONTACTS[activeChannel.id] && CALL_DEALS[activeChannel.id] && (
+        <aside className="flex w-[340px] min-w-[340px] flex-col border-l border-border bg-card overflow-hidden">
+          <header className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
+            <h3 className="text-sm font-semibold text-foreground">Detalles del cliente</h3>
+            <Button variant="ghost" size="icon-sm" className="h-7 w-7 text-muted-foreground" onClick={() => setClientInfoExpanded(false)}>
+              <i className="fa-solid fa-xmark text-xs" />
+            </Button>
+          </header>
+
+          <div className="flex-1 overflow-y-auto">
+            {/* Client Info Card */}
+            <div className="px-4 py-3 border-b border-border">
+              <div className="flex items-start gap-3 mb-3">
+                <Avatar size="sm" className={cn("h-10 w-10 text-[12px] shrink-0", AVATAR_BG[activeChannel.initials] ?? "bg-muted-foreground")} initials={activeChannel.initials} />
+                <div className="flex-1 min-w-0">
+                  <div className="text-sm font-semibold text-foreground">{CALL_CONTACTS[activeChannel.id].name}</div>
+                  <div className="text-xs text-muted-foreground">{CALL_CONTACTS[activeChannel.id].role}</div>
+                  <div className="text-xs text-muted-foreground mt-1">{CALL_CONTACTS[activeChannel.id].company}</div>
+                </div>
+              </div>
+              <div className="space-y-1 text-xs">
+                <a href={`mailto:${CALL_CONTACTS[activeChannel.id].email}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                  <i className="fa-solid fa-envelope text-[10px] w-4" />
+                  {CALL_CONTACTS[activeChannel.id].email}
+                </a>
+                <a href={`tel:${CALL_CONTACTS[activeChannel.id].phone}`} className="flex items-center gap-2 text-muted-foreground hover:text-foreground transition-colors">
+                  <i className="fa-solid fa-phone text-[10px] w-4" />
+                  {CALL_CONTACTS[activeChannel.id].phone}
+                </a>
+              </div>
+            </div>
+
+            {/* Deal Info */}
+            <div className="px-4 py-3 border-b border-border">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Deal</div>
+              <div className="space-y-2 text-sm">
+                <div>
+                  <div className="text-foreground font-medium truncate">{CALL_DEALS[activeChannel.id].name}</div>
+                  <div className="text-xs text-muted-foreground mt-1">
+                    <Badge variant="secondary" className="text-[10px]">{CALL_DEALS[activeChannel.id].stage}</Badge>
+                  </div>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Valor</span>
+                  <span className="text-sm font-semibold text-foreground">{CALL_DEALS[activeChannel.id].value}</span>
+                </div>
+                <div className="flex justify-between items-center">
+                  <span className="text-xs text-muted-foreground">Última actividad</span>
+                  <span className="text-xs text-muted-foreground">{CALL_DEALS[activeChannel.id].daysSinceActivity}d ago</span>
+                </div>
+              </div>
+            </div>
+
+            {/* Talking Points */}
+            {CALL_TALKING_POINTS[activeChannel.id] && CALL_TALKING_POINTS[activeChannel.id].length > 0 && (
+              <div className="px-4 py-3 border-b border-border">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Puntos a tratar</div>
+                <div className="space-y-1.5">
+                  {CALL_TALKING_POINTS[activeChannel.id].map((point, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs">
+                      <div className={cn("h-5 w-5 rounded-full flex items-center justify-center mt-0.5 shrink-0 text-[9px] font-bold", point.priority === "high" ? "bg-destructive/20 text-destructive" : point.priority === "medium" ? "bg-amber-100 text-amber-700" : "bg-muted text-muted-foreground")}>
+                        {point.priority === "high" ? "!" : point.priority === "medium" ? "•" : "–"}
+                      </div>
+                      <span className="text-muted-foreground leading-relaxed">{point.text}</span>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Recent History */}
+            {CALL_HISTORY[activeChannel.id] && CALL_HISTORY[activeChannel.id].length > 0 && (
+              <div className="px-4 py-3 border-b border-border">
+                <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Historial reciente</div>
+                <div className="space-y-1.5">
+                  {CALL_HISTORY[activeChannel.id].map((item, idx) => (
+                    <div key={idx} className="flex items-start gap-2 text-xs">
+                      <div className="flex h-5 w-5 items-center justify-center rounded-full bg-muted text-muted-foreground shrink-0 text-[10px] mt-0.5">
+                        <i className={cn("text-[9px]", item.type === "call" ? "fa-solid fa-phone" : item.type === "quote" ? "fa-solid fa-file-invoice-dollar" : "fa-solid fa-message")} />
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="text-muted-foreground truncate">{item.summary}</div>
+                        <div className="text-[10px] text-muted-foreground mt-0.5">{item.date}</div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Quick Actions */}
+            <div className="px-4 py-3 border-b border-border">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Acciones rápidas</div>
+              <div className="grid grid-cols-2 gap-1.5">
+                {CALL_QUICK_ACTIONS.map((action) => (
+                  <Button key={action.id} variant={action.variant === "outline" ? "outline" : "default"} size="sm" className="justify-start text-xs h-8">
+                    <i className={cn(action.icon, "text-xs mr-1.5")} />
+                    <span className="truncate">{action.label}</span>
+                  </Button>
+                ))}
+              </div>
+            </div>
+
+            {/* Client Metrics */}
+            <div className="px-4 py-3">
+              <div className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">Métricas</div>
+              <div className="space-y-1.5 text-xs">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Ciclo de venta promedio</span>
+                  <span className="font-medium text-foreground">28 días</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Tasa de cierre</span>
+                  <span className="font-medium text-foreground">32%</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Valor promedio de deal</span>
+                  <span className="font-medium text-foreground">$125K MXN</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Histórico de compra</span>
+                  <span className="font-medium text-foreground">$850K MXN</span>
+                </div>
+              </div>
+            </div>
+          </div>
+        </aside>
+      )}
+
+
       {threadOpen && activeChannel && (
         <aside className="flex w-[360px] min-w-[360px] flex-col border-l border-border bg-card">
           <header className="flex items-center justify-between border-b border-border px-4 py-3">
