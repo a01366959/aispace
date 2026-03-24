@@ -123,7 +123,7 @@ const DIRECTOR_MACRO = {
       label: "Clientes Recurrentes",
       value: "67%",
       change: { value: 12, direction: "up" as const },
-      context: "Generan 45% del revenue",
+      context: "Generan 45% de los ingresos",
       icon: "fa-solid fa-repeat",
     },
     {
@@ -182,15 +182,15 @@ const CHURN_RISK = {
   trend: "up",
   trendValue: 15,
   riskFactors: [
-    { name: "No contact en 45+ días", count: 3, segment: "Ballenas", customers: ["Tech Corp", "Financial Plus", "Retail Pro"], risk: "critical" },
-    { name: "Payment delays", count: 2, segment: "Tiburones", customers: ["Growth Systems", "Tech Solutions"], risk: "high" },
-    { name: "Low engagement", count: 2, segment: "Atunes", customers: ["Cloud Services", "Data Systems"], risk: "medium" },
-    { name: "Alternative exploration", count: 1, segment: "Ballenas", customers: ["Enterprise One"], risk: "critical" },
+    { name: "Sin contacto hace 45+ días", count: 3, segment: "Ballenas", customers: ["Tech Corp", "Financial Plus", "Retail Pro"], risk: "critical" },
+    { name: "Retrasos en pagos", count: 2, segment: "Tiburones", customers: ["Growth Systems", "Tech Solutions"], risk: "high" },
+    { name: "Bajo engagement", count: 2, segment: "Atunes", customers: ["Cloud Services", "Data Systems"], risk: "medium" },
+    { name: "Exploración de alternativas", count: 1, segment: "Ballenas", customers: ["Enterprise One"], risk: "critical" },
   ],
   insights: {
     trend: "Churn risk increasing 15% vs mes anterior",
-    actionable: "3 clientes Ballenas requieren intervention urgente",
-    preventionCost: "Intervention cuesta $5K, pérdida potencial $285K",
+    actionable: "3 clientes Ballenas requieren intervención urgente",
+    preventionCost: "Intervención cuesta $5K, pérdida potencial $285K",
   },
 };
 
@@ -259,8 +259,8 @@ const TEAM_CAPACITY = {
     { name: "Ana", capacity: 96, utilized: 42, rate: 44, trend: "up", available: 54 },
   ],
   insights: {
-    opportunity: "138 horas disponibles = $21K revenue potential si se optimizan",
-    risk: "Carlos underutilized (54%) - coaching needed",
+    opportunity: "138 horas disponibles = $21K ingresos potenciales si se optimizan",
+    risk: "Carlos subutilizado (54%) - coaching requerido",
     optimal: "Miriam at 81% es el benchmark, otros pueden crecer",
   },
 };
@@ -544,6 +544,68 @@ function InfoPoint({ title, description, interpretation }: { title: string; desc
           <i className="fa-solid fa-question text-[10px] text-muted-foreground" />
         </button>
       </Tooltip>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Collapsible Section Component
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function CollapsibleSection({
+  title,
+  icon,
+  children,
+  defaultOpen = false,
+}: {
+  title: string;
+  icon?: string;
+  children: React.ReactNode;
+  defaultOpen?: boolean;
+}) {
+  const [isOpen, setIsOpen] = useState(defaultOpen);
+
+  return (
+    <div className="rounded-lg border border-border bg-card overflow-hidden shadow-sm">
+      <button
+        onClick={() => setIsOpen(!isOpen)}
+        className="w-full px-6 py-4 flex items-center justify-between hover:bg-muted/50 transition-colors border-b border-border"
+      >
+        <div className="flex items-center gap-3">
+          {icon && <i className={`${icon} text-primary`} />}
+          <h3 className="font-semibold text-foreground text-base">{title}</h3>
+        </div>
+        <i className={`fa-solid fa-chevron-down transition-transform duration-200 ${isOpen ? "rotate-180" : ""}`} />
+      </button>
+      {isOpen && (
+        <div className="p-6 space-y-4 border-t border-border/30 bg-card/50">
+          {children}
+        </div>
+      )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Section Header Component - Reusable Section Title with Visual Separator
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function SectionHeader({ 
+  title, 
+  icon, 
+  description 
+}: { 
+  title: string; 
+  icon?: string; 
+  description?: string 
+}) {
+  return (
+    <div className="border-b-2 border-border pb-3 mb-4">
+      <div className="flex items-center gap-2 mb-1">
+        {icon && <i className={`${icon} text-primary text-lg`} />}
+        <h2 className="text-lg font-semibold text-foreground">{title}</h2>
+      </div>
+      {description && <p className="text-sm text-muted-foreground ml-6">{description}</p>}
     </div>
   );
 }
@@ -1098,23 +1160,50 @@ function TrendLineChart() {
    Period Comparison Component
    ════════════════════════════════════════════════════════════════════════════ */
 
-function PeriodComparisonChart() {
+function PeriodComparisonChart({ 
+  comparisonPeriod 
+}: { 
+  comparisonPeriod: "previous-month" | "previous-year" | "same-month-last-year" | "none" 
+}) {
   const [hoveredBar, setHoveredBar] = useState<number | null>(null);
 
-  const periods = [
-    { label: "Este Mes", current: 2850, previous: 2320, color: "bg-blue-600" },
-    { label: "Mes Pasado", current: 2580, previous: 2150, color: "bg-blue-500" },
-    { label: "Mismo Mes - Año Anterior", current: 2100, previous: 1950, color: "bg-blue-400" },
-    { label: "Trimestre Actual", current: 8200, previous: 7500, color: "bg-blue-600" },
-  ];
+  // Different data based on comparison period
+  const getPeriodData = () => {
+    if (comparisonPeriod === "none") {
+      return [
+        { label: "Este Mes", current: 2850, previous: 2320, color: "bg-blue-600", change: 22.8 },
+      ];
+    } else if (comparisonPeriod === "previous-month") {
+      return [
+        { label: "Este Mes vs Mes Pasado", current: 2850, previous: 2580, color: "bg-blue-600", change: 10.4 },
+        { label: "Promedio Últimos 3 Meses", current: 2650, previous: 2420, color: "bg-blue-500", change: 9.5 },
+      ];
+    } else if (comparisonPeriod === "previous-year") {
+      return [
+        { label: "Este Año vs Año Anterior", current: 28500, previous: 22100, color: "bg-emerald-600", change: 28.9 },
+      ];
+    } else {
+      return [
+        { label: "Mismo Mes - Año Anterior", current: 2100, previous: 1950, color: "bg-amber-600", change: 7.7 },
+        { label: "Trimestre Actual", current: 8200, previous: 7500, color: "bg-blue-600", change: 9.3 },
+      ];
+    }
+  };
 
-  const maxValue = 9000;
+  const periods = getPeriodData();
+  const maxValue = Math.max(...periods.map((p) => Math.max(p.current, p.previous))) * 1.1;
+  const avgChange = periods.length > 0 ? (periods.reduce((s, p) => s + p.change, 0) / periods.length).toFixed(1) : "0";
 
   return (
     <div>
       <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
         <i className="fa-solid fa-calendar-check text-primary" />
-        Comparación Período a Período (Ingresos)
+        Comparación Período a Período 
+        {comparisonPeriod !== "none" && (
+          <span className="text-xs font-normal text-muted-foreground ml-2">
+            ({comparisonPeriod === "previous-month" ? "vs Mes Anterior" : comparisonPeriod === "previous-year" ? "vs Año Anterior" : "vs Mismo Mes Año Anterior"})
+          </span>
+        )}
       </h3>
 
       <div className="space-y-3">
@@ -1128,7 +1217,9 @@ function PeriodComparisonChart() {
             <div className="flex items-center justify-between mb-1">
               <span className="text-sm font-medium text-foreground">{item.label}</span>
               {hoveredBar === idx && (
-                <span className="text-xs font-semibold text-green-600">↑ {Math.round(((item.current - item.previous) / item.previous) * 100)}%</span>
+                <span className={cn("text-xs font-semibold", item.change >= 0 ? "text-emerald-600" : "text-red-600")}>
+                  {item.change >= 0 ? "↑" : "↓"} {Math.abs(item.change).toFixed(1)}%
+                </span>
               )}
             </div>
 
@@ -1155,8 +1246,182 @@ function PeriodComparisonChart() {
         ))}
       </div>
 
-      <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
-        <p className="text-xs font-semibold text-emerald-900">📈 Crecimiento Promedio: +12.3% vs Período Anterior</p>
+      <div className={cn("mt-4 p-3 rounded-lg border", avgChange >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200")}>
+        <p className={cn("text-xs font-semibold", avgChange >= 0 ? "text-emerald-900" : "text-red-900")}>
+          {avgChange >= 0 ? "📈" : "📉"} Crecimiento Promedio: {avgChange >= 0 ? "+" : ""}{avgChange}%
+        </p>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   At A Glance Metrics - Quick Insights Component
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function AtAGlanceMetrics() {
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <i className="fa-solid fa-eye text-primary" />
+        Vista General — Lo que Importa
+      </h3>
+
+      <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+        {/* Llamadas */}
+        <div className="p-4 rounded-lg border border-border bg-card group hover:shadow-lg transition-all cursor-pointer">
+          <div className="flex items-center justify-between mb-3">
+            <i className="fa-solid fa-phone text-blue-600 text-lg" />
+            <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded +15%">+15%</span>
+          </div>
+          <p className="text-2xl font-bold text-foreground">342</p>
+          <p className="text-xs text-muted-foreground mt-1">Llamadas esta semana</p>
+          <div className="absolute hidden group-hover:flex top-0 left-0 right-0 bottom-0 bg-slate-900 text-white rounded-lg p-3 text-xs leading-relaxed z-20">
+            <p>342 llamadas realizadas<br/>Objetivo: 320 (+6.8%)<br/>Mejor rep: Miriam (78)</p>
+          </div>
+        </div>
+
+        {/* Conversión */}
+        <div className="p-4 rounded-lg border border-border bg-card group hover:shadow-lg transition-all cursor-pointer">
+          <div className="flex items-center justify-between mb-3">
+            <i className="fa-solid fa-percent text-purple-600 text-lg" />
+            <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded">+8%</span>
+          </div>
+          <p className="text-2xl font-bold text-foreground">38%</p>
+          <p className="text-xs text-muted-foreground mt-1">Tasa de conversión</p>
+          <div className="absolute hidden group-hover:flex top-0 left-0 right-0 bottom-0 bg-slate-900 text-white rounded-lg p-3 text-xs leading-relaxed z-20">
+            <p>38% propuesta → cierre<br/>vs 30% hace 3 meses<br/>Target: 35% (¡cumplido!)</p>
+          </div>
+        </div>
+
+        {/* Ingresos */}
+        <div className="p-4 rounded-lg border border-border bg-card group hover:shadow-lg transition-all cursor-pointer">
+          <div className="flex items-center justify-between mb-3">
+            <i className="fa-solid fa-dollar-sign text-emerald-600 text-lg" />
+            <span className="text-xs font-bold bg-green-100 text-green-700 px-2 py-1 rounded">+23%</span>
+          </div>
+          <p className="text-2xl font-bold text-foreground">$2.8M</p>
+          <p className="text-xs text-muted-foreground mt-1">Ingresos del mes</p>
+          <div className="absolute hidden group-hover:flex top-0 left-0 right-0 bottom-0 bg-slate-900 text-white rounded-lg p-3 text-xs leading-relaxed z-20">
+            <p>$2.8M ingresos YTD<br/>Meta: $2.3M (¡120%!)<br/>Best segment: Ballenas</p>
+          </div>
+        </div>
+
+        {/* Cierres */}
+        <div className="p-4 rounded-lg border border-border bg-card group hover:shadow-lg transition-all cursor-pointer">
+          <div className="flex items-center justify-between mb-3">
+            <i className="fa-solid fa-check-circle text-blue-600 text-lg" />
+            <span className="text-xs font-bold bg-amber-100 text-amber-700 px-2 py-1 rounded">-5%</span>
+          </div>
+          <p className="text-2xl font-bold text-foreground">8</p>
+          <p className="text-xs text-muted-foreground mt-1">Cierres estos 7 días</p>
+          <div className="absolute hidden group-hover:flex top-0 left-0 right-0 bottom-0 bg-slate-900 text-white rounded-lg p-3 text-xs leading-relaxed z-20">
+            <p>8 deals cerrados<br/>Promedio: 10/semana<br/>Tendencia: ↓ Enfoque en Q2</p>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-xs text-muted-foreground mt-3">💡 Tip: Pasa el mouse para ver más detalles</p>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Sales vs Prospecting Funnel - Conversión Visual
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function SalesVsProspectingFunnel() {
+  const [hoveredStage, setHoveredStage] = useState<number | null>(null);
+
+  const stages = [
+    { label: "Prospección", value: 342, color: "bg-blue-100", textColor: "text-blue-700", icon: "fa-magnifying-glass", detail: "Leads iniciales generados" },
+    { label: "Oportunidades", value: 98, color: "bg-blue-300", textColor: "text-blue-800", icon: "fa-star", detail: "Clientes calificados (28%)" },
+    { label: "Propuestas", value: 23, color: "bg-blue-500", textColor: "text-white", icon: "fa-envelope", detail: "Propuestas enviadas (23%)" },
+    { label: "Cierres", value: 8, color: "bg-emerald-600", textColor: "text-white", icon: "fa-check-circle", detail: "Deals cerrados (35%)" },
+  ];
+
+  const maxWidth = 100;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <i className="fa-solid fa-funnel text-primary" />
+        Embudo de Ventas: Prospección → Cierre
+      </h3>
+
+      <div className="space-y-4">
+        {stages.map((stage, idx) => {
+          const width = ((stage.value / stages[0].value) * maxWidth);
+          const conversionRate = idx > 0 ? Math.round((stage.value / stages[idx - 1].value) * 100) : 100;
+
+          return (
+            <div
+              key={idx}
+              className="relative"
+              onMouseEnter={() => setHoveredStage(idx)}
+              onMouseLeave={() => setHoveredStage(null)}
+            >
+              <div className="flex items-center justify-between mb-2">
+                <div className="flex items-center gap-2">
+                  <i className={cn("fa-solid text-sm", stage.icon, stage.textColor)} />
+                  <span className="text-sm font-bold text-foreground">{stage.label}</span>
+                </div>
+                <div className="flex items-center gap-3">
+                  <span className="text-xl font-bold text-foreground">{stage.value}</span>
+                  {idx > 0 && (
+                    <span className={cn("text-xs font-semibold px-2.5 py-1 rounded-full", conversionRate > 30 ? "bg-emerald-100 text-emerald-700" : conversionRate > 20 ? "bg-blue-100 text-blue-700" : "bg-amber-100 text-amber-700")}>
+                      {conversionRate}%
+                    </span>
+                  )}
+                </div>
+              </div>
+
+              {/* Bar */}
+              <div className={cn("rounded-lg transition-all cursor-pointer", stage.color, hoveredStage === idx && "shadow-lg opacity-90")} style={{ width: `${width}%`, minWidth: "60px" }}>
+                <div className="py-3 px-4">
+                  <p className="text-xs font-semibold text-muted-foreground opacity-70">{stage.detail}</p>
+                </div>
+              </div>
+
+              {/* Hover Tooltip */}
+              {hoveredStage === idx && (
+                <div className="absolute left-0 mt-2 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg shadow-lg z-10 border border-slate-700">
+                  <p className="font-semibold mb-1">{stage.label}</p>
+                  <p className="text-blue-300">• Total: {stage.value}</p>
+                  {idx > 0 && (
+                    <>
+                      <p className="text-blue-300">• Conversión: {conversionRate}%</p>
+                      <p className="text-muted-foreground">• Perdidos: {stages[idx - 1].value - stage.value}</p>
+                    </>
+                  )}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mt-6 grid grid-cols-3 gap-3">
+        <div className="p-3 rounded-lg bg-blue-50 border border-blue-200">
+          <p className="text-xs text-muted-foreground font-semibold">TASA GLOBAL</p>
+          <p className="text-lg font-bold text-blue-700 mt-1">2.3%</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Prospección → Cierre</p>
+        </div>
+        <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+          <p className="text-xs text-muted-foreground font-semibold">MEJOR ETAPA</p>
+          <p className="text-lg font-bold text-emerald-700 mt-1">35%</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Propuestas → Cierres</p>
+        </div>
+        <div className="p-3 rounded-lg bg-amber-50 border border-amber-200">
+          <p className="text-xs text-muted-foreground font-semibold">CUELLO BOTELLA</p>
+          <p className="text-lg font-bold text-amber-700 mt-1">71%</p>
+          <p className="text-[10px] text-muted-foreground mt-1">Drop en Oportunidades</p>
+        </div>
+      </div>
+
+      <div className="mt-4 p-3 rounded-lg bg-blue-50 border border-blue-200">
+        <p className="text-xs font-semibold text-blue-900">💡 Insight: Mejorar cualificación de oportunidades podría aumentar cierres 40%</p>
       </div>
     </div>
   );
@@ -1550,6 +1815,8 @@ export default function ReportingPage() {
   const [userRole, setUserRole] = useState<UserRole>("director");
   const [selectedRep, setSelectedRep] = useState<string | null>(null);
   const [isFiltersOpen, setIsFiltersOpen] = useState(false);
+  const [comparisonPeriod, setComparisonPeriod] = useState<"previous-month" | "previous-year" | "same-month-last-year" | "none">("previous-month");
+  const [activeTab, setActiveTab] = useState<"overview" | "details" | "insights">("overview");
   const [filters, setFilters] = useState<FilterState>({
     timePeriod: "month",
     segments: [],
@@ -1613,24 +1880,39 @@ export default function ReportingPage() {
             </div>
 
             {/* Action Buttons */}
-            <div className="flex items-center gap-2">
-              <Button
-                size="sm"
-                variant={isFiltersOpen ? "default" : "outline"}
-                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                className="gap-1.5 relative"
-              >
-                <i className="fa-solid fa-sliders text-xs" />
-                <span className="hidden sm:inline">Filtros</span>
-                {(filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length) > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">
-                    {filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length}
-                  </span>
-                )}
-              </Button>
+            <div className="flex items-center gap-3">
+              {/* Period Selector */}
+              <div className="flex items-center gap-2">
+                <span className="text-xs font-medium text-muted-foreground">Período:</span>
+                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-1">
+                  <Tooltip content="Mes anterior" side="bottom">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setComparisonPeriod("previous-month")}
+                      className={`h-8 text-xs ${comparisonPeriod === "previous-month" ? "bg-primary text-primary-foreground" : ""}`}
+                    >
+                      <i className="fa-solid fa-chevron-left" />
+                    </Button>
+                  </Tooltip>
+                  <div className="px-2 py-1 text-sm font-semibold text-foreground min-w-[120px] text-center">
+                    {filters.timePeriod === "month" ? "Este Mes" : filters.timePeriod === "quarter" ? "Este Trimestre" : "Este Año"}
+                  </div>
+                  <Tooltip content="Próximo período" side="bottom">
+                    <Button
+                      size="sm"
+                      variant="ghost"
+                      onClick={() => setComparisonPeriod("none")}
+                      className={`h-8 text-xs ${comparisonPeriod === "none" ? "bg-primary text-primary-foreground" : ""}`}
+                    >
+                      <i className="fa-solid fa-chevron-right" />
+                    </Button>
+                  </Tooltip>
+                </div>
+              </div>
 
               {/* Role Selector */}
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1 ml-4">
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
                 {(["director", "supervisor"] as const).map((role) => (
                   <Tooltip key={role} content={getRoleConfig(role).label} side="bottom">
                     <Button
@@ -1645,6 +1927,21 @@ export default function ReportingPage() {
                   </Tooltip>
                 ))}
               </div>
+
+              <Button
+                size="sm"
+                variant={isFiltersOpen ? "default" : "outline"}
+                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                className="gap-1.5 relative"
+              >
+                <i className="fa-solid fa-sliders text-xs" />
+                <span className="hidden sm:inline">Filtros</span>
+                {(filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length) > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">
+                    {filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length}
+                  </span>
+                )}
+              </Button>
             </div>
           </div>
 
@@ -1691,6 +1988,13 @@ export default function ReportingPage() {
                   ))}
                 </div>
               </div>
+
+              {/* At A Glance - Quick Insights */}
+              <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
+                <CardContent className="p-6">
+                  <AtAGlanceMetrics />
+                </CardContent>
+              </Card>
 
               {/* Director View: Enhanced Dashboard */}
               {isDirector && (
@@ -1762,10 +2066,17 @@ export default function ReportingPage() {
                     {/* Period Comparison */}
                     <Card>
                       <CardContent className="p-6">
-                        <PeriodComparisonChart />
+                        <PeriodComparisonChart comparisonPeriod={comparisonPeriod} />
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Row 3.5: Sales Funnel - Prospecting vs Sales */}
+                  <Card>
+                    <CardContent className="p-6">
+                      <SalesVsProspectingFunnel />
+                    </CardContent>
+                  </Card>
 
                   {/* Row 4: Forecast & Recommendations */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -1774,7 +2085,7 @@ export default function ReportingPage() {
                       <CardContent className="p-6">
                         <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                           <i className="fa-solid fa-crystal-ball text-indigo-600" />
-                          Forecast
+                          Pronóstico
                         </h3>
                         <div className="space-y-2 text-xs">
                           <div className="flex justify-between p-2 rounded bg-muted/40">
@@ -1782,15 +2093,15 @@ export default function ReportingPage() {
                             <span className="font-semibold text-emerald-600">$515K</span>
                           </div>
                           <div className="flex justify-between p-2 rounded bg-muted/40">
-                            <span className="text-muted-foreground">Win Rate</span>
+                            <span className="text-muted-foreground">Tasa de Ganancia</span>
                             <span className="font-semibold">38%</span>
                           </div>
                           <div className="flex justify-between p-2 rounded bg-muted/40">
-                            <span className="text-muted-foreground">Expected Revenue</span>
+                            <span className="text-muted-foreground">Ingresos Esperados</span>
                             <span className="font-semibold text-foreground">$196K</span>
                           </div>
                           <div className="flex justify-between p-2 rounded bg-muted/40">
-                            <span className="text-muted-foreground">Confidence</span>
+                            <span className="text-muted-foreground">Confianza</span>
                             <span className="font-semibold text-blue-600">82%</span>
                           </div>
                         </div>
@@ -1802,23 +2113,23 @@ export default function ReportingPage() {
                       <CardContent className="p-6">
                         <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
                           <i className="fa-solid fa-chart-line text-green-600" />
-                          YTD Performance
+                          Desempeño YTD
                         </h3>
                         <div className="space-y-2 text-xs">
                           <div className="flex justify-between p-2 rounded bg-muted/40">
-                            <span className="text-muted-foreground">Revenue</span>
+                            <span className="text-muted-foreground">Ingresos</span>
                             <span className="font-semibold">$2.85M</span>
                           </div>
                           <div className="flex justify-between p-2 rounded bg-muted/40">
-                            <span className="text-muted-foreground">vs Target</span>
-                            <span className="font-semibold text-emerald-600">↑ 23% (on track)</span>
+                            <span className="text-muted-foreground">vs Meta</span>
+                            <span className="font-semibold text-emerald-600">↑ 23% (En camino)</span>
                           </div>
                           <div className="flex justify-between p-2 rounded bg-muted/40">
-                            <span className="text-muted-foreground">New Customers</span>
+                            <span className="text-muted-foreground">Nuevos Clientes</span>
                             <span className="font-semibold">86</span>
                           </div>
                           <div className="flex justify-between p-2 rounded bg-muted/40">
-                            <span className="text-muted-foreground">Avg Deal Size</span>
+                            <span className="text-muted-foreground">Valor Promedio de Deal</span>
                             <span className="font-semibold">$185K</span>
                           </div>
                         </div>
@@ -1851,35 +2162,37 @@ export default function ReportingPage() {
                   </div>
 
                   {/* Row 5: Deep Insights - Churn, Expansion, Velocity, Capacity */}
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* Churn Risk */}
-                    <Card className="border-red-200">
-                      <CardContent className="p-6">
-                        <ChurnRiskCard />
-                      </CardContent>
-                    </Card>
+                  <CollapsibleSection title="Insights Profundos" icon="fa-solid fa-magnifying-glass" defaultOpen={false}>
+                    <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                      {/* Churn Risk */}
+                      <Card className="border-red-200">
+                        <CardContent className="p-6">
+                          <ChurnRiskCard />
+                        </CardContent>
+                      </Card>
 
-                    {/* Expansion Opportunities */}
-                    <Card className="border-blue-200">
-                      <CardContent className="p-6">
-                        <ExpansionOpportunitiesCard />
-                      </CardContent>
-                    </Card>
+                      {/* Expansion Opportunities */}
+                      <Card className="border-blue-200">
+                        <CardContent className="p-6">
+                          <ExpansionOpportunitiesCard />
+                        </CardContent>
+                      </Card>
 
-                    {/* Sales Velocity */}
-                    <Card className="border-emerald-200">
-                      <CardContent className="p-6">
-                        <SalesVelocityCard />
-                      </CardContent>
-                    </Card>
+                      {/* Sales Velocity */}
+                      <Card className="border-emerald-200">
+                        <CardContent className="p-6">
+                          <SalesVelocityCard />
+                        </CardContent>
+                      </Card>
 
-                    {/* Team Capacity */}
-                    <Card className="border-purple-200">
-                      <CardContent className="p-6">
-                        <TeamCapacityCard />
-                      </CardContent>
-                    </Card>
-                  </div>
+                      {/* Team Capacity */}
+                      <Card className="border-purple-200">
+                        <CardContent className="p-6">
+                          <TeamCapacityCard />
+                        </CardContent>
+                      </Card>
+                    </div>
+                  </CollapsibleSection>
                 </>
               )}
 
