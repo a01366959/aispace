@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useRef, useCallback } from "react";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
@@ -15,7 +15,22 @@ import { Tooltip } from "@/components/ui/tooltip";
 
 type UserRole = "director" | "manager" | "supervisor" | "rep";
 type TimePeriod = "week" | "month" | "bimester" | "quarter" | "year" | "custom";
-type FilterType = "segment" | "stage" | "rep" | "status";
+
+interface FilterState {
+  timePeriod: TimePeriod;
+  segments: string[];
+  stages: string[];
+  reps: string[];
+  status: string[];
+}
+
+interface ChatMessage {
+  id: string;
+  sender: "user" | "agent";
+  text: string;
+  timestamp: string;
+  type?: "message" | "suggestion";
+}
 
 interface MetricCard {
   label: string;
@@ -24,6 +39,50 @@ interface MetricCard {
   context?: string;
   icon?: string;
 }
+
+interface MetricChartData {
+  rep: string;
+  value: number;
+  color: string;
+}
+
+interface RepInsight {
+  rep: string;
+  insight: string;
+  severity: "positive" | "warning" | "neutral";
+  metric: string;
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Suggestions for Reporting Agent
+   ════════════════════════════════════════════════════════════════════════════ */
+
+const REPORT_SUGGESTIONS = {
+  general: [
+    "¿Qué reps están por debajo de la mediana?",
+    "¿Cuál es el rep con mejor conversión?",
+    "¿Quién necesita coaching en actividad?",
+    "¿Cómo se distribuye el pipeline?",
+    "¿Cuál es la proyección de ingresos?",
+    "¿Qué deals están en riesgo de SLA?",
+  ],
+  supervisor: [
+    "Comparar desempeño de Juan vs Laura",
+    "¿Por qué Carlos bajó en Llamadas?",
+    "Analizar tendencia de conversión este mes",
+    "¿Qué coaching necesita Ana?",
+    "Forecast de cierre para próximos 7 días",
+    "¿Quién lidera en eficiencia de tiempo?",
+  ],
+  director: [
+    "Resumen ejecutivo del período",
+    "¿Dónde viene el 80% de ingresos?",
+    "Proyección de pipeline para Q2",
+    "¿Cuál es la rentabilidad por cliente?",
+    "Comparar performance vs año pasado",
+    "Recomendaciones estratégicas",
+  ],
+};
 
 interface RepInsight {
   rep: string;
@@ -61,11 +120,11 @@ const DIRECTOR_MACRO = {
       icon: "fa-solid fa-bullseye",
     },
     {
-      label: "Reducción de SLA Breaches",
-      value: "94%",
-      change: { value: 94, direction: "up" as const },
-      context: "Menos pérdida por falta de seguimiento",
-      icon: "fa-solid fa-shield-check",
+      label: "Clientes Recurrentes",
+      value: "67%",
+      change: { value: 12, direction: "up" as const },
+      context: "Generan 45% del revenue",
+      icon: "fa-solid fa-repeat",
     },
     {
       label: "Valor Promedio de Deal",
@@ -82,6 +141,36 @@ const DIRECTOR_MACRO = {
     { stage: "Quote Ready", count: 12, value: "$360K", color: "bg-cyan-100" },
     { stage: "Quote Sent", count: 9, value: "$315K", color: "bg-amber-100" },
     { stage: "Negotiation", count: 5, value: "$200K", color: "bg-orange-100" },
+  ],
+};
+
+// Segment Distribution Data
+const SEGMENT_DISTRIBUTION = {
+  segments: [
+    { name: "Ballenas", count: 12, value: "$1,245,000", percentage: 35, color: "#1e40af", icon: "fa-whale" },
+    { name: "Tiburones", count: 28, value: "$856,000", percentage: 24, color: "#7c3aed", icon: "fa-fish" },
+    { name: "Atunes", count: 45, value: "$542,000", percentage: 15, color: "#0891b2", icon: "fa-fish" },
+    { name: "Truchas", count: 62, value: "$198,000", percentage: 6, color: "#059669", icon: "fa-fish" },
+    { name: "Charales", count: 98, value: "$4,000", percentage: 1, color: "#6366f1", icon: "fa-droplet" },
+    { name: "Sin Clasificar", count: 15, value: "$0", percentage: 0, color: "#9ca3af", icon: "fa-question" },
+  ],
+  total: 260,
+  totalValue: "$3,845,000",
+};
+
+// Recurring Customers Analysis
+const RECURRING_CUSTOMERS = {
+  total: 174, // 67% of 260
+  revenue: "$1,730,000",
+  percentage: 67,
+  trend: "up",
+  trendValue: 12,
+  bySegment: [
+    { segment: "Ballenas", total: 12, recurring: 11, percentage: 92, avgContractValue: "$103,755", renewalRate: 94 },
+    { segment: "Tiburones", total: 28, recurring: 21, percentage: 75, avgContractValue: "$30,571", renewalRate: 78 },
+    { segment: "Atunes", total: 45, recurring: 28, percentage: 62, avgContractValue: "$12,043", renewalRate: 65 },
+    { segment: "Truchas", total: 62, recurring: 36, percentage: 58, avgContractValue: "$3,194", renewalRate: 42 },
+    { segment: "Charales", total: 98, recurring: 66, percentage: 67, avgContractValue: "$41", renewalRate: 25 },
   ],
 };
 
@@ -196,6 +285,152 @@ function MetricCard({ item }: { item: MetricCard }) {
         )}
       </div>
       {item.context && <span className="text-xs text-muted-foreground">{item.context}</span>}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Segment Distribution Component
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function SegmentChart() {
+  const colors = {
+    "Ballenas": "#1e40af",
+    "Tiburones": "#7c3aed",
+    "Atunes": "#0891b2",
+    "Truchas": "#059669",
+    "Charales": "#6366f1",
+    "Sin Clasificar": "#9ca3af",
+  };
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <i className="fa-solid fa-chart-pie text-primary" />
+        Distribución de Clientes por Segmento
+      </h3>
+      
+      {/* Visual Ring Chart */}
+      <div className="flex items-center gap-6">
+        <div className="flex-1">
+          <svg viewBox="0 0 200 200" className="w-full h-auto">
+            {/* Donut Chart */}
+            {SEGMENT_DISTRIBUTION.segments.map((segment, idx) => {
+              const radius = 70;
+              const circumference = 2 * Math.PI * radius;
+              const offset = circumference * (1 - segment.percentage / 100);
+              const rotation = SEGMENT_DISTRIBUTION.segments.slice(0, idx).reduce((sum, s) => sum + s.percentage, 0);
+
+              return (
+                <circle
+                  key={segment.name}
+                  cx="100"
+                  cy="100"
+                  r={radius}
+                  fill="none"
+                  stroke={colors[segment.name as keyof typeof colors]}
+                  strokeWidth="20"
+                  strokeDasharray={`${circumference * (segment.percentage / 100)} ${circumference}`}
+                  strokeDashoffset={-((circumference * rotation) / 100)}
+                  strokeLinecap="round"
+                  opacity="0.8"
+                />
+              );
+            })}
+            {/* Center text */}
+            <text x="100" y="95" textAnchor="middle" className="text-xs font-bold fill-foreground">
+              {SEGMENT_DISTRIBUTION.total}
+            </text>
+            <text x="100" y="110" textAnchor="middle" className="text-[10px] fill-muted-foreground">
+              Clientes
+            </text>
+          </svg>
+        </div>
+
+        {/* Legend */}
+        <div className="space-y-1.5">
+          {SEGMENT_DISTRIBUTION.segments.map((segment) => (
+            <div key={segment.name} className="flex items-center gap-2 text-xs">
+              <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: colors[segment.name as keyof typeof colors] }} />
+              <span className="text-muted-foreground">{segment.name}</span>
+              <span className="font-semibold text-foreground ml-auto">{segment.count}</span>
+              <span className="text-muted-foreground">({segment.percentage}%)</span>
+            </div>
+          ))}
+        </div>
+      </div>
+
+      {/* Summary Stats */}
+      <div className="mt-4 grid grid-cols-2 gap-2 border-t border-border pt-3">
+        <div className="text-xs">
+          <span className="text-muted-foreground">Total Value</span>
+          <p className="font-semibold text-foreground">{SEGMENT_DISTRIBUTION.totalValue}</p>
+        </div>
+        <div className="text-xs">
+          <span className="text-muted-foreground">Promedio/Segmento</span>
+          <p className="font-semibold text-foreground">$640K</p>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Recurring Customers Component
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function RecurringCustomersCard() {
+  return (
+    <div className="space-y-3">
+      <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+        <i className="fa-solid fa-repeat text-emerald-600" />
+        Análisis de Clientes Recurrentes
+      </h3>
+
+      {/* Top Stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-2">
+          <p className="text-xs text-muted-foreground">Total Recurrentes</p>
+          <p className="text-lg font-bold text-emerald-600">{RECURRING_CUSTOMERS.total}</p>
+          <p className="text-[10px] text-muted-foreground">{RECURRING_CUSTOMERS.percentage}% del base</p>
+        </div>
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-2">
+          <p className="text-xs text-muted-foreground">Revenue</p>
+          <p className="text-lg font-bold text-blue-600">{RECURRING_CUSTOMERS.revenue}</p>
+          <p className="text-[10px] text-muted-foreground">45% del total</p>
+        </div>
+        <div className="rounded-lg bg-purple-50 border border-purple-200 p-2">
+          <p className="text-xs text-muted-foreground">Trend</p>
+          <p className="text-lg font-bold text-purple-600">+{RECURRING_CUSTOMERS.trendValue}%</p>
+          <p className="text-[10px] text-muted-foreground">vs período</p>
+        </div>
+      </div>
+
+      {/* Segment Breakdown */}
+      <div className="rounded-lg border border-border bg-muted/40 p-3">
+        <p className="text-xs font-semibold text-foreground mb-2">Por Segmento</p>
+        <div className="space-y-2">
+          {RECURRING_CUSTOMERS.bySegment.map((seg) => (
+            <div key={seg.segment} className="flex items-center gap-2">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center justify-between mb-0.5">
+                  <span className="text-[11px] font-medium text-foreground">{seg.segment}</span>
+                  <span className="text-[10px] text-muted-foreground">{seg.percentage}% recurrentes</span>
+                </div>
+                <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+                  <div
+                    className="h-full bg-emerald-600 rounded-full"
+                    style={{ width: `${seg.percentage}%` }}
+                  />
+                </div>
+              </div>
+              <div className="text-[10px] text-muted-foreground text-right whitespace-nowrap">
+                {seg.recurring}/{seg.total} · {seg.renewalRate}% renewal
+              </div>
+            </div>
+          ))}
+        </div>
+      </div>
     </div>
   );
 }
@@ -370,11 +605,10 @@ function MetricChart({ data, label, unit, median }: { data: MetricChartData[]; l
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   Filter Component
+   Filter Panel Component (Enhanced)
    ════════════════════════════════════════════════════════════════════════════ */
 
-function FilterPanel({ onFilterChange }: { onFilterChange?: () => void }) {
-  const [timePeriod, setTimePeriod] = useState<TimePeriod>("month");
+function FilterPanel({ filters, onFilterChange }: { filters: FilterState; onFilterChange: (filters: FilterState) => void }) {
   const [expanded, setExpanded] = useState(false);
 
   const timePeriods: { label: string; value: TimePeriod }[] = [
@@ -386,12 +620,27 @@ function FilterPanel({ onFilterChange }: { onFilterChange?: () => void }) {
     { label: "Personalizado", value: "custom" },
   ];
 
+  const segments = ["Ballenas", "Tiburones", "Atunes", "Truchas", "Charales"];
+  const stages = ["Prospect", "First Contact", "Discovery", "Quote Ready", "Quote Sent", "Negotiation"];
+  const reps = ["Miriam", "Juan", "Laura", "Carlos", "Ana"];
+  const statuses = ["Activo", "En Riesgo", "Completado"];
+
+  const toggleItem = (key: keyof FilterState, item: string) => {
+    if (Array.isArray(filters[key])) {
+      const arr = filters[key] as string[];
+      onFilterChange({
+        ...filters,
+        [key]: arr.includes(item) ? arr.filter((i) => i !== item) : [...arr, item],
+      });
+    }
+  };
+
   return (
     <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3">
         <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <i className="fa-solid fa-filter text-muted-foreground" />
-          Filtros Avanzados
+          <i className="fa-solid fa-sliders text-muted-foreground" />
+          Filtros
         </h3>
         <Button variant="ghost" size="icon-sm" onClick={() => setExpanded(!expanded)} className="h-6 w-6">
           <i className={cn("text-xs fa-solid", expanded ? "fa-chevron-up" : "fa-chevron-down")} />
@@ -400,22 +649,19 @@ function FilterPanel({ onFilterChange }: { onFilterChange?: () => void }) {
 
       {expanded && (
         <>
-          <Separator className="mb-4" />
+          <Separator className="mb-3" />
 
           {/* Time Period */}
-          <div className="mb-4">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Período de Tiempo</label>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-2">
+          <div className="mb-3">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Período</label>
+            <div className="grid grid-cols-3 md:grid-cols-6 gap-1">
               {timePeriods.map((period) => (
                 <Button
                   key={period.value}
                   size="sm"
-                  variant={timePeriod === period.value ? "default" : "outline"}
-                  onClick={() => {
-                    setTimePeriod(period.value);
-                    onFilterChange?.();
-                  }}
-                  className="h-8 text-xs"
+                  variant={filters.timePeriod === period.value ? "default" : "outline"}
+                  onClick={() => onFilterChange({ ...filters, timePeriod: period.value })}
+                  className="h-7 text-[10px]"
                 >
                   {period.label}
                 </Button>
@@ -423,65 +669,269 @@ function FilterPanel({ onFilterChange }: { onFilterChange?: () => void }) {
             </div>
           </div>
 
-          {/* Segment Filter */}
-          <div className="mb-4">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Segmento de Cliente</label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {["Ballenas", "Tiburones", "Atunes", "Truchas", "Charales"].map((segment) => (
-                <Button key={segment} size="sm" variant="outline" className="h-8 text-xs">
-                  {segment}
+          {/* Segments */}
+          <div className="mb-3">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Segmento</label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-1">
+              {segments.map((seg) => (
+                <Button
+                  key={seg}
+                  size="sm"
+                  variant={filters.segments.includes(seg) ? "default" : "outline"}
+                  onClick={() => toggleItem("segments", seg)}
+                  className="h-7 text-[10px]"
+                >
+                  {seg}
                 </Button>
               ))}
             </div>
           </div>
 
-          {/* Stage Filter */}
-          <div className="mb-4">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Etapa del Deal</label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-2">
-              {["Prospect", "First Contact", "Discovery", "Quote Ready", "Quote Sent", "Negotiation"].map((stage) => (
-                <Button key={stage} size="sm" variant="outline" className="h-8 text-xs">
+          {/* Stages */}
+          <div className="mb-3">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Etapa</label>
+            <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
+              {stages.map((stage) => (
+                <Button
+                  key={stage}
+                  size="sm"
+                  variant={filters.stages.includes(stage) ? "default" : "outline"}
+                  onClick={() => toggleItem("stages", stage)}
+                  className="h-7 text-[10px]"
+                >
                   {stage}
                 </Button>
               ))}
             </div>
           </div>
 
-          {/* Rep Filter */}
-          <div className="mb-4">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Vendedor</label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
-              {["Miriam", "Juan", "Laura", "Carlos", "Ana"].map((rep) => (
-                <Button key={rep} size="sm" variant="outline" className="h-8 text-xs">
+          {/* Reps */}
+          <div className="mb-3">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Vendedor</label>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-1">
+              {reps.map((rep) => (
+                <Button
+                  key={rep}
+                  size="sm"
+                  variant={filters.reps.includes(rep) ? "default" : "outline"}
+                  onClick={() => toggleItem("reps", rep)}
+                  className="h-7 text-[10px]"
+                >
                   {rep}
                 </Button>
               ))}
             </div>
           </div>
 
-          {/* Status Filter */}
-          <div>
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-2 block">Estado</label>
-            <div className="grid grid-cols-3 gap-2">
-              {["Activo", "En Riesgo", "Completado"].map((status) => (
-                <Button key={status} size="sm" variant="outline" className="h-8 text-xs">
+          {/* Status */}
+          <div className="mb-3">
+            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Estado</label>
+            <div className="grid grid-cols-3 gap-1">
+              {statuses.map((status) => (
+                <Button
+                  key={status}
+                  size="sm"
+                  variant={filters.status.includes(status) ? "default" : "outline"}
+                  onClick={() => toggleItem("status", status)}
+                  className="h-7 text-[10px]"
+                >
                   {status}
                 </Button>
               ))}
             </div>
           </div>
 
-          <Separator className="my-4" />
-          <div className="flex gap-2">
-            <Button size="sm" className="flex-1">
-              Aplicar Filtros
+          <Separator className="my-3" />
+
+          {/* Active Filters Summary */}
+          {(filters.segments.length > 0 || filters.stages.length > 0 || filters.reps.length > 0 || filters.status.length > 0) && (
+            <div className="mb-3 p-2 rounded bg-primary/5 border border-primary/10">
+              <div className="text-[11px] text-muted-foreground mb-1.5">Filtros activos:</div>
+              <div className="flex flex-wrap gap-1">
+                {filters.segments.map((seg) => (
+                  <Badge key={seg} variant="secondary" className="text-[10px]">
+                    {seg}
+                  </Badge>
+                ))}
+                {filters.stages.map((stage) => (
+                  <Badge key={stage} variant="secondary" className="text-[10px]">
+                    {stage}
+                  </Badge>
+                ))}
+                {filters.reps.map((rep) => (
+                  <Badge key={rep} variant="secondary" className="text-[10px]">
+                    {rep}
+                  </Badge>
+                ))}
+                {filters.status.map((status) => (
+                  <Badge key={status} variant="secondary" className="text-[10px]">
+                    {status}
+                  </Badge>
+                ))}
+              </div>
+            </div>
+          )}
+
+          <div className="flex gap-1">
+            <Button size="sm" className="flex-1 h-8 text-xs">
+              <i className="fa-solid fa-check mr-1" />
+              Aplicar
             </Button>
-            <Button size="sm" variant="outline" className="flex-1">
+            <Button
+              size="sm"
+              variant="outline"
+              className="flex-1 h-8 text-xs"
+              onClick={() =>
+                onFilterChange({
+                  timePeriod: "month",
+                  segments: [],
+                  stages: [],
+                  reps: [],
+                  status: [],
+                })
+              }
+            >
+              <i className="fa-solid fa-rotate-left mr-1" />
               Limpiar
             </Button>
           </div>
         </>
       )}
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Chat Component for Reporting Agent
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function ReportingAgentChat({ userRole }: { userRole: UserRole }) {
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
+  const [inputValue, setInputValue] = useState("");
+  const messagesEndRef = useRef<HTMLDivElement>(null);
+
+  const suggestions = REPORT_SUGGESTIONS[userRole === "director" ? "director" : userRole === "supervisor" ? "supervisor" : "general"];
+
+  const handleSendMessage = (text: string) => {
+    const userMsg: ChatMessage = {
+      id: Date.now().toString(),
+      sender: "user",
+      text,
+      timestamp: new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+    };
+
+    setMessages((prev) => [...prev, userMsg]);
+    setInputValue("");
+
+    // Simulate agent response
+    setTimeout(() => {
+      const agentMsg: ChatMessage = {
+        id: (Date.now() + 1).toString(),
+        sender: "agent",
+        text: `Analizando tu pregunta sobre "${text}". Accediendo a datos de actividad, conversiones y pipeline... Los insights están listos.`,
+        timestamp: new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
+      };
+      setMessages((prev) => [...prev, agentMsg]);
+    }, 500);
+  };
+
+  const handleSuggestionClick = (suggestion: string) => {
+    handleSendMessage(suggestion);
+  };
+
+  return (
+    <div className="flex h-full flex-col">
+      <div className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <i className="fa-solid fa-robot text-primary" />
+          Agente de Reportes
+        </h3>
+        <Badge variant="outline" className="text-[10px]">
+          En línea
+        </Badge>
+      </div>
+
+      {/* Messages */}
+      <div className="flex-1 overflow-y-auto p-4 space-y-3">
+        {messages.length === 0 ? (
+          <div className="h-full flex flex-col items-center justify-center text-center pb-8">
+            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
+              <i className="fa-solid fa-chart-line text-primary text-lg" />
+            </div>
+            <p className="text-sm font-medium text-foreground mb-1">Preguntas sobre el Reporte</p>
+            <p className="text-xs text-muted-foreground mb-4">Haz preguntas sobre los datos, métricas o análisis</p>
+          </div>
+        ) : (
+          <>
+            {messages.map((msg) => (
+              <div key={msg.id} className={cn("flex gap-2", msg.sender === "user" ? "justify-end" : "justify-start")}>
+                {msg.sender === "agent" && (
+                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 shrink-0 text-primary text-xs">
+                    <i className="fa-solid fa-robot" />
+                  </div>
+                )}
+                <div
+                  className={cn(
+                    "max-w-xs rounded-lg px-3 py-2 text-xs",
+                    msg.sender === "user" ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-muted-foreground border border-border rounded-bl-none"
+                  )}
+                >
+                  <p className="leading-relaxed">{msg.text}</p>
+                  <span className={cn("text-[10px] mt-1 block", msg.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground")}>
+                    {msg.timestamp}
+                  </span>
+                </div>
+              </div>
+            ))}
+            <div ref={messagesEndRef} />
+          </>
+        )}
+      </div>
+
+      {/* Suggestions (when no messages) */}
+      {messages.length === 0 && (
+        <div className="border-t border-border px-4 py-3 max-h-48 overflow-y-auto shrink-0">
+          <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-2">Sugerencias</p>
+          <div className="space-y-1">
+            {suggestions.map((suggestion, idx) => (
+              <button
+                key={idx}
+                onClick={() => handleSuggestionClick(suggestion)}
+                className="w-full text-left px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors border border-transparent hover:border-border"
+              >
+                <span className="text-muted-foreground mr-1">→</span>
+                {suggestion}
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      {/* Input */}
+      <div className="border-t border-border px-4 py-3 shrink-0">
+        <div className="flex items-end gap-2">
+          <input
+            type="text"
+            placeholder="Pregunta sobre los datos..."
+            value={inputValue}
+            onChange={(e) => setInputValue(e.target.value)}
+            onKeyPress={(e) => {
+              if (e.key === "Enter" && inputValue.trim()) {
+                handleSendMessage(inputValue);
+              }
+            }}
+            className="flex-1 bg-muted px-2.5 py-1.5 rounded text-xs border border-border focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
+          />
+          <Button
+            size="icon-sm"
+            onClick={() => inputValue.trim() && handleSendMessage(inputValue)}
+            disabled={!inputValue.trim()}
+            className="h-8 w-8"
+          >
+            <i className="fa-solid fa-arrow-up text-xs" />
+          </Button>
+        </div>
+      </div>
     </div>
   );
 }
@@ -493,6 +943,15 @@ function FilterPanel({ onFilterChange }: { onFilterChange?: () => void }) {
 export default function ReportingPage() {
   const [userRole, setUserRole] = useState<UserRole>("director");
   const [selectedRep, setSelectedRep] = useState<string | null>(null);
+  const [showFilters, setShowFilters] = useState(false);
+  const [showChat, setShowChat] = useState(false);
+  const [filters, setFilters] = useState<FilterState>({
+    timePeriod: "month",
+    segments: [],
+    stages: [],
+    reps: [],
+    status: [],
+  });
 
   const getRoleConfig = (role: UserRole) => {
     switch (role) {
@@ -548,109 +1007,276 @@ export default function ReportingPage() {
               <p className="text-sm text-muted-foreground mt-1">Datos en tiempo real • Actualizado hace 10 minutos</p>
             </div>
 
-            {/* Role Selector */}
-            <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
-              {(["director", "supervisor"] as const).map((role) => (
-                <Tooltip key={role} content={getRoleConfig(role).label} side="bottom">
-                  <Button
-                    size="sm"
-                    variant={userRole === role ? "default" : "ghost"}
-                    onClick={() => setUserRole(role)}
-                    className="h-8 gap-1.5"
-                  >
-                    <i className={getRoleConfig(role).icon} />
-                    <span className="hidden sm:inline text-xs">{role === "director" ? "Dirección" : "Supervisor"}</span>
-                  </Button>
-                </Tooltip>
-              ))}
-            </div>
-          </div>
-        </header>
+            {/* Action Buttons */}
+            <div className="flex items-center gap-2">
+              <Button
+                size="sm"
+                variant={showFilters ? "default" : "outline"}
+                onClick={() => setShowFilters(!showFilters)}
+                className="gap-1.5"
+              >
+                <i className="fa-solid fa-sliders text-xs" />
+                <span className="hidden sm:inline">Filtros</span>
+              </Button>
+              <Button
+                size="sm"
+                variant={showChat ? "default" : "outline"}
+                onClick={() => setShowChat(!showChat)}
+                className="gap-1.5"
+              >
+                <i className="fa-solid fa-robot text-xs" />
+                <span className="hidden sm:inline">Agente</span>
+              </Button>
 
-        <div className="p-6 space-y-6 max-w-7xl mx-auto">
-          {/* Filter Panel */}
-          <FilterPanel />
-
-          {/* Key Metrics Grid */}
-          <div>
-            <h2 className="text-lg font-semibold text-foreground mb-4">Métricas Clave</h2>
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-              {(isDirector ? DIRECTOR_MACRO.metrics : SUPERVISOR_METRICS.metrics).map((metric, idx) => (
-                <MetricCard key={idx} item={metric} />
-              ))}
-            </div>
-          </div>
-
-          {/* Director View: Pipeline & Insights */}
-          {isDirector && (
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-              <div className="lg:col-span-2">
-                <Card>
-                  <CardContent className="p-6">
-                    <PipelineVisual stages={DIRECTOR_MACRO.pipeline} />
-                  </CardContent>
-                </Card>
+              {/* Role Selector */}
+              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1 ml-4">
+                {(["director", "supervisor"] as const).map((role) => (
+                  <Tooltip key={role} content={getRoleConfig(role).label} side="bottom">
+                    <Button
+                      size="sm"
+                      variant={userRole === role ? "default" : "ghost"}
+                      onClick={() => setUserRole(role)}
+                      className="h-8 gap-1.5"
+                    >
+                      <i className={getRoleConfig(role).icon} />
+                      <span className="hidden sm:inline text-xs">{role === "director" ? "Dirección" : "Supervisor"}</span>
+                    </Button>
+                  </Tooltip>
+                ))}
               </div>
-              <div>
-                <Card>
-                  <CardContent className="p-6">
-                    <h3 className="text-sm font-semibold text-foreground mb-3">📊 Análisis de Pipeline</h3>
-                    <div className="space-y-2 text-xs">
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Total de Deals</span>
-                        <span className="font-medium text-foreground">114</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Valor Total</span>
-                        <span className="font-medium text-foreground">$3.515M</span>
-                      </div>
-                      <Separator className="my-2" />
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Forecast (30 días)</span>
-                        <span className="font-medium text-emerald-600">$515K</span>
-                      </div>
-                      <div className="flex justify-between">
-                        <span className="text-muted-foreground">Win Rate Proyectado</span>
-                        <span className="font-medium text-foreground">38%</span>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
+            </div>
+          </div>
+
+          {/* Active Filter Badges */}
+          {(filters.segments.length > 0 || filters.stages.length > 0 || filters.reps.length > 0 || filters.status.length > 0) && (
+            <div className="flex items-center gap-2">
+              <span className="text-xs text-muted-foreground">Filtros activos:</span>
+              <div className="flex flex-wrap gap-1">
+                {filters.segments.map((seg) => (
+                  <Badge key={seg} variant="secondary" className="text-[10px]">
+                    {seg}
+                  </Badge>
+                ))}
+                {filters.stages.map((stage) => (
+                  <Badge key={stage} variant="secondary" className="text-[10px]">
+                    {stage}
+                  </Badge>
+                ))}
+                {filters.reps.map((rep) => (
+                  <Badge key={rep} variant="secondary" className="text-[10px]">
+                    {rep}
+                  </Badge>
+                ))}
+                {filters.status.map((status) => (
+                  <Badge key={status} variant="secondary" className="text-[10px]">
+                    {status}
+                  </Badge>
+                ))}
               </div>
             </div>
           )}
+        </header>
 
-          {/* Supervisor View: Team Performance & Insights */}
-          {isSupervisor && (
-            <>
-              {/* Rep Selector */}
-              <div className="flex items-center gap-3">
-                <span className="text-sm font-semibold text-foreground">Vista:</span>
-                <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
-                  <Button
-                    size="sm"
-                    variant={selectedRep === null ? "default" : "ghost"}
-                    onClick={() => setSelectedRep(null)}
-                    className="h-8 gap-1.5 text-xs"
-                  >
-                    <i className="fa-solid fa-users" />
-                    Equipo Completo
-                  </Button>
-                  <Separator orientation="vertical" className="h-6" />
-                  <select
-                    value={selectedRep || ""}
-                    onChange={(e) => setSelectedRep(e.target.value || null)}
-                    className="h-8 px-2 rounded bg-background border border-border text-xs font-medium text-foreground cursor-pointer"
-                  >
-                    <option value="">Seleccionar Rep...</option>
-                    {SUPERVISOR_METRICS.teamPerformance.map((rep) => (
-                      <option key={rep.rep} value={rep.rep}>
-                        {rep.rep}
-                      </option>
-                    ))}
-                  </select>
+        <div className="flex flex-1 overflow-hidden">
+          {/* Sidebar: Filters & Chat */}
+          {(showFilters || showChat) && (
+            <div className="w-80 border-r border-border bg-card flex flex-col overflow-hidden">
+              {showFilters && <FilterPanel filters={filters} onFilterChange={setFilters} />}
+              {showChat && (
+                <div className="flex-1 flex flex-col overflow-hidden">
+                  <ReportingAgentChat userRole={userRole} />
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* Main Content */}
+          <div className="flex-1 overflow-y-auto p-6">
+            <div className="space-y-6 max-w-7xl mx-auto">
+              {/* Key Metrics */}
+              <div>
+                <h2 className="text-lg font-semibold text-foreground mb-4">Métricas Clave</h2>
+                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+                  {(isDirector ? DIRECTOR_MACRO.metrics : SUPERVISOR_METRICS.metrics).map((metric, idx) => (
+                    <MetricCard key={idx} item={metric} />
+                  ))}
                 </div>
               </div>
+
+              {/* Director View: Enhanced Dashboard */}
+              {isDirector && (
+                <>
+                  {/* Row 1: Pipeline & Segmentation */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Pipeline */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <PipelineVisual stages={DIRECTOR_MACRO.pipeline} />
+                      </CardContent>
+                    </Card>
+
+                    {/* Segment Distribution */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <SegmentChart />
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Row 2: Recurring Customers & Analytics */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Recurring Customers */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <RecurringCustomersCard />
+                      </CardContent>
+                    </Card>
+
+                    {/* Key Insights */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+                          <i className="fa-solid fa-lightbulb text-amber-500" />
+                          Insights Executivos
+                        </h3>
+                        <div className="space-y-3 text-xs">
+                          <div className="p-2.5 rounded bg-emerald-50 border border-emerald-200">
+                            <p className="font-semibold text-emerald-700">✓ Retention Fuerte</p>
+                            <p className="text-emerald-600 text-[11px] mt-1">Ballenas (92%) y Tiburones (75%) con alta lealtad</p>
+                          </div>
+                          <div className="p-2.5 rounded bg-blue-50 border border-blue-200">
+                            <p className="font-semibold text-blue-700">⚡ Oportunidad de Upsell</p>
+                            <p className="text-blue-600 text-[11px] mt-1">Base de Atunes y Truchas tiene potencial de crecimiento</p>
+                          </div>
+                          <div className="p-2.5 rounded bg-orange-50 border border-orange-200">
+                            <p className="font-semibold text-orange-700">→ Revenue Concentration</p>
+                            <p className="text-orange-600 text-[11px] mt-1">Ballenas generan 35% del valor con solo 2.5% de volumen</p>
+                          </div>
+                          <div className="p-2.5 rounded bg-purple-50 border border-purple-200">
+                            <p className="font-semibold text-purple-700">📈 Growth Potential</p>
+                            <p className="text-purple-600 text-[11px] mt-1">Clientes recurrentes generan 45% del revenue, crecen 12%</p>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Row 3: Forecast & Recommendations */}
+                  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                    {/* Forecast */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <i className="fa-solid fa-crystal-ball text-indigo-600" />
+                          Forecast
+                        </h3>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">Próximos 30 días</span>
+                            <span className="font-semibold text-emerald-600">$515K</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">Win Rate</span>
+                            <span className="font-semibold">38%</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">Expected Revenue</span>
+                            <span className="font-semibold text-foreground">$196K</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">Confidence</span>
+                            <span className="font-semibold text-blue-600">82%</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* YTD Performance */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <i className="fa-solid fa-chart-line text-green-600" />
+                          YTD Performance
+                        </h3>
+                        <div className="space-y-2 text-xs">
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">Revenue</span>
+                            <span className="font-semibold">$2.85M</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">vs Target</span>
+                            <span className="font-semibold text-emerald-600">↑ 23% (on track)</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">New Customers</span>
+                            <span className="font-semibold">86</span>
+                          </div>
+                          <div className="flex justify-between p-2 rounded bg-muted/40">
+                            <span className="text-muted-foreground">Avg Deal Size</span>
+                            <span className="font-semibold">$185K</span>
+                          </div>
+                        </div>
+                      </CardContent>
+                    </Card>
+
+                    {/* Key Actions */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                          <i className="fa-solid fa-flag text-red-600" />
+                          Acciones
+                        </h3>
+                        <div className="space-y-2">
+                          <button className="w-full text-left px-2 py-1.5 rounded text-[11px] bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 font-medium transition-colors">
+                            <i className="fa-solid fa-exclamation mr-1.5" />
+                            Revisar Ballenas en riesgo (3 deals)
+                          </button>
+                          <button className="w-full text-left px-2 py-1.5 rounded text-[11px] bg-blue-50 hover:bg-blue-100 border border-blue-200 text-blue-700 font-medium transition-colors">
+                            <i className="fa-solid fa-rocket mr-1.5" />
+                            Expandir segmento Tiburones
+                          </button>
+                          <button className="w-full text-left px-2 py-1.5 rounded text-[11px] bg-green-50 hover:bg-green-100 border border-green-200 text-green-700 font-medium transition-colors">
+                            <i className="fa-solid fa-handshake mr-1.5" />
+                            Programa de retención Q2
+                          </button>
+                        </div>
+                      </CardContent>
+                    </Card>
+                  </div>
+                </>
+              )}
+
+              {/* Supervisor View: Team Performance & Insights */}
+              {isSupervisor && (
+                <>
+                  {/* Rep Selector */}
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-semibold text-foreground">Vista:</span>
+                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
+                      <Button
+                        size="sm"
+                        variant={selectedRep === null ? "default" : "ghost"}
+                        onClick={() => setSelectedRep(null)}
+                        className="h-8 gap-1.5 text-xs"
+                      >
+                        <i className="fa-solid fa-users" />
+                        Equipo Completo
+                      </Button>
+                      <Separator orientation="vertical" className="h-6" />
+                      <select
+                        value={selectedRep || ""}
+                        onChange={(e) => setSelectedRep(e.target.value || null)}
+                        className="h-8 px-2 rounded bg-background border border-border text-xs font-medium text-foreground cursor-pointer"
+                      >
+                        <option value="">Seleccionar Rep...</option>
+                        {SUPERVISOR_METRICS.teamPerformance.map((rep) => (
+                          <option key={rep.rep} value={rep.rep}>
+                            {rep.rep}
+                          </option>
+                        ))}
+                      </select>
+                    </div>
+                  </div>
 
               {/* Metric Charts with Agent Comparison - Team View */}
               {selectedRep === null && (
@@ -867,6 +1493,8 @@ export default function ReportingPage() {
               <i className="fa-solid fa-refresh mr-2" />
               Actualizar Ahora
             </Button>
+          </div>
+            </div>
           </div>
         </div>
       </main>
