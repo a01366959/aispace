@@ -174,6 +174,97 @@ const RECURRING_CUSTOMERS = {
   ],
 };
 
+// Churn Risk Analysis
+const CHURN_RISK = {
+  atRisk: 8,
+  atRiskPercentage: 4.6,
+  potentialLoss: "$285,000",
+  trend: "up",
+  trendValue: 15,
+  riskFactors: [
+    { name: "No contact en 45+ días", count: 3, segment: "Ballenas", customers: ["Tech Corp", "Financial Plus", "Retail Pro"], risk: "critical" },
+    { name: "Payment delays", count: 2, segment: "Tiburones", customers: ["Growth Systems", "Tech Solutions"], risk: "high" },
+    { name: "Low engagement", count: 2, segment: "Atunes", customers: ["Cloud Services", "Data Systems"], risk: "medium" },
+    { name: "Alternative exploration", count: 1, segment: "Ballenas", customers: ["Enterprise One"], risk: "critical" },
+  ],
+  insights: {
+    trend: "Churn risk increasing 15% vs mes anterior",
+    actionable: "3 clientes Ballenas requieren intervention urgente",
+    preventionCost: "Intervention cuesta $5K, pérdida potencial $285K",
+  },
+};
+
+// Expansion Opportunities
+const EXPANSION_OPPORTUNITIES = {
+  total: 34,
+  potentialRevenue: "$456,000",
+  avgOpportunitySize: "$13,412",
+  byType: [
+    {
+      type: "Upsell",
+      count: 18,
+      segment: "Atunes",
+      potential: "$234,000",
+      description: "Clientes usando features básicos pueden expandir a premium",
+      avgIncrease: "+$13K/customer",
+    },
+    {
+      type: "Cross-sell",
+      count: 12,
+      segment: "Tiburones",
+      potential: "$156,000",
+      description: "Clientes con 1-2 productos pueden adoptar suite completa",
+      avgIncrease: "+$13K/customer",
+    },
+    {
+      type: "Expansion",
+      count: 4,
+      segment: "Ballenas",
+      potential: "$66,000",
+      description: "Ballenas establecidas buscan soluciones enterprise premium",
+      avgIncrease: "+$16.5K/customer",
+    },
+  ],
+  seasonality: "Q2 es mejor momento para expansion (historical +28%)",
+};
+
+// Sales Velocity
+const SALES_VELOCITY = {
+  avgDealCycle: 42,
+  avgDealCycleChange: -5,
+  byStage: [
+    { stage: "Prospect → First Contact", days: 3, avgHistoric: 5, improvement: -40 },
+    { stage: "First Contact → Discovery", days: 7, avgHistoric: 10, improvement: -30 },
+    { stage: "Discovery → Quote Ready", days: 12, avgHistoric: 15, improvement: -20 },
+    { stage: "Quote Ready → Quote Sent", days: 5, avgHistoric: 8, improvement: -37 },
+    { stage: "Quote Sent → Negotiation", days: 8, avgHistoric: 12, improvement: -33 },
+    { stage: "Negotiation → Close", days: 6, avgHistoric: 10, improvement: -40 },
+  ],
+  bottleneck: "Discovery → Quote Ready (12 días) - es el cuello de botella",
+  forecast: "Agentes GDT aceleran ciclos 30% vs período anterior",
+  impact: "Ciclo 5 días más corto = $85K revenue adicional proyectado",
+};
+
+// Team Capacity & Utilization
+const TEAM_CAPACITY = {
+  totalCapacity: 480, // horas/periodo esperadas
+  utilized: 342, // horas reales
+  utilizationRate: 71.25,
+  avgCapacityPerRep: 96,
+  byRep: [
+    { name: "Miriam", capacity: 96, utilized: 78, rate: 81, trend: "up", available: 18 },
+    { name: "Juan", capacity: 96, utilized: 65, rate: 68, trend: "up", available: 31 },
+    { name: "Laura", capacity: 96, utilized: 71, rate: 74, trend: "stable", available: 25 },
+    { name: "Carlos", capacity: 96, utilized: 52, rate: 54, trend: "down", available: 44 },
+    { name: "Ana", capacity: 96, utilized: 42, rate: 44, trend: "up", available: 54 },
+  ],
+  insights: {
+    opportunity: "138 horas disponibles = $21K revenue potential si se optimizan",
+    risk: "Carlos underutilized (54%) - coaching needed",
+    optimal: "Miriam at 81% es el benchmark, otros pueden crecer",
+  },
+};
+
 const SUPERVISOR_METRICS = {
   header: "Reporte de Equipo — Supervisor",
   metrics: [
@@ -429,6 +520,316 @@ function RecurringCustomersCard() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   InfoPoint Component - Reusable Tooltip with Educational Context
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function InfoPoint({ title, description, interpretation }: { title: string; description: string; interpretation: string }) {
+  const [hovering, setHovering] = useState(false);
+
+  return (
+    <div className="relative inline-block">
+      <Tooltip content={`${description}\n\n${interpretation}`} side="top">
+        <button
+          onMouseEnter={() => setHovering(true)}
+          onMouseLeave={() => setHovering(false)}
+          className="inline-flex items-center justify-center h-4 w-4 rounded-full border border-muted-foreground hover:border-foreground hover:bg-muted transition-colors cursor-help"
+        >
+          <i className="fa-solid fa-question text-[10px] text-muted-foreground" />
+        </button>
+      </Tooltip>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Churn Risk Card
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function ChurnRiskCard() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <i className="fa-solid fa-triangle-exclamation text-red-600" />
+          Churn Risk Analysis
+        </h3>
+        <InfoPoint
+          title="Churn Risk"
+          description="Clientes identificados con comportamiento de riesgo de cancelación. Basado en poca actividad, pagos atrasados, y exploración de alternativas."
+          interpretation="8 clientes en riesgo = $285K en peligro. A nivel 4.6%, es urgente tomar acción preventiva. El costo de retención es 5-10x menor que adquirir nuevos."
+        />
+      </div>
+
+      {/* Header Stats */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-lg bg-red-50 border border-red-200 p-2">
+          <p className="text-[10px] text-muted-foreground">En Riesgo</p>
+          <p className="text-lg font-bold text-red-600">{CHURN_RISK.atRisk}</p>
+          <p className="text-[10px] text-red-600">{CHURN_RISK.atRiskPercentage}% del base</p>
+        </div>
+        <div className="rounded-lg bg-orange-50 border border-orange-200 p-2">
+          <p className="text-[10px] text-muted-foreground">Pérdida Potencial</p>
+          <p className="text-lg font-bold text-orange-600">{CHURN_RISK.potentialLoss}</p>
+          <p className="text-[10px] text-orange-600">Si no intervienen</p>
+        </div>
+        <div className="rounded-lg bg-purple-50 border border-purple-200 p-2">
+          <p className="text-[10px] text-muted-foreground">Trend</p>
+          <p className="text-lg font-bold text-purple-600">+{CHURN_RISK.trendValue}%</p>
+          <p className="text-[10px] text-purple-600">vs mes anterior</p>
+        </div>
+      </div>
+
+      {/* Risk Breakdown */}
+      <div className="rounded-lg border border-border bg-muted/40 p-3 space-y-2">
+        <p className="text-[11px] font-semibold text-foreground">Por Riesgo</p>
+        {CHURN_RISK.riskFactors.map((factor, idx) => (
+          <div key={idx} className="text-[10px]">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-medium text-foreground">{factor.name}</span>
+              <Badge
+                variant={factor.risk === "critical" ? "destructive" : factor.risk === "high" ? "secondary" : "outline"}
+                className="text-[9px]"
+              >
+                {factor.count} clientes
+              </Badge>
+            </div>
+            <p className="text-muted-foreground">{factor.customers.join(", ")}</p>
+          </div>
+        ))}
+      </div>
+
+      {/* Action Items */}
+      <div className="rounded-lg border border-red-200 bg-red-50 p-3">
+        <p className="text-[10px] font-semibold text-red-700 mb-2">Acción Recomendada</p>
+        <ul className="text-[10px] text-red-600 space-y-1">
+          <li>• Contactar 3 clientes Ballenas hoy (Tech Corp, Financial Plus, Retail Pro)</li>
+          <li>• Revisar términos con 2 clientes con payment delays</li>
+          <li>• Costo interventión: ~$5K | Pérdida evitada: $285K</li>
+        </ul>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Expansion Opportunities Card
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function ExpansionOpportunitiesCard() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <i className="fa-solid fa-rocket text-blue-600" />
+          Expansion Opportunities
+        </h3>
+        <InfoPoint
+          title="Expansion Opportunities"
+          description="Clientes actuales con potencial de comprar más. Incluye upsell a features premium, cross-sell de otros productos, y expansion dentro del mismo vertical."
+          interpretation="34 oportunidades = $456K potencial. Este es revenue 'fácil' de clientes que ya confían en GDT. ROI típico 3-4x vs nuevas ventas."
+        />
+      </div>
+
+      {/* Summary */}
+      <div className="grid grid-cols-3 gap-2">
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-2">
+          <p className="text-[10px] text-muted-foreground">Oportunidades</p>
+          <p className="text-lg font-bold text-blue-600">{EXPANSION_OPPORTUNITIES.total}</p>
+          <p className="text-[10px] text-blue-600">Clientes identificados</p>
+        </div>
+        <div className="rounded-lg bg-green-50 border border-green-200 p-2">
+          <p className="text-[10px] text-muted-foreground">Potencial</p>
+          <p className="text-lg font-bold text-green-600">{EXPANSION_OPPORTUNITIES.potentialRevenue}</p>
+          <p className="text-[10px] text-green-600">Revenue adicional</p>
+        </div>
+        <div className="rounded-lg bg-cyan-50 border border-cyan-200 p-2">
+          <p className="text-[10px] text-muted-foreground">Promedio</p>
+          <p className="text-lg font-bold text-cyan-600">{EXPANSION_OPPORTUNITIES.avgOpportunitySize}</p>
+          <p className="text-[10px] text-cyan-600">Por cliente</p>
+        </div>
+      </div>
+
+      {/* By Type */}
+      <div className="space-y-2">
+        {EXPANSION_OPPORTUNITIES.byType.map((opp, idx) => (
+          <div key={idx} className="rounded-lg border border-border bg-muted/40 p-2.5">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-semibold text-foreground text-sm">{opp.type}</span>
+              <Badge variant="outline" className="text-[9px]">
+                {opp.count} deals
+              </Badge>
+            </div>
+            <p className="text-[10px] text-muted-foreground mb-1">{opp.description}</p>
+            <div className="flex items-center justify-between text-[10px]">
+              <span className="text-muted-foreground">Segmento: {opp.segment}</span>
+              <span className="font-semibold text-green-600">{opp.potential}</span>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="text-[10px] bg-amber-50 border border-amber-200 rounded p-2 text-amber-700">
+        <i className="fa-solid fa-lightbulb mr-1" />
+        <strong>Tip:</strong> {EXPANSION_OPPORTUNITIES.seasonality}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Sales Velocity Chart
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function SalesVelocityCard() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <i className="fa-solid fa-rocket text-emerald-600" />
+          Sales Velocity
+        </h3>
+        <InfoPoint
+          title="Sales Velocity"
+          description="Tiempo promedio que toma cerrar un deal. Medido en días de inicio a fin. Incluye todas las etapas del pipeline."
+          interpretation="42 días es 21% más rápido que hace 6 meses. Cada día de mejora = ~$17K revenue adicional. GDT está acelerando ciclos significativamente."
+        />
+      </div>
+
+      {/* Overall Metric */}
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Ciclo Promedio</p>
+          <p className="text-2xl font-bold text-emerald-600">{SALES_VELOCITY.avgDealCycle} días</p>
+          <p className="text-[10px] text-emerald-600 flex items-center gap-1 mt-1">
+            <i className="fa-solid fa-arrow-down" />
+            {Math.abs(SALES_VELOCITY.avgDealCycleChange)} días vs histórico
+          </p>
+        </div>
+        <div className="rounded-lg bg-blue-50 border border-blue-200 p-3">
+          <p className="text-[10px] text-muted-foreground mb-1">Impacto Revenue</p>
+          <p className="text-lg font-bold text-blue-600">+$85K</p>
+          <p className="text-[10px] text-blue-600">Proyectado por optimización</p>
+        </div>
+      </div>
+
+      {/* Bottleneck Alert */}
+      <div className="rounded-lg border border-orange-200 bg-orange-50 p-2.5">
+        <p className="text-[10px] font-semibold text-orange-700 mb-1">⚠️ Cuello de Botella</p>
+        <p className="text-[10px] text-orange-600">{SALES_VELOCITY.bottleneck}</p>
+      </div>
+
+      {/* By Stage */}
+      <div className="space-y-1.5">
+        <p className="text-[10px] font-semibold text-foreground">Tiempo por Etapa</p>
+        {SALES_VELOCITY.byStage.map((stage, idx) => (
+          <div key={idx} className="text-[10px]">
+            <div className="flex items-center justify-between mb-0.5">
+              <span className="text-muted-foreground">{stage.stage}</span>
+              <span className="font-semibold text-foreground">{stage.days}d</span>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className="h-full bg-emerald-600 rounded-full transition-all"
+                style={{ width: `${(stage.improvement / -60) * 100}%` }}
+              />
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-0.5">
+              {stage.avgHistoric}d histórico ({stage.improvement}% mejora)
+            </p>
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Team Capacity Utilization Card
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function TeamCapacityCard() {
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-2 mb-4">
+        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
+          <i className="fa-solid fa-gauge text-purple-600" />
+          Team Capacity
+        </h3>
+        <InfoPoint
+          title="Team Capacity"
+          description="Porcentaje de horas de venta/producto realmente utilizadas vs capacidad esperada. Incluye llamadas, propuestas, admin."
+          interpretation="71% utilización es saludable. 138 horas sin usar = $21K de revenue potential. Carlos en 54% sugiere opportunity de coaching."
+        />
+      </div>
+
+      {/* Overall */}
+      <div className="rounded-lg bg-purple-50 border border-purple-200 p-3">
+        <div className="flex items-center justify-between mb-2">
+          <span className="text-[10px] font-semibold text-foreground">Utilización General del Equipo</span>
+          <span className="text-sm font-bold text-purple-600">{TEAM_CAPACITY.utilizationRate.toFixed(1)}%</span>
+        </div>
+        <div className="h-2 bg-muted rounded-full overflow-hidden mb-2">
+          <div className="h-full bg-purple-600 rounded-full" style={{ width: `${TEAM_CAPACITY.utilizationRate}%` }} />
+        </div>
+        <div className="grid grid-cols-2 gap-2 text-[10px]">
+          <div>
+            <span className="text-muted-foreground">Utilizado</span>
+            <p className="font-semibold text-foreground">{TEAM_CAPACITY.utilized}h / {TEAM_CAPACITY.totalCapacity}h</p>
+          </div>
+          <div>
+            <span className="text-muted-foreground">Disponible</span>
+            <p className="font-semibold text-blue-600">138h ($21K potential)</p>
+          </div>
+        </div>
+      </div>
+
+      {/* By Rep */}
+      <div className="space-y-2">
+        <p className="text-[10px] font-semibold text-foreground">Por Rep</p>
+        {TEAM_CAPACITY.byRep.map((rep) => (
+          <div key={rep.name} className="rounded-lg border border-border bg-muted/40 p-2">
+            <div className="flex items-center justify-between mb-1">
+              <span className="font-semibold text-sm text-foreground">{rep.name}</span>
+              <div className="flex items-center gap-2">
+                <span className="text-lg font-bold text-foreground">{rep.rate}%</span>
+                <Badge
+                  variant={rep.rate >= 75 ? "default" : rep.rate >= 60 ? "secondary" : "outline"}
+                  className="text-[9px]"
+                >
+                  {rep.trend === "up" ? "↑" : rep.trend === "down" ? "↓" : "→"} {rep.available}h avail
+                </Badge>
+              </div>
+            </div>
+            <div className="h-1.5 bg-muted rounded-full overflow-hidden">
+              <div
+                className={cn("h-full rounded-full", rep.rate >= 75 ? "bg-green-600" : rep.rate >= 60 ? "bg-blue-600" : "bg-orange-600")}
+                style={{ width: `${rep.rate}%` }}
+              />
+            </div>
+            <p className="text-[9px] text-muted-foreground mt-1">
+              {rep.utilized}h / {rep.capacity}h
+              {rep.rate < 60 && " — Consider coaching/support"}
+            </p>
+          </div>
+        ))}
+      </div>
+
+      {/* Insights */}
+      <div className="space-y-1.5 text-[10px]">
+        <div className="p-2 rounded bg-blue-50 border border-blue-200">
+          <p className="font-semibold text-blue-700 mb-0.5">💡 Benchmark</p>
+          <p className="text-blue-600">Miriam al 81% es el máximo, otros pueden crecer hacia ese nivel</p>
+        </div>
+        <div className="p-2 rounded bg-red-50 border border-red-200">
+          <p className="font-semibold text-red-700 mb-0.5">⚠️ Risk</p>
+          <p className="text-red-600">Carlos bajo (54%) - puede indicar desenganche o necesidad de coaching</p>
         </div>
       </div>
     </div>
@@ -802,10 +1203,11 @@ function FilterPanel({ filters, onFilterChange }: { filters: FilterState; onFilt
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
-   Chat Component for Reporting Agent
+   Reporting Agent Chat - Bubble Style
    ════════════════════════════════════════════════════════════════════════════ */
 
-function ReportingAgentChat({ userRole }: { userRole: UserRole }) {
+function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
+  const [isExpanded, setIsExpanded] = useState(false);
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [inputValue, setInputValue] = useState("");
   const messagesEndRef = useRef<HTMLDivElement>(null);
@@ -823,116 +1225,137 @@ function ReportingAgentChat({ userRole }: { userRole: UserRole }) {
     setMessages((prev) => [...prev, userMsg]);
     setInputValue("");
 
-    // Simulate agent response
     setTimeout(() => {
       const agentMsg: ChatMessage = {
         id: (Date.now() + 1).toString(),
         sender: "agent",
-        text: `Analizando tu pregunta sobre "${text}". Accediendo a datos de actividad, conversiones y pipeline... Los insights están listos.`,
+        text: `Analizando: "${text}". Accediendo a datos... Los insights están listos.`,
         timestamp: new Date().toLocaleTimeString("es-MX", { hour: "2-digit", minute: "2-digit" }),
       };
       setMessages((prev) => [...prev, agentMsg]);
     }, 500);
   };
 
-  const handleSuggestionClick = (suggestion: string) => {
-    handleSendMessage(suggestion);
-  };
-
   return (
-    <div className="flex h-full flex-col">
-      <div className="flex items-center justify-between border-b border-border px-4 py-3 shrink-0">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <i className="fa-solid fa-robot text-primary" />
-          Agente de Reportes
-        </h3>
-        <Badge variant="outline" className="text-[10px]">
-          En línea
-        </Badge>
-      </div>
-
-      {/* Messages */}
-      <div className="flex-1 overflow-y-auto p-4 space-y-3">
-        {messages.length === 0 ? (
-          <div className="h-full flex flex-col items-center justify-center text-center pb-8">
-            <div className="h-12 w-12 rounded-full bg-primary/10 flex items-center justify-center mb-3">
-              <i className="fa-solid fa-chart-line text-primary text-lg" />
-            </div>
-            <p className="text-sm font-medium text-foreground mb-1">Preguntas sobre el Reporte</p>
-            <p className="text-xs text-muted-foreground mb-4">Haz preguntas sobre los datos, métricas o análisis</p>
-          </div>
-        ) : (
-          <>
-            {messages.map((msg) => (
-              <div key={msg.id} className={cn("flex gap-2", msg.sender === "user" ? "justify-end" : "justify-start")}>
-                {msg.sender === "agent" && (
-                  <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20 shrink-0 text-primary text-xs">
-                    <i className="fa-solid fa-robot" />
-                  </div>
-                )}
-                <div
-                  className={cn(
-                    "max-w-xs rounded-lg px-3 py-2 text-xs",
-                    msg.sender === "user" ? "bg-primary text-primary-foreground rounded-br-none" : "bg-muted text-muted-foreground border border-border rounded-bl-none"
-                  )}
-                >
-                  <p className="leading-relaxed">{msg.text}</p>
-                  <span className={cn("text-[10px] mt-1 block", msg.sender === "user" ? "text-primary-foreground/70" : "text-muted-foreground")}>
-                    {msg.timestamp}
-                  </span>
+    <>
+      {/* Bubble Chat Widget */}
+      <div className="fixed bottom-6 right-6 z-40">
+        {/* Messages Window */}
+        {isExpanded && (
+          <div className="mb-3 w-80 rounded-2xl border border-border bg-card shadow-lg flex flex-col max-h-96">
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-2xl">
+              <div className="flex items-center gap-2">
+                <div className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
+                <div>
+                  <p className="text-sm font-bold">Agente de Reportes</p>
+                  <p className="text-[10px] opacity-90">En línea • GDT</p>
                 </div>
               </div>
-            ))}
-            <div ref={messagesEndRef} />
-          </>
-        )}
-      </div>
-
-      {/* Suggestions (when no messages) */}
-      {messages.length === 0 && (
-        <div className="border-t border-border px-4 py-3 max-h-48 overflow-y-auto shrink-0">
-          <p className="text-[10px] font-semibold uppercase text-muted-foreground mb-2">Sugerencias</p>
-          <div className="space-y-1">
-            {suggestions.map((suggestion, idx) => (
               <button
-                key={idx}
-                onClick={() => handleSuggestionClick(suggestion)}
-                className="w-full text-left px-2 py-1.5 rounded text-xs text-muted-foreground hover:bg-muted hover:text-foreground transition-colors border border-transparent hover:border-border"
+                onClick={() => setIsExpanded(false)}
+                className="hover:opacity-80 transition-opacity"
               >
-                <span className="text-muted-foreground mr-1">→</span>
-                {suggestion}
+                <i className="fa-solid fa-minus text-white" />
               </button>
-            ))}
-          </div>
-        </div>
-      )}
+            </div>
 
-      {/* Input */}
-      <div className="border-t border-border px-4 py-3 shrink-0">
-        <div className="flex items-end gap-2">
-          <input
-            type="text"
-            placeholder="Pregunta sobre los datos..."
-            value={inputValue}
-            onChange={(e) => setInputValue(e.target.value)}
-            onKeyPress={(e) => {
-              if (e.key === "Enter" && inputValue.trim()) {
-                handleSendMessage(inputValue);
-              }
-            }}
-            className="flex-1 bg-muted px-2.5 py-1.5 rounded text-xs border border-border focus:outline-none focus:ring-1 focus:ring-ring placeholder:text-muted-foreground"
-          />
-          <Button
-            size="icon-sm"
-            onClick={() => inputValue.trim() && handleSendMessage(inputValue)}
-            disabled={!inputValue.trim()}
-            className="h-8 w-8"
-          >
-            <i className="fa-solid fa-arrow-up text-xs" />
-          </Button>
-        </div>
+            {/* Messages */}
+            <div className="flex-1 overflow-y-auto p-4 space-y-3">
+              {messages.length === 0 ? (
+                <div className="h-full flex flex-col items-center justify-center text-center py-8">
+                  <div className="text-3xl mb-2">🤖</div>
+                  <p className="text-xs font-medium text-foreground">Hola, soy tu Agente de Reportes</p>
+                  <p className="text-[10px] text-muted-foreground mt-1">Pregúntame sobre datos, métricas o análisis</p>
+                </div>
+              ) : (
+                <>
+                  {messages.map((msg) => (
+                    <div
+                      key={msg.id}
+                      className={cn("flex gap-2", msg.sender === "user" ? "justify-end" : "justify-start")}
+                    >
+                      {msg.sender === "agent" && (
+                        <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs shrink-0">
+                          <i className="fa-solid fa-robot" />
+                        </div>
+                      )}
+                      <div
+                        className={cn(
+                          "max-w-xs rounded-2xl px-3 py-2 text-xs leading-relaxed",
+                          msg.sender === "user"
+                            ? "bg-blue-600 text-white rounded-br-none"
+                            : "bg-muted text-foreground rounded-bl-none border border-border"
+                        )}
+                      >
+                        {msg.text}
+                      </div>
+                    </div>
+                  ))}
+                  <div ref={messagesEndRef} />
+                </>
+              )}
+            </div>
+
+            {/* Suggestions - First Time */}
+            {messages.length === 0 && (
+              <div className="border-t border-border p-3 max-h-24 overflow-y-auto">
+                <p className="text-[10px] font-bold text-muted-foreground mb-2">Sugerencias:</p>
+                <div className="space-y-1">
+                  {suggestions.slice(0, 3).map((sug, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => handleSendMessage(sug)}
+                      className="w-full text-left text-[10px] p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                    >
+                      → {sug}
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            {/* Input */}
+            <div className="border-t border-border p-3 bg-muted/50 rounded-b-2xl">
+              <div className="flex items-end gap-2">
+                <input
+                  type="text"
+                  placeholder="Pregunta..."
+                  value={inputValue}
+                  onChange={(e) => setInputValue(e.target.value)}
+                  onKeyPress={(e) => {
+                    if (e.key === "Enter" && inputValue.trim()) {
+                      handleSendMessage(inputValue);
+                    }
+                  }}
+                  className="flex-1 bg-background px-2 py-1.5 rounded text-xs border border-border focus:outline-none focus:ring-1 focus:ring-blue-600 placeholder:text-muted-foreground"
+                />
+                <button
+                  onClick={() => inputValue.trim() && handleSendMessage(inputValue)}
+                  disabled={!inputValue.trim()}
+                  className="h-7 w-7 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center transition-colors"
+                >
+                  <i className="fa-solid fa-arrow-up text-xs" />
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Bubble Button */}
+        <button
+          onClick={() => setIsExpanded(!isExpanded)}
+          className={cn(
+            "h-14 w-14 rounded-full shadow-xl hover:shadow-2xl transition-all flex items-center justify-center text-white text-xl",
+            isExpanded
+              ? "bg-blue-600 hover:bg-blue-700"
+              : "bg-gradient-to-br from-blue-600 to-blue-700 hover:scale-110 animate-pulse"
+          )}
+        >
+          {isExpanded ? <i className="fa-solid fa-xmark" /> : <i className="fa-solid fa-robot" />}
+        </button>
       </div>
-    </div>
+    </>
   );
 }
 
@@ -944,7 +1367,6 @@ export default function ReportingPage() {
   const [userRole, setUserRole] = useState<UserRole>("director");
   const [selectedRep, setSelectedRep] = useState<string | null>(null);
   const [showFilters, setShowFilters] = useState(false);
-  const [showChat, setShowChat] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     timePeriod: "month",
     segments: [],
@@ -1018,15 +1440,6 @@ export default function ReportingPage() {
                 <i className="fa-solid fa-sliders text-xs" />
                 <span className="hidden sm:inline">Filtros</span>
               </Button>
-              <Button
-                size="sm"
-                variant={showChat ? "default" : "outline"}
-                onClick={() => setShowChat(!showChat)}
-                className="gap-1.5"
-              >
-                <i className="fa-solid fa-robot text-xs" />
-                <span className="hidden sm:inline">Agente</span>
-              </Button>
 
               {/* Role Selector */}
               <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1 ml-4">
@@ -1078,15 +1491,12 @@ export default function ReportingPage() {
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar: Filters & Chat */}
-          {(showFilters || showChat) && (
+          {/* Sidebar: Filters */}
+          {showFilters && (
             <div className="w-80 border-r border-border bg-card flex flex-col overflow-hidden">
-              {showFilters && <FilterPanel filters={filters} onFilterChange={setFilters} />}
-              {showChat && (
-                <div className="flex-1 flex flex-col overflow-hidden">
-                  <ReportingAgentChat userRole={userRole} />
-                </div>
-              )}
+              <div className="flex-1 overflow-y-auto p-4">
+                <FilterPanel filters={filters} onFilterChange={setFilters} />
+              </div>
             </div>
           )}
 
@@ -1243,38 +1653,99 @@ export default function ReportingPage() {
                       </CardContent>
                     </Card>
                   </div>
+
+                  {/* Row 4: Deep Insights - Churn, Expansion, Velocity, Capacity */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Churn Risk */}
+                    <Card className="border-red-200">
+                      <CardContent className="p-6">
+                        <ChurnRiskCard />
+                      </CardContent>
+                    </Card>
+
+                    {/* Expansion Opportunities */}
+                    <Card className="border-blue-200">
+                      <CardContent className="p-6">
+                        <ExpansionOpportunitiesCard />
+                      </CardContent>
+                    </Card>
+
+                    {/* Sales Velocity */}
+                    <Card className="border-emerald-200">
+                      <CardContent className="p-6">
+                        <SalesVelocityCard />
+                      </CardContent>
+                    </Card>
+
+                    {/* Team Capacity */}
+                    <Card className="border-purple-200">
+                      <CardContent className="p-6">
+                        <TeamCapacityCard />
+                      </CardContent>
+                    </Card>
+                  </div>
                 </>
               )}
 
               {/* Supervisor View: Team Performance & Insights */}
               {isSupervisor && (
                 <>
-                  {/* Rep Selector */}
-                  <div className="flex items-center gap-3">
-                    <span className="text-sm font-semibold text-foreground">Vista:</span>
-                    <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
-                      <Button
-                        size="sm"
-                        variant={selectedRep === null ? "default" : "ghost"}
+                  {/* Rep Selector - Interactive Cards */}
+                  <div>
+                    <h2 className="text-lg font-semibold text-foreground mb-4">Desempeño Individual del Equipo</h2>
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-2 mb-6">
+                      {/* Team Overview Button */}
+                      <button
                         onClick={() => setSelectedRep(null)}
-                        className="h-8 gap-1.5 text-xs"
+                        className={cn(
+                          "p-3 rounded-lg border-2 transition-all text-center",
+                          selectedRep === null
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-card hover:bg-muted"
+                        )}
                       >
-                        <i className="fa-solid fa-users" />
-                        Equipo Completo
-                      </Button>
-                      <Separator orientation="vertical" className="h-6" />
-                      <select
-                        value={selectedRep || ""}
-                        onChange={(e) => setSelectedRep(e.target.value || null)}
-                        className="h-8 px-2 rounded bg-background border border-border text-xs font-medium text-foreground cursor-pointer"
-                      >
-                        <option value="">Seleccionar Rep...</option>
-                        {SUPERVISOR_METRICS.teamPerformance.map((rep) => (
-                          <option key={rep.rep} value={rep.rep}>
-                            {rep.rep}
-                          </option>
-                        ))}
-                      </select>
+                        <div className="text-xl mb-1">👥</div>
+                        <p className="text-xs font-semibold text-foreground">Equipo</p>
+                        <p className="text-[10px] text-muted-foreground mt-1">Completo</p>
+                      </button>
+
+                      {/* Individual Rep Cards */}
+                      {SUPERVISOR_METRICS.teamPerformance.map((rep) => {
+                        const isSelected = selectedRep === rep.rep;
+                        const statusColor =
+                          rep.trend === "up" ? "text-emerald-600" : rep.trend === "down" ? "text-red-600" : "text-muted-foreground";
+
+                        return (
+                          <button
+                            key={rep.rep}
+                            onClick={() => setSelectedRep(rep.rep)}
+                            className={cn(
+                              "p-3 rounded-lg border-2 transition-all text-left hover:border-primary",
+                              isSelected ? "border-primary bg-primary/10" : "border-border bg-card"
+                            )}
+                          >
+                            <p className="text-xs font-bold text-foreground mb-1">{rep.rep}</p>
+                            <div className="space-y-0.5 text-[10px]">
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Llamadas</span>
+                                <span className="font-semibold">{rep.calls}</span>
+                              </div>
+                              <div className="flex items-center justify-between">
+                                <span className="text-muted-foreground">Cierres</span>
+                                <span className="font-semibold text-emerald-600">{rep.closes}</span>
+                              </div>
+                              <div className="flex items-center justify-between mt-1 pt-1 border-t border-border">
+                                <span className="text-muted-foreground">Trend</span>
+                                <span
+                                  className={cn("font-semibold text-xs", statusColor)}
+                                >
+                                  {rep.trend === "up" ? "↑" : rep.trend === "down" ? "↓" : "→"}
+                                </span>
+                              </div>
+                            </div>
+                          </button>
+                        );
+                      })}
                     </div>
                   </div>
 
@@ -1331,130 +1802,286 @@ export default function ReportingPage() {
                 </div>
               )}
 
-              {/* Individual Rep Detail View */}
+              {/* Individual Rep Detail View - Enhanced */}
               {selectedRep && (
                 <div>
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-primary/20 bg-primary/5 p-4">
-                      <h2 className="text-lg font-semibold text-foreground mb-2">Detalle: {selectedRep}</h2>
-                      <p className="text-sm text-muted-foreground">Comparación con equipo y análisis individual</p>
+                    {/* Header */}
+                    <div className="rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <h2 className="text-lg font-bold text-foreground mb-1">{selectedRep}</h2>
+                          <p className="text-sm text-muted-foreground">Análisis detallado de desempeño individual</p>
+                        </div>
+                        <button
+                          onClick={() => setSelectedRep(null)}
+                          className="px-3 py-1 rounded text-xs border border-primary hover:bg-primary/10 transition-colors"
+                        >
+                          ← Volver al equipo
+                        </button>
+                      </div>
                     </div>
 
-                    {/* Show median comparison for selected rep */}
+                    {/* Show detailed metrics for selected rep */}
                     {(() => {
                       const repData = SUPERVISOR_METRICS.teamPerformance.find((r) => r.rep === selectedRep);
                       const repCalls = REP_DETAILED_METRICS.calls.find((d) => d.rep === selectedRep)?.value || 0;
                       const repConversions = REP_DETAILED_METRICS.conversions.find((d) => d.rep === selectedRep)?.value || 0;
                       const repProposals = REP_DETAILED_METRICS.proposals.find((d) => d.rep === selectedRep)?.value || 0;
                       const repSystemTime = REP_DETAILED_METRICS.systemTime.find((d) => d.rep === selectedRep)?.value || 0;
+                      const repInsight = REP_INSIGHTS.find((i) => i.rep === selectedRep);
+                      const teamCapacityRep = TEAM_CAPACITY.byRep.find((r) => r.name === selectedRep);
 
                       return (
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                          <Card>
-                            <CardContent className="p-4">
-                              <h3 className="text-sm font-semibold text-foreground mb-3">Comparación vs Mediana</h3>
-                              <div className="space-y-2 text-xs">
-                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
-                                  <span className="text-muted-foreground">Llamadas</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{repCalls}</span>
-                                    {repCalls > callsMedian ? (
-                                      <Badge variant="success" className="text-[10px]">
-                                        +{repCalls - callsMedian} vs mediana
-                                      </Badge>
-                                    ) : repCalls < callsMedian ? (
-                                      <Badge variant="secondary" className="text-[10px]">
-                                        {repCalls - callsMedian} vs mediana
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
-                                    )}
-                                  </div>
+                        <>
+                          {/* Key Metrics Grid */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10px] font-semibold text-muted-foreground">Llamadas</p>
+                                  <i className="fa-solid fa-phone text-primary text-xs" />
                                 </div>
+                                <p className="text-2xl font-bold text-foreground">{repCalls}</p>
+                                <p className="text-[10px] text-muted-foreground mt-2">
+                                  {repCalls > callsMedian ? `+${repCalls - callsMedian} vs 65 (mediana)` : repCalls < callsMedian ? `${repCalls - callsMedian} vs 65` : "En mediana"}
+                                </p>
+                              </CardContent>
+                            </Card>
 
-                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
-                                  <span className="text-muted-foreground">Conversión</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{repConversions}%</span>
-                                    {repConversions > conversionsMedian ? (
-                                      <Badge variant="success" className="text-[10px]">
-                                        +{repConversions - conversionsMedian}% vs mediana
-                                      </Badge>
-                                    ) : repConversions < conversionsMedian ? (
-                                      <Badge variant="secondary" className="text-[10px]">
-                                        {repConversions - conversionsMedian}% vs mediana
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
-                                    )}
-                                  </div>
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10px] font-semibold text-muted-foreground">Cierres</p>
+                                  <i className="fa-solid fa-check text-emerald-600 text-xs" />
                                 </div>
+                                <p className="text-2xl font-bold text-foreground">{repData?.closes}</p>
+                                <p className="text-[10px] text-emerald-600 mt-2">
+                                  Tasa: {repData?.closes ? Math.round((repData.closes / repCalls) * 100) : 0}%
+                                </p>
+                              </CardContent>
+                            </Card>
 
-                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
-                                  <span className="text-muted-foreground">Propuestas</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{repProposals}</span>
-                                    {repProposals > proposalsMedian ? (
-                                      <Badge variant="success" className="text-[10px]">
-                                        +{Math.round((repProposals - proposalsMedian) * 10) / 10} vs mediana
-                                      </Badge>
-                                    ) : repProposals < proposalsMedian ? (
-                                      <Badge variant="secondary" className="text-[10px]">
-                                        {Math.round((repProposals - proposalsMedian) * 10) / 10} vs mediana
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
-                                    )}
-                                  </div>
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10px] font-semibold text-muted-foreground">Conversión</p>
+                                  <i className="fa-solid fa-percent text-blue-600 text-xs" />
                                 </div>
+                                <p className="text-2xl font-bold text-foreground">{repConversions}%</p>
+                                <p className="text-[10px] text-muted-foreground mt-2">
+                                  {repConversions > conversionsMedian ? "↑ Sobre promedio" : "↓ Bajo promedio"}
+                                </p>
+                              </CardContent>
+                            </Card>
 
-                                <div className="flex items-center justify-between p-2 rounded bg-muted/40">
-                                  <span className="text-muted-foreground">Tiempo Sistema</span>
-                                  <div className="flex items-center gap-2">
-                                    <span className="font-semibold">{repSystemTime} hrs</span>
-                                    {repSystemTime < systemTimeMedian ? (
-                                      <Badge variant="success" className="text-[10px]">
-                                        -{Math.round((systemTimeMedian - repSystemTime) * 10) / 10} hrs vs mediana
-                                      </Badge>
-                                    ) : repSystemTime > systemTimeMedian ? (
-                                      <Badge variant="secondary" className="text-[10px]">
-                                        +{Math.round((repSystemTime - systemTimeMedian) * 10) / 10} hrs vs mediana
-                                      </Badge>
-                                    ) : (
-                                      <Badge variant="outline" className="text-[10px]">En mediana</Badge>
-                                    )}
-                                  </div>
+                            <Card>
+                              <CardContent className="p-4">
+                                <div className="flex items-center justify-between mb-2">
+                                  <p className="text-[10px] font-semibold text-muted-foreground">Propuestas</p>
+                                  <i className="fa-solid fa-envelope text-purple-600 text-xs" />
                                 </div>
-                              </div>
-                            </CardContent>
-                          </Card>
+                                <p className="text-2xl font-bold text-foreground">{repProposals}</p>
+                                <p className="text-[10px] text-muted-foreground mt-2">
+                                  {repProposals}/{repCalls} = {repCalls > 0 ? Math.round((repProposals / repCalls) * 100) : 0}% conversion
+                                </p>
+                              </CardContent>
+                            </Card>
+                          </div>
 
-                          <Card>
-                            <CardContent className="p-4">
-                              <h3 className="text-sm font-semibold text-foreground mb-3">Información del Rep</h3>
-                              <div className="space-y-2 text-xs">
-                                {repData && (
-                                  <>
-                                    <div className="flex items-center justify-between p-2 rounded bg-muted/40">
-                                      <span className="text-muted-foreground">Cierres</span>
-                                      <span className="font-semibold">{repData.closes}</span>
+                          {/* Detailed Analysis */}
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                            {/* Performance Comparison */}
+                            <Card>
+                              <CardContent className="p-4">
+                                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                  <i className="fa-solid fa-chart-column text-primary" />
+                                  Comparación vs Equipo
+                                </h3>
+                                <div className="space-y-3">
+                                  {/* Llamadas */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-xs text-muted-foreground">Llamadas</span>
+                                      <span className="text-xs font-semibold text-foreground">{repCalls} / 65 avg</span>
                                     </div>
-                                    <div className="flex items-center justify-between p-2 rounded bg-muted/40">
-                                      <span className="text-muted-foreground">Precisión</span>
-                                      <span className="font-semibold text-emerald-600">{repData.accuracy}</span>
+                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full bg-primary rounded-full" style={{ width: `${Math.min((repCalls / 65) * 100, 100)}%` }} />
                                     </div>
-                                    <div className="flex items-center justify-between p-2 rounded bg-muted/40">
-                                      <span className="text-muted-foreground">Tendencia</span>
-                                      <span className="font-semibold">
-                                        <i className={cn("text-xs", repData.trend === "up" ? "fa-solid fa-arrow-up text-emerald-600" : repData.trend === "down" ? "fa-solid fa-arrow-down text-destructive" : "fa-solid fa-minus text-muted-foreground")} />
-                                      </span>
+                                  </div>
+
+                                  {/* Cierres */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-xs text-muted-foreground">Cierres</span>
+                                      <span className="text-xs font-semibold text-foreground">{repData?.closes} / 2.2 avg</span>
                                     </div>
-                                  </>
-                                )}
-                              </div>
-                            </CardContent>
-                          </Card>
-                        </div>
+                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                      <div className="h-full bg-emerald-600 rounded-full" style={{ width: `${Math.min((repData?.closes! / 2.2) * 100, 100)}%` }} />
+                                    </div>
+                                  </div>
+
+                                  {/* Precisión */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-xs text-muted-foreground">Precisión</span>
+                                      <span className="text-xs font-semibold text-foreground">{repData?.accuracy}</span>
+                                    </div>
+                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className="h-full bg-blue-600 rounded-full"
+                                        style={{ width: `${parseInt(repData?.accuracy || "0")}%` }}
+                                      />
+                                    </div>
+                                  </div>
+
+                                  {/* Tendencia */}
+                                  <div className="flex items-center justify-between p-2 rounded bg-muted/50">
+                                    <span className="text-xs text-muted-foreground">Trend</span>
+                                    <span
+                                      className={cn(
+                                        "text-xs font-bold flex items-center gap-1",
+                                        repData?.trend === "up" ? "text-emerald-600" : repData?.trend === "down" ? "text-red-600" : "text-muted-foreground"
+                                      )}
+                                    >
+                                      {repData?.trend === "up" ? <i className="fa-solid fa-arrow-up" /> : <i className="fa-solid fa-arrow-down" />}
+                                      {repData?.trend === "up" ? "Mejorando" : repData?.trend === "down" ? "Decayendo" : "Estable"}
+                                    </span>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+
+                            {/* Capacity & Productivity */}
+                            <Card>
+                              <CardContent className="p-4">
+                                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                                  <i className="fa-solid fa-gauge text-purple-600" />
+                                  Utilización & Productividad
+                                </h3>
+                                <div className="space-y-3">
+                                  {/* Capacity */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-xs text-muted-foreground">Utilización</span>
+                                      <span className="text-xs font-semibold text-foreground">{teamCapacityRep?.rate}%</span>
+                                    </div>
+                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className={cn(
+                                          "h-full rounded-full",
+                                          teamCapacityRep?.rate! >= 75
+                                            ? "bg-green-600"
+                                            : teamCapacityRep?.rate! >= 60
+                                              ? "bg-blue-600"
+                                              : "bg-orange-600"
+                                        )}
+                                        style={{ width: `${teamCapacityRep?.rate}%` }}
+                                      />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                      {teamCapacityRep?.utilized}h / {teamCapacityRep?.capacity}h · {teamCapacityRep?.available}h disponible
+                                    </p>
+                                  </div>
+
+                                  {/* System Time */}
+                                  <div>
+                                    <div className="flex items-center justify-between mb-1">
+                                      <span className="text-xs text-muted-foreground">Tiempo en Sistema</span>
+                                      <span className="text-xs font-semibold text-foreground">{repSystemTime} hrs/día</span>
+                                    </div>
+                                    <div className="h-2 bg-muted rounded-full overflow-hidden">
+                                      <div
+                                        className={cn("h-full rounded-full", repSystemTime < systemTimeMedian ? "bg-emerald-600" : "bg-orange-600")}
+                                        style={{ width: `${Math.min((repSystemTime / 4) * 100, 100)}%` }}
+                                      />
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-1">
+                                      {repSystemTime < systemTimeMedian ? `${Math.round((systemTimeMedian - repSystemTime) * 10) / 10}h menos que mediana` : "Más que mediana"}
+                                    </p>
+                                  </div>
+
+                                  {/* Productivity Score */}
+                                  <div className="p-2 rounded bg-primary/10 border border-primary/20">
+                                    <div className="flex items-center justify-between">
+                                      <span className="text-xs font-semibold text-foreground">Productivity Index</span>
+                                      <span className="text-lg font-bold text-primary">8.2/10</span>
+                                    </div>
+                                    <p className="text-[10px] text-muted-foreground mt-1">Alto potencial, considera career growth</p>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          </div>
+
+                          {/* Coaching & Insights */}
+                          {repInsight && (
+                            <Card
+                              className={cn(
+                                "border-2",
+                                repInsight.severity === "positive"
+                                  ? "border-emerald-200 bg-emerald-50/50"
+                                  : repInsight.severity === "warning"
+                                    ? "border-amber-200 bg-amber-50/50"
+                                    : "border-blue-200 bg-blue-50/50"
+                              )}
+                            >
+                              <CardContent className="p-4">
+                                <div className="flex items-start gap-3">
+                                  <div
+                                    className={cn(
+                                      "h-10 w-10 rounded-full flex items-center justify-center shrink-0",
+                                      repInsight.severity === "positive"
+                                        ? "bg-emerald-200"
+                                        : repInsight.severity === "warning"
+                                          ? "bg-amber-200"
+                                          : "bg-blue-200"
+                                    )}
+                                  >
+                                    <i
+                                      className={cn(
+                                        "text-sm",
+                                        repInsight.severity === "positive"
+                                          ? "fa-solid fa-star text-emerald-700"
+                                          : repInsight.severity === "warning"
+                                            ? "fa-solid fa-lightbulb text-amber-700"
+                                            : "fa-solid fa-info text-blue-700"
+                                      )}
+                                    />
+                                  </div>
+                                  <div className="flex-1">
+                                    <h3 className="text-sm font-bold text-foreground mb-1">Insight & Coaching</h3>
+                                    <p className="text-sm text-muted-foreground mb-2">{repInsight.insight}</p>
+                                    <div className="text-xs text-muted-foreground">
+                                      <i className="fa-solid fa-target mr-1 text-primary" />
+                                      Focus: {repInsight.metric}
+                                    </div>
+                                  </div>
+                                </div>
+                              </CardContent>
+                            </Card>
+                          )}
+
+                          {/* Action Buttons */}
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                            <button className="px-3 py-2 rounded text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-1">
+                              <i className="fa-solid fa-message" />
+                              Message
+                            </button>
+                            <button className="px-3 py-2 rounded text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1">
+                              <i className="fa-solid fa-video" />
+                              1:1 Meeting
+                            </button>
+                            <button className="px-3 py-2 rounded text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1">
+                              <i className="fa-solid fa-chart-line" />
+                              Goals
+                            </button>
+                            <button className="px-3 py-2 rounded text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1">
+                              <i className="fa-solid fa-clipboard" />
+                              PDP
+                            </button>
+                          </div>
+                        </>
                       );
                     })()}
                   </div>
@@ -1498,6 +2125,9 @@ export default function ReportingPage() {
           </div>
         </div>
       </main>
+
+      {/* Reporting Agent Bubble Chat */}
+      <ReportingAgentBubble userRole={userRole} />
     </div>
   );
 }
