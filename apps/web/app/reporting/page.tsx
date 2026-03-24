@@ -1006,12 +1006,167 @@ function MetricChart({ data, label, unit, median }: { data: MetricChartData[]; l
 }
 
 /* ════════════════════════════════════════════════════════════════════════════
+   Enhanced Trend Chart - Line Chart with Hover Tooltips
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function TrendLineChart() {
+  const [hoveredDay, setHoveredDay] = useState<number | null>(null);
+
+  // Simulated trend data
+  const data = [
+    { day: "Lun", current: 45, previous: 38, forecast: 52 },
+    { day: "Mar", current: 52, previous: 41, forecast: 58 },
+    { day: "Mié", current: 48, previous: 44, forecast: 55 },
+    { day: "Jue", current: 65, previous: 51, forecast: 70 },
+    { day: "Vie", current: 78, previous: 62, forecast: 82 },
+    { day: "Sáb", current: 71, previous: 58, forecast: 75 },
+    { day: "Dom", current: 42, previous: 35, forecast: 48 },
+  ];
+
+  const maxValue = 85;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <i className="fa-solid fa-chart-line text-primary" />
+        Tendencia de Llamadas — Última Semana
+      </h3>
+
+      <div className="flex items-end justify-between h-48 gap-2 p-4 bg-muted/30 rounded-lg">
+        {data.map((item, idx) => (
+          <div
+            key={idx}
+            className="relative flex-1 flex flex-col items-center"
+            onMouseEnter={() => setHoveredDay(idx)}
+            onMouseLeave={() => setHoveredDay(null)}
+          >
+            {/* Bars */}
+            <div className="w-full flex items-end justify-center gap-1 h-32">
+              {/* Previous Period */}
+              <div
+                className="flex-1 bg-muted hover:bg-blue-200 rounded-t transition-colors cursor-pointer"
+                style={{ height: `${(item.previous / maxValue) * 100}%` }}
+              />
+              {/* Current Period */}
+              <div
+                className="flex-1 bg-blue-600 hover:bg-blue-700 rounded-t transition-colors cursor-pointer"
+                style={{ height: `${(item.current / maxValue) * 100}%` }}
+              />
+              {/* Forecast */}
+              <div
+                className="flex-1 bg-emerald-400 hover:bg-emerald-500 rounded-t opacity-60 transition-colors cursor-pointer"
+                style={{ height: `${(item.forecast / maxValue) * 100}%` }}
+              />
+            </div>
+
+            {/* Day Label */}
+            <p className="text-xs font-semibold text-foreground mt-2">{item.day}</p>
+
+            {/* Hover Tooltip */}
+            {hoveredDay === idx && (
+              <div className="absolute bottom-full mb-2 bg-slate-900 text-white text-xs px-3 py-2 rounded-lg shadow-lg whitespace-nowrap z-10 border border-slate-700">
+                <p className="font-semibold mb-1">Comparativa</p>
+                <p className="text-blue-300">• Hoy: {item.current}</p>
+                <p className="text-muted-foreground">• Semana anterior: {item.previous}</p>
+                <p className="text-emerald-300">• Pronóstico: {item.forecast}</p>
+                <div className="absolute top-full left-1/2 -translate-x-1/2 h-2 w-2 bg-slate-900 border border-slate-700 rotate-45 -mt-1" />
+              </div>
+            )}
+          </div>
+        ))}
+      </div>
+
+      <div className="flex items-center justify-center gap-4 mt-4 text-xs">
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full bg-blue-600" />
+          <span className="text-muted-foreground">Período Actual</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full bg-muted" />
+          <span className="text-muted-foreground">Período Anterior</span>
+        </div>
+        <div className="flex items-center gap-2">
+          <div className="h-3 w-3 rounded-full bg-emerald-400" />
+          <span className="text-muted-foreground">Pronóstico</span>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
+   Period Comparison Component
+   ════════════════════════════════════════════════════════════════════════════ */
+
+function PeriodComparisonChart() {
+  const [hoveredBar, setHoveredBar] = useState<number | null>(null);
+
+  const periods = [
+    { label: "Este Mes", current: 2850, previous: 2320, color: "bg-blue-600" },
+    { label: "Mes Pasado", current: 2580, previous: 2150, color: "bg-blue-500" },
+    { label: "Mismo Mes - Año Anterior", current: 2100, previous: 1950, color: "bg-blue-400" },
+    { label: "Trimestre Actual", current: 8200, previous: 7500, color: "bg-blue-600" },
+  ];
+
+  const maxValue = 9000;
+
+  return (
+    <div>
+      <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
+        <i className="fa-solid fa-calendar-check text-primary" />
+        Comparación Período a Período (Ingresos)
+      </h3>
+
+      <div className="space-y-3">
+        {periods.map((item, idx) => (
+          <div
+            key={idx}
+            className="relative"
+            onMouseEnter={() => setHoveredBar(idx)}
+            onMouseLeave={() => setHoveredBar(null)}
+          >
+            <div className="flex items-center justify-between mb-1">
+              <span className="text-sm font-medium text-foreground">{item.label}</span>
+              {hoveredBar === idx && (
+                <span className="text-xs font-semibold text-green-600">↑ {Math.round(((item.current - item.previous) / item.previous) * 100)}%</span>
+              )}
+            </div>
+
+            <div className="flex items-end gap-2 h-12">
+              {/* Previous */}
+              <div className="flex-1 relative bg-muted rounded hover:bg-muted/80 transition-colors cursor-pointer" style={{ height: `${(item.previous / maxValue) * 100}%` }}>
+                {hoveredBar === idx && (
+                  <div className="absolute top-full mt-2 left-0 bg-slate-900 text-white text-xs px-2 py-1 rounded shadow-lg z-10 border border-slate-700 whitespace-nowrap">
+                    Anterior: ${item.previous}K
+                  </div>
+                )}
+              </div>
+
+              {/* Current */}
+              <div className={cn("flex-1 relative rounded hover:opacity-90 transition-opacity cursor-pointer", item.color)} style={{ height: `${(item.current / maxValue) * 100}%` }}>
+                {hoveredBar === idx && (
+                  <div className="absolute top-full mt-2 left-0 bg-slate-900 text-white text-xs px-2 py-1 rounded shadow-lg z-10 border border-slate-700 whitespace-nowrap">
+                    Actual: ${item.current}K
+                  </div>
+                )}
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      <div className="mt-4 p-3 rounded-lg bg-emerald-50 border border-emerald-200">
+        <p className="text-xs font-semibold text-emerald-900">📈 Crecimiento Promedio: +12.3% vs Período Anterior</p>
+      </div>
+    </div>
+  );
+}
+
+/* ════════════════════════════════════════════════════════════════════════════
    Filter Panel Component (Enhanced)
    ════════════════════════════════════════════════════════════════════════════ */
 
-function FilterPanel({ filters, onFilterChange }: { filters: FilterState; onFilterChange: (filters: FilterState) => void }) {
-  const [expanded, setExpanded] = useState(false);
-
+function FloatingFilterPanel({ filters, onFilterChange, isOpen, onToggle }: { filters: FilterState; onFilterChange: (filters: FilterState) => void; isOpen: boolean; onToggle: (open: boolean) => void }) {
   const timePeriods: { label: string; value: TimePeriod }[] = [
     { label: "Esta semana", value: "week" },
     { label: "Este mes", value: "month" },
@@ -1036,169 +1191,185 @@ function FilterPanel({ filters, onFilterChange }: { filters: FilterState; onFilt
     }
   };
 
+  const hasActiveFilters = filters.segments.length > 0 || filters.stages.length > 0 || filters.reps.length > 0 || filters.status.length > 0;
+
   return (
-    <div className="rounded-lg border border-border bg-card p-4">
-      <div className="flex items-center justify-between mb-3">
-        <h3 className="text-sm font-semibold text-foreground flex items-center gap-2">
-          <i className="fa-solid fa-sliders text-muted-foreground" />
-          Filtros
-        </h3>
-        <Button variant="ghost" size="icon-sm" onClick={() => setExpanded(!expanded)} className="h-6 w-6">
-          <i className={cn("text-xs fa-solid", expanded ? "fa-chevron-up" : "fa-chevron-down")} />
-        </Button>
-      </div>
+    <>
+      {/* Floating Panel Overlay */}
+      {isOpen && <div className="fixed inset-0 z-30 bg-black/20" onClick={() => onToggle(false)} />}
 
-      {expanded && (
-        <>
-          <Separator className="mb-3" />
+      {/* Floating Panel */}
+      <div className={cn(
+        "fixed top-16 right-4 w-96 max-h-[calc(100vh-100px)] bg-card border border-border rounded-xl shadow-xl overflow-hidden flex flex-col z-40 transition-all duration-300",
+        isOpen ? "opacity-100 visible" : "opacity-0 invisible pointer-events-none"
+      )}>
 
-          {/* Time Period */}
-          <div className="mb-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Período</label>
-            <div className="grid grid-cols-3 md:grid-cols-6 gap-1">
+        {/* Header */}
+        <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-primary/10 to-primary/5">
+          <h3 className="text-sm font-bold text-foreground flex items-center gap-2">
+            <i className="fa-solid fa-filter text-primary" />
+            Filtros Avanzados
+          </h3>
+          <button
+            onClick={() => onToggle(false)}
+            className="h-6 w-6 rounded hover:bg-muted flex items-center justify-center transition-colors"
+          >
+            <i className="fa-solid fa-close text-xs" />
+          </button>
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 overflow-y-auto p-4 space-y-4">
+
+          {/* Time Period - Pills */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5 block">📅 Período</label>
+            <div className="grid grid-cols-3 gap-2">
               {timePeriods.map((period) => (
-                <Button
+                <button
                   key={period.value}
-                  size="sm"
-                  variant={filters.timePeriod === period.value ? "default" : "outline"}
                   onClick={() => onFilterChange({ ...filters, timePeriod: period.value })}
-                  className="h-7 text-[10px]"
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-semibold transition-all",
+                    filters.timePeriod === period.value
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted hover:bg-muted/80 text-foreground"
+                  )}
                 >
                   {period.label}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Segments */}
-          <div className="mb-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Segmento</label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-1">
+          <Separator />
+
+          {/* Segments - Pills */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5 block">🐋 Segmento</label>
+            <div className="grid grid-cols-2 gap-2">
               {segments.map((seg) => (
-                <Button
+                <button
                   key={seg}
-                  size="sm"
-                  variant={filters.segments.includes(seg) ? "default" : "outline"}
                   onClick={() => toggleItem("segments", seg)}
-                  className="h-7 text-[10px]"
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    filters.segments.includes(seg)
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted hover:bg-muted/80 text-foreground"
+                  )}
                 >
                   {seg}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Stages */}
-          <div className="mb-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Etapa</label>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-1">
+          <Separator />
+
+          {/* Stages - Pills */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5 block">📍 Etapa</label>
+            <div className="grid grid-cols-2 gap-2">
               {stages.map((stage) => (
-                <Button
+                <button
                   key={stage}
-                  size="sm"
-                  variant={filters.stages.includes(stage) ? "default" : "outline"}
                   onClick={() => toggleItem("stages", stage)}
-                  className="h-7 text-[10px]"
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    filters.stages.includes(stage)
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted hover:bg-muted/80 text-foreground"
+                  )}
                 >
                   {stage}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Reps */}
-          <div className="mb-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Vendedor</label>
-            <div className="grid grid-cols-2 md:grid-cols-5 gap-1">
+          <Separator />
+
+          {/* Reps - Pills */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5 block">👤 Vendedor</label>
+            <div className="grid grid-cols-2 gap-2">
               {reps.map((rep) => (
-                <Button
+                <button
                   key={rep}
-                  size="sm"
-                  variant={filters.reps.includes(rep) ? "default" : "outline"}
                   onClick={() => toggleItem("reps", rep)}
-                  className="h-7 text-[10px]"
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    filters.reps.includes(rep)
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted hover:bg-muted/80 text-foreground"
+                  )}
                 >
                   {rep}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
-          {/* Status */}
-          <div className="mb-3">
-            <label className="text-xs font-semibold uppercase tracking-wider text-muted-foreground mb-1.5 block">Estado</label>
-            <div className="grid grid-cols-3 gap-1">
+          <Separator />
+
+          {/* Status - Pills */}
+          <div>
+            <label className="text-xs font-bold uppercase tracking-widest text-muted-foreground mb-2.5 block">✓ Estado</label>
+            <div className="grid grid-cols-3 gap-2">
               {statuses.map((status) => (
-                <Button
+                <button
                   key={status}
-                  size="sm"
-                  variant={filters.status.includes(status) ? "default" : "outline"}
                   onClick={() => toggleItem("status", status)}
-                  className="h-7 text-[10px]"
+                  className={cn(
+                    "px-3 py-1.5 rounded-lg text-xs font-medium transition-all",
+                    filters.status.includes(status)
+                      ? "bg-primary text-primary-foreground shadow-sm"
+                      : "bg-muted hover:bg-muted/80 text-foreground"
+                  )}
                 >
                   {status}
-                </Button>
+                </button>
               ))}
             </div>
           </div>
 
-          <Separator className="my-3" />
+        </div>
 
-          {/* Active Filters Summary */}
-          {(filters.segments.length > 0 || filters.stages.length > 0 || filters.reps.length > 0 || filters.status.length > 0) && (
-            <div className="mb-3 p-2 rounded bg-primary/5 border border-primary/10">
-              <div className="text-[11px] text-muted-foreground mb-1.5">Filtros activos:</div>
-              <div className="flex flex-wrap gap-1">
-                {filters.segments.map((seg) => (
-                  <Badge key={seg} variant="secondary" className="text-[10px]">
-                    {seg}
-                  </Badge>
-                ))}
-                {filters.stages.map((stage) => (
-                  <Badge key={stage} variant="secondary" className="text-[10px]">
-                    {stage}
-                  </Badge>
-                ))}
-                {filters.reps.map((rep) => (
-                  <Badge key={rep} variant="secondary" className="text-[10px]">
-                    {rep}
-                  </Badge>
-                ))}
-                {filters.status.map((status) => (
-                  <Badge key={status} variant="secondary" className="text-[10px]">
-                    {status}
-                  </Badge>
-                ))}
-              </div>
-            </div>
-          )}
+        {/* Footer */}
+        <div className="border-t border-border p-4 bg-muted/30 flex gap-2">
+          <button
+            onClick={() =>
+              onFilterChange({
+                timePeriod: "month",
+                segments: [],
+                stages: [],
+                reps: [],
+                status: [],
+              })
+            }
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-muted hover:bg-muted/80 text-foreground transition-colors"
+          >
+            <i className="fa-solid fa-rotate-left mr-1" />
+            Limpiar
+          </button>
+          <button
+            onClick={() => onToggle(false)}
+            className="flex-1 px-3 py-2 rounded-lg text-xs font-semibold bg-primary hover:bg-primary/90 text-primary-foreground transition-colors"
+          >
+            <i className="fa-solid fa-check mr-1" />
+            Aplicar
+          </button>
+        </div>
 
-          <div className="flex gap-1">
-            <Button size="sm" className="flex-1 h-8 text-xs">
-              <i className="fa-solid fa-check mr-1" />
-              Aplicar
-            </Button>
-            <Button
-              size="sm"
-              variant="outline"
-              className="flex-1 h-8 text-xs"
-              onClick={() =>
-                onFilterChange({
-                  timePeriod: "month",
-                  segments: [],
-                  stages: [],
-                  reps: [],
-                  status: [],
-                })
-              }
-            >
-              <i className="fa-solid fa-rotate-left mr-1" />
-              Limpiar
-            </Button>
+        {/* Active Filters Badge */}
+        {hasActiveFilters && (
+          <div className="absolute top-4 right-12 h-5 w-5 rounded-full bg-red-600 flex items-center justify-center text-xs font-bold text-white">
+            {filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length}
           </div>
-        </>
-      )}
-    </div>
+        )}
+      </div>
+    </>
   );
 }
 
@@ -1242,21 +1413,21 @@ function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
       <div className="fixed bottom-6 right-6 z-40">
         {/* Messages Window */}
         {isExpanded && (
-          <div className="mb-3 w-80 rounded-2xl border border-border bg-card shadow-lg flex flex-col max-h-96">
+          <div className="mb-3 w-96 h-[600px] rounded-2xl border border-border bg-card shadow-2xl flex flex-col overflow-hidden">
             {/* Header */}
             <div className="flex items-center justify-between p-4 border-b border-border bg-gradient-to-r from-blue-600 to-blue-700 text-white rounded-t-2xl">
-              <div className="flex items-center gap-2">
-                <div className="h-2.5 w-2.5 rounded-full bg-white animate-pulse" />
+              <div className="flex items-center gap-3">
+                <div className="h-3 w-3 rounded-full bg-green-300 animate-pulse" />
                 <div>
                   <p className="text-sm font-bold">Agente de Reportes</p>
-                  <p className="text-[10px] opacity-90">En línea • GDT</p>
+                  <p className="text-[10px] opacity-95">En línea • GDT AI</p>
                 </div>
               </div>
               <button
                 onClick={() => setIsExpanded(false)}
-                className="hover:opacity-80 transition-opacity"
+                className="h-8 w-8 flex items-center justify-center hover:bg-white/20 rounded-lg transition-colors"
               >
-                <i className="fa-solid fa-minus text-white" />
+                <i className="fa-solid fa-minus text-white text-sm" />
               </button>
             </div>
 
@@ -1264,28 +1435,28 @@ function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {messages.length === 0 ? (
                 <div className="h-full flex flex-col items-center justify-center text-center py-8">
-                  <div className="text-3xl mb-2">🤖</div>
-                  <p className="text-xs font-medium text-foreground">Hola, soy tu Agente de Reportes</p>
-                  <p className="text-[10px] text-muted-foreground mt-1">Pregúntame sobre datos, métricas o análisis</p>
+                  <div className="text-4xl mb-3">🤖</div>
+                  <p className="text-sm font-semibold text-foreground">Hola, soy tu Agente de Reportes</p>
+                  <p className="text-xs text-muted-foreground mt-2">Pregúntame sobre datos, métricas, análisis o tendencias</p>
                 </div>
               ) : (
                 <>
                   {messages.map((msg) => (
                     <div
                       key={msg.id}
-                      className={cn("flex gap-2", msg.sender === "user" ? "justify-end" : "justify-start")}
+                      className={cn("flex gap-2 items-end", msg.sender === "user" ? "justify-end" : "justify-start")}
                     >
                       {msg.sender === "agent" && (
-                        <div className="h-7 w-7 rounded-full bg-blue-600 flex items-center justify-center text-white text-xs shrink-0">
+                        <div className="h-8 w-8 rounded-full bg-blue-600 flex items-center justify-center text-white text-sm shrink-0">
                           <i className="fa-solid fa-robot" />
                         </div>
                       )}
                       <div
                         className={cn(
-                          "max-w-xs rounded-2xl px-3 py-2 text-xs leading-relaxed",
+                          "max-w-xs rounded-2xl px-4 py-2.5 text-sm leading-relaxed",
                           msg.sender === "user"
                             ? "bg-blue-600 text-white rounded-br-none"
-                            : "bg-muted text-foreground rounded-bl-none border border-border"
+                            : "bg-muted text-foreground rounded-bl-none border border-border/50"
                         )}
                       >
                         {msg.text}
@@ -1299,16 +1470,17 @@ function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
 
             {/* Suggestions - First Time */}
             {messages.length === 0 && (
-              <div className="border-t border-border p-3 max-h-24 overflow-y-auto">
-                <p className="text-[10px] font-bold text-muted-foreground mb-2">Sugerencias:</p>
-                <div className="space-y-1">
+              <div className="border-t border-border p-4 max-h-32 overflow-y-auto bg-muted/40">
+                <p className="text-xs font-bold text-muted-foreground mb-3">💡 Sugerencias:</p>
+                <div className="space-y-2">
                   {suggestions.slice(0, 3).map((sug, idx) => (
                     <button
                       key={idx}
                       onClick={() => handleSendMessage(sug)}
-                      className="w-full text-left text-[10px] p-1.5 rounded hover:bg-muted transition-colors text-muted-foreground hover:text-foreground"
+                      className="w-full text-left text-xs p-2 rounded-lg hover:bg-muted transition-colors text-muted-foreground hover:text-foreground hover:font-medium"
                     >
-                      → {sug}
+                      <i className="fa-solid fa-arrow-right mr-2 text-primary text-[10px]" />
+                      {sug}
                     </button>
                   ))}
                 </div>
@@ -1316,11 +1488,11 @@ function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
             )}
 
             {/* Input */}
-            <div className="border-t border-border p-3 bg-muted/50 rounded-b-2xl">
-              <div className="flex items-end gap-2">
+            <div className="border-t border-border p-4 bg-background">
+              <div className="flex items-center gap-2">
                 <input
                   type="text"
-                  placeholder="Pregunta..."
+                  placeholder="Escribe tu pregunta..."
                   value={inputValue}
                   onChange={(e) => setInputValue(e.target.value)}
                   onKeyPress={(e) => {
@@ -1328,14 +1500,14 @@ function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
                       handleSendMessage(inputValue);
                     }
                   }}
-                  className="flex-1 bg-background px-2 py-1.5 rounded text-xs border border-border focus:outline-none focus:ring-1 focus:ring-blue-600 placeholder:text-muted-foreground"
+                  className="flex-1 bg-muted px-3.5 py-2.5 rounded-xl text-sm border border-border/40 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent placeholder:text-muted-foreground transition-all"
                 />
                 <button
                   onClick={() => inputValue.trim() && handleSendMessage(inputValue)}
                   disabled={!inputValue.trim()}
-                  className="h-7 w-7 bg-blue-600 hover:bg-blue-700 disabled:opacity-50 disabled:cursor-not-allowed text-white rounded flex items-center justify-center transition-colors"
+                  className="h-10 w-10 bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 disabled:opacity-40 disabled:cursor-not-allowed text-white rounded-xl flex items-center justify-center transition-all shadow-sm hover:shadow-md"
                 >
-                  <i className="fa-solid fa-arrow-up text-xs" />
+                  <i className="fa-solid fa-arrow-up text-sm" />
                 </button>
               </div>
             </div>
@@ -1346,13 +1518,24 @@ function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
         <button
           onClick={() => setIsExpanded(!isExpanded)}
           className={cn(
-            "h-14 w-14 rounded-full shadow-xl hover:shadow-2xl transition-all flex items-center justify-center text-white text-xl",
+            "h-16 w-16 rounded-full shadow-lg hover:shadow-xl transition-all flex items-center justify-center text-white text-2xl",
             isExpanded
-              ? "bg-blue-600 hover:bg-blue-700"
-              : "bg-gradient-to-br from-blue-600 to-blue-700 hover:scale-110 animate-pulse"
+              ? "bg-gradient-to-r from-blue-600 to-blue-700 scale-95"
+              : "bg-gradient-to-r from-blue-600 to-blue-700 hover:from-blue-700 hover:to-blue-800 hover:scale-110"
           )}
         >
-          {isExpanded ? <i className="fa-solid fa-xmark" /> : <i className="fa-solid fa-robot" />}
+          {isExpanded ? (
+            <i className="fa-solid fa-minus" />
+          ) : (
+            <>
+              <i className="fa-solid fa-robot" />
+              {messages.length > 0 && (
+                <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-red-500 flex items-center justify-center text-xs text-white font-bold">
+                  1
+                </span>
+              )}
+            </>
+          )}
         </button>
       </div>
     </>
@@ -1366,7 +1549,7 @@ function ReportingAgentBubble({ userRole }: { userRole: UserRole }) {
 export default function ReportingPage() {
   const [userRole, setUserRole] = useState<UserRole>("director");
   const [selectedRep, setSelectedRep] = useState<string | null>(null);
-  const [showFilters, setShowFilters] = useState(false);
+  const [isFiltersOpen, setIsFiltersOpen] = useState(false);
   const [filters, setFilters] = useState<FilterState>({
     timePeriod: "month",
     segments: [],
@@ -1433,12 +1616,17 @@ export default function ReportingPage() {
             <div className="flex items-center gap-2">
               <Button
                 size="sm"
-                variant={showFilters ? "default" : "outline"}
-                onClick={() => setShowFilters(!showFilters)}
-                className="gap-1.5"
+                variant={isFiltersOpen ? "default" : "outline"}
+                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                className="gap-1.5 relative"
               >
                 <i className="fa-solid fa-sliders text-xs" />
                 <span className="hidden sm:inline">Filtros</span>
+                {(filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length) > 0 && (
+                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">
+                    {filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length}
+                  </span>
+                )}
               </Button>
 
               {/* Role Selector */}
@@ -1491,15 +1679,6 @@ export default function ReportingPage() {
         </header>
 
         <div className="flex flex-1 overflow-hidden">
-          {/* Sidebar: Filters */}
-          {showFilters && (
-            <div className="w-80 border-r border-border bg-card flex flex-col overflow-hidden">
-              <div className="flex-1 overflow-y-auto p-4">
-                <FilterPanel filters={filters} onFilterChange={setFilters} />
-              </div>
-            </div>
-          )}
-
           {/* Main Content */}
           <div className="flex-1 overflow-y-auto p-6">
             <div className="space-y-6 max-w-7xl mx-auto">
@@ -1571,7 +1750,24 @@ export default function ReportingPage() {
                     </Card>
                   </div>
 
-                  {/* Row 3: Forecast & Recommendations */}
+                  {/* Row 3: Advanced Analytics - Trends & Period Comparison */}
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* Trend Line Chart */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <TrendLineChart />
+                      </CardContent>
+                    </Card>
+
+                    {/* Period Comparison */}
+                    <Card>
+                      <CardContent className="p-6">
+                        <PeriodComparisonChart />
+                      </CardContent>
+                    </Card>
+                  </div>
+
+                  {/* Row 4: Forecast & Recommendations */}
                   <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Forecast */}
                     <Card>
@@ -1654,7 +1850,7 @@ export default function ReportingPage() {
                     </Card>
                   </div>
 
-                  {/* Row 4: Deep Insights - Churn, Expansion, Velocity, Capacity */}
+                  {/* Row 5: Deep Insights - Churn, Expansion, Velocity, Capacity */}
                   <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Churn Risk */}
                     <Card className="border-red-200">
@@ -1805,17 +2001,17 @@ export default function ReportingPage() {
               {/* Individual Rep Detail View - Enhanced */}
               {selectedRep && (
                 <div>
-                  <div className="space-y-4">
+                  <div className="space-y-8">
                     {/* Header */}
-                    <div className="rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-4">
+                    <div className="rounded-lg border border-primary/20 bg-gradient-to-r from-primary/10 to-primary/5 p-6">
                       <div className="flex items-center justify-between">
                         <div>
-                          <h2 className="text-lg font-bold text-foreground mb-1">{selectedRep}</h2>
+                          <h2 className="text-2xl font-bold text-foreground mb-1">{selectedRep}</h2>
                           <p className="text-sm text-muted-foreground">Análisis detallado de desempeño individual</p>
                         </div>
                         <button
                           onClick={() => setSelectedRep(null)}
-                          className="px-3 py-1 rounded text-xs border border-primary hover:bg-primary/10 transition-colors"
+                          className="px-4 py-2 rounded-lg text-xs font-semibold border border-primary hover:bg-primary/10 transition-colors"
                         >
                           ← Volver al equipo
                         </button>
@@ -1835,54 +2031,54 @@ export default function ReportingPage() {
                       return (
                         <>
                           {/* Key Metrics Grid */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
                             <Card>
-                              <CardContent className="p-4">
+                              <CardContent className="p-5">
                                 <div className="flex items-center justify-between mb-2">
-                                  <p className="text-[10px] font-semibold text-muted-foreground">Llamadas</p>
-                                  <i className="fa-solid fa-phone text-primary text-xs" />
+                                  <p className="text-[11px] font-semibold text-muted-foreground">LLAMADAS</p>
+                                  <i className="fa-solid fa-phone text-primary text-sm" />
                                 </div>
-                                <p className="text-2xl font-bold text-foreground">{repCalls}</p>
-                                <p className="text-[10px] text-muted-foreground mt-2">
+                                <p className="text-3xl font-bold text-foreground">{repCalls}</p>
+                                <p className="text-[11px] text-muted-foreground mt-3">
                                   {repCalls > callsMedian ? `+${repCalls - callsMedian} vs 65 (mediana)` : repCalls < callsMedian ? `${repCalls - callsMedian} vs 65` : "En mediana"}
                                 </p>
                               </CardContent>
                             </Card>
 
                             <Card>
-                              <CardContent className="p-4">
+                              <CardContent className="p-5">
                                 <div className="flex items-center justify-between mb-2">
-                                  <p className="text-[10px] font-semibold text-muted-foreground">Cierres</p>
-                                  <i className="fa-solid fa-check text-emerald-600 text-xs" />
+                                  <p className="text-[11px] font-semibold text-muted-foreground">CIERRES</p>
+                                  <i className="fa-solid fa-check text-emerald-600 text-sm" />
                                 </div>
-                                <p className="text-2xl font-bold text-foreground">{repData?.closes}</p>
-                                <p className="text-[10px] text-emerald-600 mt-2">
+                                <p className="text-3xl font-bold text-foreground">{repData?.closes}</p>
+                                <p className="text-[11px] text-emerald-600 mt-3">
                                   Tasa: {repData?.closes ? Math.round((repData.closes / repCalls) * 100) : 0}%
                                 </p>
                               </CardContent>
                             </Card>
 
                             <Card>
-                              <CardContent className="p-4">
+                              <CardContent className="p-5">
                                 <div className="flex items-center justify-between mb-2">
-                                  <p className="text-[10px] font-semibold text-muted-foreground">Conversión</p>
-                                  <i className="fa-solid fa-percent text-blue-600 text-xs" />
+                                  <p className="text-[11px] font-semibold text-muted-foreground">CONVERSIÓN</p>
+                                  <i className="fa-solid fa-percent text-blue-600 text-sm" />
                                 </div>
-                                <p className="text-2xl font-bold text-foreground">{repConversions}%</p>
-                                <p className="text-[10px] text-muted-foreground mt-2">
+                                <p className="text-3xl font-bold text-foreground">{repConversions}%</p>
+                                <p className="text-[11px] text-muted-foreground mt-3">
                                   {repConversions > conversionsMedian ? "↑ Sobre promedio" : "↓ Bajo promedio"}
                                 </p>
                               </CardContent>
                             </Card>
 
                             <Card>
-                              <CardContent className="p-4">
+                              <CardContent className="p-5">
                                 <div className="flex items-center justify-between mb-2">
-                                  <p className="text-[10px] font-semibold text-muted-foreground">Propuestas</p>
-                                  <i className="fa-solid fa-envelope text-purple-600 text-xs" />
+                                  <p className="text-[11px] font-semibold text-muted-foreground">PROPUESTAS</p>
+                                  <i className="fa-solid fa-envelope text-purple-600 text-sm" />
                                 </div>
-                                <p className="text-2xl font-bold text-foreground">{repProposals}</p>
-                                <p className="text-[10px] text-muted-foreground mt-2">
+                                <p className="text-3xl font-bold text-foreground">{repProposals}</p>
+                                <p className="text-[11px] text-muted-foreground mt-3">
                                   {repProposals}/{repCalls} = {repCalls > 0 ? Math.round((repProposals / repCalls) * 100) : 0}% conversion
                                 </p>
                               </CardContent>
@@ -1890,11 +2086,11 @@ export default function ReportingPage() {
                           </div>
 
                           {/* Detailed Analysis */}
-                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                             {/* Performance Comparison */}
                             <Card>
-                              <CardContent className="p-4">
-                                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                              <CardContent className="p-6">
+                                <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
                                   <i className="fa-solid fa-chart-column text-primary" />
                                   Comparación vs Equipo
                                 </h3>
@@ -1954,8 +2150,8 @@ export default function ReportingPage() {
 
                             {/* Capacity & Productivity */}
                             <Card>
-                              <CardContent className="p-4">
-                                <h3 className="text-sm font-semibold text-foreground mb-3 flex items-center gap-2">
+                              <CardContent className="p-6">
+                                <h3 className="text-sm font-semibold text-foreground mb-4 flex items-center gap-2">
                                   <i className="fa-solid fa-gauge text-purple-600" />
                                   Utilización & Productividad
                                 </h3>
@@ -2026,7 +2222,7 @@ export default function ReportingPage() {
                                     : "border-blue-200 bg-blue-50/50"
                               )}
                             >
-                              <CardContent className="p-4">
+                              <CardContent className="p-6">
                                 <div className="flex items-start gap-3">
                                   <div
                                     className={cn(
@@ -2063,21 +2259,21 @@ export default function ReportingPage() {
                           )}
 
                           {/* Action Buttons */}
-                          <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
-                            <button className="px-3 py-2 rounded text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-1">
-                              <i className="fa-solid fa-message" />
-                              Message
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
+                            <button className="px-4 py-2.5 rounded-lg text-xs font-semibold bg-primary text-primary-foreground hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
+                              <i className="fa-solid fa-message text-sm" />
+                              Mensaje
                             </button>
-                            <button className="px-3 py-2 rounded text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1">
-                              <i className="fa-solid fa-video" />
-                              1:1 Meeting
+                            <button className="px-4 py-2.5 rounded-lg text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-2">
+                              <i className="fa-solid fa-video text-sm" />
+                              1:1
                             </button>
-                            <button className="px-3 py-2 rounded text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1">
-                              <i className="fa-solid fa-chart-line" />
-                              Goals
+                            <button className="px-4 py-2.5 rounded-lg text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-2">
+                              <i className="fa-solid fa-chart-line text-sm" />
+                              Metas
                             </button>
-                            <button className="px-3 py-2 rounded text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-1">
-                              <i className="fa-solid fa-clipboard" />
+                            <button className="px-4 py-2.5 rounded-lg text-xs font-semibold border border-border hover:bg-muted transition-colors flex items-center justify-center gap-2">
+                              <i className="fa-solid fa-clipboard text-sm" />
                               PDP
                             </button>
                           </div>
@@ -2125,6 +2321,10 @@ export default function ReportingPage() {
           </div>
         </div>
       </main>
+
+      {/* Reporting Agent Bubble Chat */}
+      {/* Floating Filter Panel */}
+      <FloatingFilterPanel filters={filters} onFilterChange={setFilters} isOpen={isFiltersOpen} onToggle={setIsFiltersOpen} />
 
       {/* Reporting Agent Bubble Chat */}
       <ReportingAgentBubble userRole={userRole} />
