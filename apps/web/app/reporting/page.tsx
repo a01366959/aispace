@@ -1871,127 +1871,397 @@ export default function ReportingPage() {
       </nav>
 
       {/* ── Main Content ─────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto">
-        {/* Header */}
-        <header className="sticky top-0 z-10 border-b border-border bg-card px-6 py-4">
-          <div className="flex items-center justify-between mb-4">
-            <div>
-              <h1 className="text-2xl font-bold text-foreground">{isDirector ? "Reporte Ejecutivo — Dirección" : isSupervisor ? "Reporte de Equipo — Supervisor" : "Reporte de Reportes"}</h1>
-              <p className="text-sm text-muted-foreground mt-1">Datos en tiempo real • Actualizado hace 10 minutos</p>
-            </div>
+      <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+        {/* ════════════════════════════════════════════════════════════
+            HEADER: Executive Summary Strip (F-Pattern: Top Horizontal)
+            ════════════════════════════════════════════════════════════ */}
+        <header className="sticky top-0 z-20 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+          <div className="px-8 py-4">
+            {/* Title & Period Selector */}
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex-1">
+                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                  {isDirector ? "📊 Panel Ejecutivo" : isSupervisor ? "👥 Desempeño del Equipo" : "📈 Mi Desempeño"}
+                </h1>
+                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                  <i className="fa-solid fa-clock text-xs mr-1" /> Actualizado hace 3 minutos
+                </p>
+              </div>
 
-            {/* Action Buttons */}
-            <div className="flex items-center gap-3">
-              {/* Period Selector */}
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-medium text-muted-foreground">Período:</span>
-                <div className="flex items-center gap-1 rounded-lg border border-border bg-muted/30 p-1">
-                  <Tooltip content="Mes anterior" side="bottom">
+              {/* Controls */}
+              <div className="flex items-center gap-4">
+                {/* Period Selector with Visual Feedback */}
+                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl p-2">
+                  <Tooltip content="Período anterior" side="bottom" maxWidth={200}>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant={comparisonPeriod === "previous-month" ? "default" : "ghost"}
                       onClick={() => setComparisonPeriod("previous-month")}
-                      className={`h-8 text-xs ${comparisonPeriod === "previous-month" ? "bg-primary text-primary-foreground" : ""}`}
+                      className="text-xs h-8"
                     >
-                      <i className="fa-solid fa-chevron-left" />
+                      <i className="fa-solid fa-chevron-left text-xs" />
                     </Button>
                   </Tooltip>
-                  <div className="px-2 py-1 text-sm font-semibold text-foreground min-w-[120px] text-center">
-                    {filters.timePeriod === "month" ? "Este Mes" : filters.timePeriod === "quarter" ? "Este Trimestre" : "Este Año"}
-                  </div>
-                  <Tooltip content="Próximo período" side="bottom">
+                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 min-w-[100px] text-center">Este Mes</span>
+                  <Tooltip content="Próximo período" side="bottom" maxWidth={200}>
                     <Button
                       size="sm"
-                      variant="ghost"
+                      variant={comparisonPeriod === "none" ? "default" : "ghost"}
                       onClick={() => setComparisonPeriod("none")}
-                      className={`h-8 text-xs ${comparisonPeriod === "none" ? "bg-primary text-primary-foreground" : ""}`}
+                      className="text-xs h-8"
                     >
-                      <i className="fa-solid fa-chevron-right" />
+                      <i className="fa-solid fa-chevron-right text-xs" />
                     </Button>
                   </Tooltip>
                 </div>
-              </div>
 
-              {/* Role Selector */}
-              <div className="flex items-center gap-2 rounded-lg border border-border bg-muted/30 p-1">
-                {(["director", "supervisor"] as const).map((role) => (
-                  <Tooltip key={role} content={getRoleConfig(role).label} side="bottom">
-                    <Button
-                      size="sm"
-                      variant={userRole === role ? "default" : "ghost"}
-                      onClick={() => setUserRole(role)}
-                      className="h-8 gap-1.5"
-                    >
-                      <i className={getRoleConfig(role).icon} />
-                      <span className="hidden sm:inline text-xs">{role === "director" ? "Dirección" : "Supervisor"}</span>
-                    </Button>
-                  </Tooltip>
-                ))}
-              </div>
+                {/* Role Selector */}
+                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+                  {(["director", "supervisor"] as const).map((role) => (
+                    <Tooltip key={role} content={getRoleConfig(role).label} side="bottom" maxWidth={150}>
+                      <Button
+                        size="sm"
+                        variant={userRole === role ? "default" : "ghost"}
+                        onClick={() => setUserRole(role)}
+                        className="h-8 text-xs gap-1.5"
+                      >
+                        <i className={getRoleConfig(role).icon} />
+                        <span className="hidden sm:inline">{role === "director" ? "Dir." : "Sup."}</span>
+                      </Button>
+                    </Tooltip>
+                  ))}
+                </div>
 
-              <Button
-                size="sm"
-                variant={isFiltersOpen ? "default" : "outline"}
-                onClick={() => setIsFiltersOpen(!isFiltersOpen)}
-                className="gap-1.5 relative"
-              >
-                <i className="fa-solid fa-sliders text-xs" />
-                <span className="hidden sm:inline">Filtros</span>
-                {(filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length) > 0 && (
-                  <span className="absolute -top-1 -right-1 h-4 w-4 rounded-full bg-red-600 flex items-center justify-center text-[10px] text-white font-bold">
-                    {filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length}
-                  </span>
-                )}
-              </Button>
-            </div>
-          </div>
-
-          {/* Active Filter Badges */}
-          {(filters.segments.length > 0 || filters.stages.length > 0 || filters.reps.length > 0 || filters.status.length > 0) && (
-            <div className="flex items-center gap-2">
-              <span className="text-xs text-muted-foreground">Filtros activos:</span>
-              <div className="flex flex-wrap gap-1">
-                {filters.segments.map((seg) => (
-                  <Badge key={seg} variant="secondary" className="text-[10px]">
-                    {seg}
-                  </Badge>
-                ))}
-                {filters.stages.map((stage) => (
-                  <Badge key={stage} variant="secondary" className="text-[10px]">
-                    {stage}
-                  </Badge>
-                ))}
-                {filters.reps.map((rep) => (
-                  <Badge key={rep} variant="secondary" className="text-[10px]">
-                    {rep}
-                  </Badge>
-                ))}
-                {filters.status.map((status) => (
-                  <Badge key={status} variant="secondary" className="text-[10px]">
-                    {status}
-                  </Badge>
-                ))}
+                {/* Filters & Actions */}
+                <Tooltip content="Filtros avanzados" side="bottom" maxWidth={180}>
+                  <Button
+                    size="sm"
+                    variant={isFiltersOpen ? "default" : "outline"}
+                    onClick={() => setIsFiltersOpen(!isFiltersOpen)}
+                    className="gap-1.5 relative"
+                  >
+                    <i className="fa-solid fa-funnel text-xs" />
+                    <span className="hidden sm:inline text-xs">Filtros</span>
+                    {(filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length) > 0 && (
+                      <span className="absolute -top-1 -right-1 h-5 w-5 rounded-full bg-blue-600 flex items-center justify-center text-[10px] text-white font-bold">
+                        {filters.segments.length + filters.stages.length + filters.reps.length + filters.status.length}
+                      </span>
+                    )}
+                  </Button>
+                </Tooltip>
               </div>
             </div>
-          )}
-        </header>
 
-        <div className="flex flex-1 overflow-hidden">
-          {/* Main Content */}
-          <div className="flex-1 overflow-y-auto p-6">
-            <div className="space-y-6 max-w-7xl mx-auto">
-              {/* Key Metrics */}
-              <div>
-                <h2 className="text-lg font-semibold text-foreground mb-4">Métricas Clave</h2>
-                <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-                  {(isDirector ? DIRECTOR_MACRO.metrics : SUPERVISOR_METRICS.metrics).map((metric, idx) => (
-                    <MetricCard key={idx} item={metric} />
+            {/* Active Filters Bar */}
+            {(filters.segments.length > 0 || filters.stages.length > 0 || filters.reps.length > 0 || filters.status.length > 0) && (
+              <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
+                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Filtros:</span>
+                <div className="flex flex-wrap gap-2">
+                  {[...filters.segments, ...filters.stages, ...filters.reps, ...filters.status].map((filter) => (
+                    <Badge key={filter} variant="secondary" className="text-xs px-2 py-0.5">
+                      {filter}
+                      <button onClick={() => {}} className="ml-1.5 hover:opacity-60">
+                        <i className="fa-solid fa-xmark text-[10px]" />
+                      </button>
+                    </Badge>
                   ))}
                 </div>
               </div>
+            )}
+          </div>
+        </header>
 
-              {/* At A Glance - Quick Insights */}
-              <Card className="border-primary/30 bg-gradient-to-r from-primary/5 to-transparent">
+        {/* ════════════════════════════════════════════════════════════
+            MAIN CONTENT: Two-Column F-Pattern Layout
+            ════════════════════════════════════════════════════════════ */}
+        <div className="flex gap-6 p-8 max-w-full">
+          {/* LEFT COLUMN: Narrow (280px) - Quick Reference & Alerts */}
+          <aside className="w-72 flex-shrink-0 space-y-4">
+            {/* Executive KPIs - Vertical Stack */}
+            <div className="sticky top-24 space-y-3">
+              {(isDirector ? DIRECTOR_MACRO.metrics : SUPERVISOR_METRICS.metrics).map((metric, idx) => (
+                <div
+                  key={idx}
+                  className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow"
+                >
+                  <div className="flex items-start justify-between mb-2">
+                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{metric.label}</span>
+                    {metric.icon && (
+                      <i className={`${metric.icon} text-base text-blue-600 dark:text-blue-400`} />
+                    )}
+                  </div>
+                  <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{metric.value}</p>
+                  {metric.change && (
+                    <div className="flex items-center gap-1">
+                      <i className={`fa-solid fa-arrow-${metric.change.direction === "up" ? "up" : "down"} text-xs ${metric.change.direction === "up" ? "text-emerald-600" : "text-red-600"}`} />
+                      <span className={`text-xs font-semibold ${metric.change.direction === "up" ? "text-emerald-600" : "text-red-600"}`}>
+                        {metric.change.direction === "up" ? "+" : ""}{metric.change.value}%
+                      </span>
+                    </div>
+                  )}
+                  {metric.context && (
+                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">{metric.context}</p>
+                  )}
+                </div>
+              ))}
+            </div>
+          </aside>
+
+          {/* RIGHT COLUMN: Wide (Main Dashboard) - F-Pattern Grid */}
+          <div className="flex-1 min-w-0 space-y-6">
+            {/* ROW 1: At-A-Glance Summary */}
+            <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                  <i className="fa-solid fa-gauge text-blue-600 dark:text-blue-400" />
+                  Métricas al Vistazo
+                </h2>
+              </div>
+              <CardContent className="p-6">
+                <AtAGlanceMetrics />
+              </CardContent>
+            </div>
+
+            {/* ROW 2A: Pipeline & Funnel (Left) + Trends (Right) - Two Column */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Sales Funnel */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-emerald-50 to-emerald-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-funnel text-emerald-600 dark:text-emerald-400" />
+                    Pipeline de Ventas
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <SalesVsProspectingFunnel />
+                </CardContent>
+              </div>
+
+              {/* Trends */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-purple-50 to-purple-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-chart-line text-purple-600 dark:text-purple-400" />
+                    Tendencia 7 Días
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <TrendLineChart />
+                </CardContent>
+              </div>
+            </div>
+
+            {/* ROW 2B: Period Comparison & Segment Distribution */}
+            <div className="grid grid-cols-2 gap-6">
+              {/* Period Comparison */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-amber-50 to-amber-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-calendar-days text-amber-600 dark:text-amber-400" />
+                    Comparación Período
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <PeriodComparisonChart comparisonPeriod={comparisonPeriod} />
+                </CardContent>
+              </div>
+
+              {/* Segment Distribution */}
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-pink-50 to-pink-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-pie-chart text-pink-600 dark:text-pink-400" />
+                    Distribución
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <SegmentChart />
+                </CardContent>
+              </div>
+            </div>
+
+            {/* ROW 3: Recurring Customers & Executive Insights */}
+            <div className="grid grid-cols-2 gap-6">
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-cyan-50 to-cyan-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-users-line text-cyan-600 dark:text-cyan-400" />
+                    Clientes Recurrentes
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <RecurringCustomersCard />
+                </CardContent>
+              </div>
+
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-orange-50 to-orange-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-lightbulb text-orange-600 dark:text-orange-400" />
+                    Insights Clave
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <div className="space-y-3">
+                    {[
+                      { icon: "fa-arrow-trend-up", label: "Retención Fuerte", value: "92% - 75%", desc: "Ballenas y Tiburones", color: "emerald" },
+                      { icon: "fa-bolt", label: "Oportunidad Upsell", value: "↑ 18%", desc: "Potencial en Atunes", color: "blue" },
+                      { icon: "fa-target", label: "Concentración", value: "35%", desc: "Ballenas generan 2.5% volumen", color: "amber" },
+                    ].map((item, idx) => (
+                      <div key={idx} className={`p-3 rounded-lg bg-${item.color}-50 dark:bg-slate-700 border border-${item.color}-200 dark:border-slate-600`}>
+                        <div className="flex items-center gap-2 mb-1">
+                          <i className={`fa-solid ${item.icon} text-${item.color}-600 dark:text-${item.color}-400 text-sm`} />
+                          <span className={`text-sm font-semibold text-${item.color}-900 dark:text-${item.color}-300`}>{item.label}</span>
+                        </div>
+                        <p className={`text-xs text-${item.color}-600 dark:text-${item.color}-400`}>{item.desc}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </div>
+            </div>
+
+            {/* ROW 4: Deep Insights (Collapsible) */}
+            <CollapsibleSection
+              title="Análisis Profundo"
+              icon="fa-solid fa-microscope"
+              defaultOpen={false}
+            >
+              <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
+                <div className="rounded-lg bg-red-50 dark:bg-slate-700 border border-red-200 dark:border-slate-600 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-triangle-exclamation text-red-600 dark:text-red-400 text-lg" />
+                    <h4 className="font-bold text-sm text-red-900 dark:text-red-300">Riesgo de Churn</h4>
+                  </div>
+                  <ChurnRiskCard />
+                </div>
+
+                <div className="rounded-lg bg-blue-50 dark:bg-slate-700 border border-blue-200 dark:border-slate-600 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-rocket text-blue-600 dark:text-blue-400 text-lg" />
+                    <h4 className="font-bold text-sm text-blue-900 dark:text-blue-300">Expansión</h4>
+                  </div>
+                  <ExpansionOpportunitiesCard />
+                </div>
+
+                <div className="rounded-lg bg-emerald-50 dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-bolt text-emerald-600 dark:text-emerald-400 text-lg" />
+                    <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Velocidad</h4>
+                  </div>
+                  <SalesVelocityCard />
+                </div>
+
+                <div className="rounded-lg bg-purple-50 dark:bg-slate-700 border border-purple-200 dark:border-slate-600 p-4">
+                  <div className="flex items-center gap-2 mb-3">
+                    <i className="fa-solid fa-people-group text-purple-600 dark:text-purple-400 text-lg" />
+                    <h4 className="font-bold text-sm text-purple-900 dark:text-purple-300">Capacidad</h4>
+                  </div>
+                  <TeamCapacityCard />
+                </div>
+              </div>
+            </CollapsibleSection>
+
+            {/* ROW 5: Director/Supervisor Specific Views */}
+            {isDirector && (
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-indigo-50 to-indigo-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-chart-bar text-indigo-600 dark:text-indigo-400" />
+                    Pipeline Detallado
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-6 gap-3">
+                    {DIRECTOR_MACRO.pipeline.map((stage, idx) => (
+                      <div key={idx} className={`p-4 rounded-lg ${stage.color} border border-slate-200 dark:border-slate-600`}>
+                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{stage.stage}</p>
+                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{stage.count}</p>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{stage.value}</p>
+                      </div>
+                    ))}
+                  </div>
+                </CardContent>
+              </div>
+            )}
+
+            {isSupervisor && (
+              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-green-50 to-green-50/50 dark:from-slate-700 dark:to-slate-700/50">
+                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
+                    <i className="fa-solid fa-users text-green-600 dark:text-green-400" />
+                    Desempeño del Equipo
+                  </h3>
+                </div>
+                <CardContent className="p-6">
+                  <div className="grid grid-cols-2 md:grid-cols-5 gap-2">
+                    <button
+                      onClick={() => setSelectedRep(null)}
+                      className={cn(
+                        "p-3 rounded-lg border-2 transition-all text-center text-xs",
+                        selectedRep === null
+                          ? "border-blue-600 bg-blue-50 dark:bg-slate-700"
+                          : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300"
+                      )}
+                    >
+                      <div className="text-lg mb-1">👥</div>
+                      <p className="font-semibold">Equipo</p>
+                      <p className="text-[10px] text-muted-foreground">Completo</p>
+                    </button>
+                    {SUPERVISOR_METRICS.teamPerformance.slice(0, 4).map((rep) => (
+                      <button
+                        key={rep.rep}
+                        onClick={() => setSelectedRep(rep.rep)}
+                        className={cn(
+                          "p-3 rounded-lg border-2 transition-all text-left text-xs",
+                          selectedRep === rep.rep
+                            ? "border-blue-600 bg-blue-50 dark:bg-slate-700"
+                            : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300"
+                        )}
+                      >
+                        <p className="font-bold text-slate-900 dark:text-white mb-2">{rep.rep.substring(0, 2)}</p>
+                        <div className="space-y-1">
+                          <div className="flex justify-between gap-1">
+                            <span className="text-muted-foreground">Calls</span>
+                            <span className="font-semibold text-slate-900 dark:text-white">{rep.calls}</span>
+                          </div>
+                          <div className="flex justify-between gap-1">
+                            <span className="text-muted-foreground">Closes</span>
+                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{rep.closes}</span>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </CardContent>
+              </div>
+            )}
+
+            {/* ROW 6: Footer Actions */}
+            <div className="flex gap-2 justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <i className="fa-solid fa-download text-sm" />
+                <span className="hidden sm:inline text-xs">PDF</span>
+              </Button>
+              <Button variant="outline" size="sm" className="gap-1.5">
+                <i className="fa-solid fa-share-nodes text-sm" />
+                <span className="hidden sm:inline text-xs">Compartir</span>
+              </Button>
+              <Button size="sm" className="gap-1.5">
+                <i className="fa-solid fa-refresh text-sm" />
+                <span className="hidden sm:inline text-xs">Actualizar</span>
+              </Button>
+            </div>
+          </div>
+        </div>
+      </main>
+
+      {/* Floating Components */}
+      <FloatingFilterPanel filters={filters} onFilterChange={setFilters} isOpen={isFiltersOpen} onToggle={setIsFiltersOpen} />
+      <ReportingAgentBubble userRole={userRole} />
+    </div>
+  );
+}
                 <CardContent className="p-6">
                   <AtAGlanceMetrics />
                 </CardContent>
