@@ -1192,7 +1192,8 @@ function PeriodComparisonChart({
 
   const periods = getPeriodData();
   const maxValue = Math.max(...periods.map((p) => Math.max(p.current, p.previous))) * 1.1;
-  const avgChange = periods.length > 0 ? (periods.reduce((s, p) => s + p.change, 0) / periods.length).toFixed(1) : "0";
+  const avgChangeNum = periods.length > 0 ? (periods.reduce((s, p) => s + p.change, 0) / periods.length) : 0;
+  const avgChange = avgChangeNum.toFixed(1);
 
   return (
     <div>
@@ -1246,9 +1247,9 @@ function PeriodComparisonChart({
         ))}
       </div>
 
-      <div className={cn("mt-4 p-3 rounded-lg border", avgChange >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200")}>
-        <p className={cn("text-xs font-semibold", avgChange >= 0 ? "text-emerald-900" : "text-red-900")}>
-          {avgChange >= 0 ? "📈" : "📉"} Crecimiento Promedio: {avgChange >= 0 ? "+" : ""}{avgChange}%
+      <div className={cn("mt-4 p-3 rounded-lg border", avgChangeNum >= 0 ? "bg-emerald-50 border-emerald-200" : "bg-red-50 border-red-200")}>
+        <p className={cn("text-xs font-semibold", avgChangeNum >= 0 ? "text-emerald-900" : "text-red-900")}>
+          {avgChangeNum >= 0 ? "📈" : "📉"} Crecimiento Promedio: {avgChangeNum >= 0 ? "+" : ""}{avgChange}%
         </p>
       </div>
     </div>
