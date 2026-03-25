@@ -14,7 +14,7 @@ const Tooltip = React.forwardRef<
   TooltipProps
 >(({ content, side = "top", children, delayMs = 200, maxWidth = 240 }, ref) => {
   const [isVisible, setIsVisible] = React.useState(false);
-  const timeoutRef = React.useRef<NodeJS.Timeout>();
+  const timeoutRef = React.useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const tooltipRef = React.useRef<HTMLDivElement>(null);
 
   const handleMouseEnter = () => {
