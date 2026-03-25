@@ -1871,19 +1871,19 @@ export default function ReportingPage() {
       </nav>
 
       {/* ── Main Content ─────────────────────────────────────────── */}
-      <main className="flex-1 overflow-y-auto bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-950 dark:to-slate-900">
+      <main className="flex-1 overflow-y-auto bg-slate-50">
         {/* ════════════════════════════════════════════════════════════
             HEADER: Executive Summary Strip (F-Pattern: Top Horizontal)
             ════════════════════════════════════════════════════════════ */}
-        <header className="sticky top-0 z-20 border-b border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 shadow-sm">
+        <header className="sticky top-0 z-20 border-b border-slate-200 bg-white shadow-sm">
           <div className="px-8 py-4">
             {/* Title & Period Selector */}
             <div className="flex items-center justify-between mb-4">
               <div className="flex-1">
-                <h1 className="text-3xl font-bold text-slate-900 dark:text-white">
+                <h1 className="text-2xl font-bold text-slate-900">
                   {isDirector ? "📊 Panel Ejecutivo" : isSupervisor ? "👥 Desempeño del Equipo" : "📈 Mi Desempeño"}
                 </h1>
-                <p className="text-sm text-slate-500 dark:text-slate-400 mt-1">
+                <p className="text-sm text-slate-500 mt-1">
                   <i className="fa-solid fa-clock text-xs mr-1" /> Actualizado hace 3 minutos
                 </p>
               </div>
@@ -1891,7 +1891,7 @@ export default function ReportingPage() {
               {/* Controls */}
               <div className="flex items-center gap-4">
                 {/* Period Selector with Visual Feedback */}
-                <div className="flex items-center gap-2 bg-slate-100 dark:bg-slate-800 rounded-xl p-2">
+                <div className="flex items-center gap-2 bg-slate-100 rounded-xl p-2">
                   <Tooltip content="Período anterior" side="bottom" maxWidth={200}>
                     <Button
                       size="sm"
@@ -1902,7 +1902,7 @@ export default function ReportingPage() {
                       <i className="fa-solid fa-chevron-left text-xs" />
                     </Button>
                   </Tooltip>
-                  <span className="text-sm font-semibold text-slate-700 dark:text-slate-300 min-w-[100px] text-center">Este Mes</span>
+                  <span className="text-sm font-semibold text-slate-700 min-w-[100px] text-center">Este Mes</span>
                   <Tooltip content="Próximo período" side="bottom" maxWidth={200}>
                     <Button
                       size="sm"
@@ -1916,7 +1916,7 @@ export default function ReportingPage() {
                 </div>
 
                 {/* Role Selector */}
-                <div className="flex items-center gap-1 bg-slate-100 dark:bg-slate-800 rounded-xl p-1">
+                <div className="flex items-center gap-1 bg-slate-100 rounded-xl p-1">
                   {(["director", "supervisor"] as const).map((role) => (
                     <Tooltip key={role} content={getRoleConfig(role).label} side="bottom" maxWidth={150}>
                       <Button
@@ -1954,8 +1954,8 @@ export default function ReportingPage() {
 
             {/* Active Filters Bar */}
             {(filters.segments.length > 0 || filters.stages.length > 0 || filters.reps.length > 0 || filters.status.length > 0) && (
-              <div className="flex items-center gap-2 pt-3 border-t border-slate-200 dark:border-slate-700">
-                <span className="text-xs font-medium text-slate-600 dark:text-slate-400">Filtros:</span>
+              <div className="flex items-center gap-2 pt-3 border-t border-slate-200">
+                <span className="text-xs font-medium text-slate-600">Filtros:</span>
                 <div className="flex flex-wrap gap-2">
                   {[...filters.segments, ...filters.stages, ...filters.reps, ...filters.status].map((filter) => (
                     <Badge key={filter} variant="secondary" className="text-xs px-2 py-0.5">
@@ -1982,15 +1982,15 @@ export default function ReportingPage() {
               {(isDirector ? DIRECTOR_MACRO.metrics : SUPERVISOR_METRICS.metrics).map((metric, idx) => (
                 <div
                   key={idx}
-                  className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 p-4 shadow-sm hover:shadow-md transition-shadow"
+                  className="rounded-lg bg-white border border-slate-200 p-4 shadow-xs hover:shadow-sm transition-shadow"
                 >
                   <div className="flex items-start justify-between mb-2">
-                    <span className="text-[11px] font-semibold text-slate-600 dark:text-slate-400 uppercase tracking-wider">{metric.label}</span>
+                    <span className="text-[11px] font-semibold text-slate-600 uppercase tracking-wider">{metric.label}</span>
                     {metric.icon && (
-                      <i className={`${metric.icon} text-base text-blue-600 dark:text-blue-400`} />
+                      <i className={`${metric.icon} text-base text-blue-600`} />
                     )}
                   </div>
-                  <p className="text-2xl font-bold text-slate-900 dark:text-white mb-1">{metric.value}</p>
+                  <p className="text-2xl font-bold text-slate-900 mb-1">{metric.value}</p>
                   {metric.change && (
                     <div className="flex items-center gap-1">
                       <i className={`fa-solid fa-arrow-${metric.change.direction === "up" ? "up" : "down"} text-xs ${metric.change.direction === "up" ? "text-emerald-600" : "text-red-600"}`} />
@@ -2000,7 +2000,7 @@ export default function ReportingPage() {
                     </div>
                   )}
                   {metric.context && (
-                    <p className="text-xs text-slate-500 dark:text-slate-400 mt-2">{metric.context}</p>
+                    <p className="text-xs text-slate-500 mt-2">{metric.context}</p>
                   )}
                 </div>
               ))}
@@ -2010,10 +2010,10 @@ export default function ReportingPage() {
           {/* RIGHT COLUMN: Wide (Main Dashboard) - F-Pattern Grid */}
           <div className="flex-1 min-w-0 space-y-6">
             {/* ROW 1: At-A-Glance Summary */}
-            <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-              <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-blue-50 to-blue-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                <h2 className="text-lg font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                  <i className="fa-solid fa-gauge text-blue-600 dark:text-blue-400" />
+            <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+              <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-blue-50 to-transparent">
+                <h2 className="text-base font-bold text-slate-900 flex items-center gap-2">
+                  <i className="fa-solid fa-gauge text-blue-600" />
                   Métricas al Vistazo
                 </h2>
               </div>
@@ -2025,10 +2025,10 @@ export default function ReportingPage() {
             {/* ROW 2A: Pipeline & Funnel (Left) + Trends (Right) - Two Column */}
             <div className="grid grid-cols-2 gap-6">
               {/* Sales Funnel */}
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-emerald-50 to-emerald-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-funnel text-emerald-600 dark:text-emerald-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-emerald-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-funnel text-emerald-600" />
                     Pipeline de Ventas
                   </h3>
                 </div>
@@ -2038,10 +2038,10 @@ export default function ReportingPage() {
               </div>
 
               {/* Trends */}
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-purple-50 to-purple-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-chart-line text-purple-600 dark:text-purple-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-purple-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-chart-line text-purple-600" />
                     Tendencia 7 Días
                   </h3>
                 </div>
@@ -2054,10 +2054,10 @@ export default function ReportingPage() {
             {/* ROW 2B: Period Comparison & Segment Distribution */}
             <div className="grid grid-cols-2 gap-6">
               {/* Period Comparison */}
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-amber-50 to-amber-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-calendar-days text-amber-600 dark:text-amber-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-amber-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-calendar-days text-amber-600" />
                     Comparación Período
                   </h3>
                 </div>
@@ -2067,10 +2067,10 @@ export default function ReportingPage() {
               </div>
 
               {/* Segment Distribution */}
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-pink-50 to-pink-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-pie-chart text-pink-600 dark:text-pink-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-pink-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-pie-chart text-pink-600" />
                     Distribución
                   </h3>
                 </div>
@@ -2082,10 +2082,10 @@ export default function ReportingPage() {
 
             {/* ROW 3: Recurring Customers & Executive Insights */}
             <div className="grid grid-cols-2 gap-6">
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-cyan-50 to-cyan-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-users-line text-cyan-600 dark:text-cyan-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-cyan-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-users-line text-cyan-600" />
                     Clientes Recurrentes
                   </h3>
                 </div>
@@ -2094,10 +2094,10 @@ export default function ReportingPage() {
                 </CardContent>
               </div>
 
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-orange-50 to-orange-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-lightbulb text-orange-600 dark:text-orange-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-orange-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-lightbulb text-orange-600" />
                     Insights Clave
                   </h3>
                 </div>
@@ -2108,12 +2108,12 @@ export default function ReportingPage() {
                       { icon: "fa-bolt", label: "Oportunidad Upsell", value: "↑ 18%", desc: "Potencial en Atunes", color: "blue" },
                       { icon: "fa-target", label: "Concentración", value: "35%", desc: "Ballenas generan 2.5% volumen", color: "amber" },
                     ].map((item, idx) => (
-                      <div key={idx} className={`p-3 rounded-lg bg-${item.color}-50 dark:bg-slate-700 border border-${item.color}-200 dark:border-slate-600`}>
+                      <div key={idx} className={`p-3 rounded-lg bg-${item.color}-50 border border-${item.color}-200`}>
                         <div className="flex items-center gap-2 mb-1">
-                          <i className={`fa-solid ${item.icon} text-${item.color}-600 dark:text-${item.color}-400 text-sm`} />
-                          <span className={`text-sm font-semibold text-${item.color}-900 dark:text-${item.color}-300`}>{item.label}</span>
+                          <i className={`fa-solid ${item.icon} text-${item.color}-600 text-sm`} />
+                          <span className={`text-sm font-semibold text-${item.color}-900`}>{item.label}</span>
                         </div>
-                        <p className={`text-xs text-${item.color}-600 dark:text-${item.color}-400`}>{item.desc}</p>
+                        <p className={`text-xs text-${item.color}-600`}>{item.desc}</p>
                       </div>
                     ))}
                   </div>
@@ -2128,34 +2128,34 @@ export default function ReportingPage() {
               defaultOpen={false}
             >
               <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-                <div className="rounded-lg bg-red-50 dark:bg-slate-700 border border-red-200 dark:border-slate-600 p-4">
+                <div className="rounded-lg bg-red-50 border border-red-200 p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-triangle-exclamation text-red-600 dark:text-red-400 text-lg" />
-                    <h4 className="font-bold text-sm text-red-900 dark:text-red-300">Riesgo de Churn</h4>
+                    <i className="fa-solid fa-triangle-exclamation text-red-600 text-lg" />
+                    <h4 className="font-bold text-sm text-red-900">Riesgo de Churn</h4>
                   </div>
                   <ChurnRiskCard />
                 </div>
 
-                <div className="rounded-lg bg-blue-50 dark:bg-slate-700 border border-blue-200 dark:border-slate-600 p-4">
+                <div className="rounded-lg bg-blue-50 border border-blue-200 p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-rocket text-blue-600 dark:text-blue-400 text-lg" />
-                    <h4 className="font-bold text-sm text-blue-900 dark:text-blue-300">Expansión</h4>
+                    <i className="fa-solid fa-rocket text-blue-600 text-lg" />
+                    <h4 className="font-bold text-sm text-blue-900">Expansión</h4>
                   </div>
                   <ExpansionOpportunitiesCard />
                 </div>
 
-                <div className="rounded-lg bg-emerald-50 dark:bg-slate-700 border border-emerald-200 dark:border-slate-600 p-4">
+                <div className="rounded-lg bg-emerald-50 border border-emerald-200 p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-bolt text-emerald-600 dark:text-emerald-400 text-lg" />
-                    <h4 className="font-bold text-sm text-emerald-900 dark:text-emerald-300">Velocidad</h4>
+                    <i className="fa-solid fa-bolt text-emerald-600 text-lg" />
+                    <h4 className="font-bold text-sm text-emerald-900">Velocidad</h4>
                   </div>
                   <SalesVelocityCard />
                 </div>
 
-                <div className="rounded-lg bg-purple-50 dark:bg-slate-700 border border-purple-200 dark:border-slate-600 p-4">
+                <div className="rounded-lg bg-purple-50 border border-purple-200 p-4">
                   <div className="flex items-center gap-2 mb-3">
-                    <i className="fa-solid fa-people-group text-purple-600 dark:text-purple-400 text-lg" />
-                    <h4 className="font-bold text-sm text-purple-900 dark:text-purple-300">Capacidad</h4>
+                    <i className="fa-solid fa-people-group text-purple-600 text-lg" />
+                    <h4 className="font-bold text-sm text-purple-900">Capacidad</h4>
                   </div>
                   <TeamCapacityCard />
                 </div>
@@ -2164,20 +2164,20 @@ export default function ReportingPage() {
 
             {/* ROW 5: Director/Supervisor Specific Views */}
             {isDirector && (
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-indigo-50 to-indigo-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-chart-bar text-indigo-600 dark:text-indigo-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-indigo-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-chart-bar text-indigo-600" />
                     Pipeline Detallado
                   </h3>
                 </div>
                 <CardContent className="p-6">
                   <div className="grid grid-cols-6 gap-3">
                     {DIRECTOR_MACRO.pipeline.map((stage, idx) => (
-                      <div key={idx} className={`p-4 rounded-lg ${stage.color} border border-slate-200 dark:border-slate-600`}>
-                        <p className="text-xs font-semibold text-slate-600 dark:text-slate-400 mb-2">{stage.stage}</p>
-                        <p className="text-2xl font-bold text-slate-900 dark:text-white">{stage.count}</p>
-                        <p className="text-xs text-slate-600 dark:text-slate-400 mt-2">{stage.value}</p>
+                      <div key={idx} className={`p-4 rounded-lg ${stage.color} border border-slate-200`}>
+                        <p className="text-xs font-semibold text-slate-600 mb-2">{stage.stage}</p>
+                        <p className="text-2xl font-bold text-slate-900">{stage.count}</p>
+                        <p className="text-xs text-slate-600 mt-2">{stage.value}</p>
                       </div>
                     ))}
                   </div>
@@ -2186,10 +2186,10 @@ export default function ReportingPage() {
             )}
 
             {isSupervisor && (
-              <div className="rounded-xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 shadow-sm overflow-hidden">
-                <div className="px-6 py-4 border-b border-slate-200 dark:border-slate-700 bg-gradient-to-r from-green-50 to-green-50/50 dark:from-slate-700 dark:to-slate-700/50">
-                  <h3 className="font-bold text-slate-900 dark:text-white flex items-center gap-2">
-                    <i className="fa-solid fa-users text-green-600 dark:text-green-400" />
+              <div className="rounded-lg bg-white border border-slate-200 shadow-xs overflow-hidden">
+                <div className="px-6 py-4 border-b border-slate-200 bg-gradient-to-r from-green-50 to-transparent">
+                  <h3 className="font-bold text-slate-900 text-base flex items-center gap-2">
+                    <i className="fa-solid fa-users text-green-600" />
                     Desempeño del Equipo
                   </h3>
                 </div>
@@ -2200,8 +2200,8 @@ export default function ReportingPage() {
                       className={cn(
                         "p-3 rounded-lg border-2 transition-all text-center text-xs",
                         selectedRep === null
-                          ? "border-blue-600 bg-blue-50 dark:bg-slate-700"
-                          : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300"
+                          ? "border-blue-600 bg-blue-50"
+                          : "border-slate-200 bg-white hover:border-blue-300"
                       )}
                     >
                       <div className="text-lg mb-1">👥</div>
@@ -2215,19 +2215,19 @@ export default function ReportingPage() {
                         className={cn(
                           "p-3 rounded-lg border-2 transition-all text-left text-xs",
                           selectedRep === rep.rep
-                            ? "border-blue-600 bg-blue-50 dark:bg-slate-700"
-                            : "border-slate-200 dark:border-slate-600 bg-white dark:bg-slate-800 hover:border-blue-300"
+                            ? "border-blue-600 bg-blue-50"
+                            : "border-slate-200 bg-white hover:border-blue-300"
                         )}
                       >
-                        <p className="font-bold text-slate-900 dark:text-white mb-2">{rep.rep.substring(0, 2)}</p>
+                        <p className="font-bold text-slate-900 mb-2">{rep.rep.substring(0, 2)}</p>
                         <div className="space-y-1">
                           <div className="flex justify-between gap-1">
                             <span className="text-muted-foreground">Calls</span>
-                            <span className="font-semibold text-slate-900 dark:text-white">{rep.calls}</span>
+                            <span className="font-semibold text-slate-900">{rep.calls}</span>
                           </div>
                           <div className="flex justify-between gap-1">
                             <span className="text-muted-foreground">Closes</span>
-                            <span className="font-semibold text-emerald-600 dark:text-emerald-400">{rep.closes}</span>
+                            <span className="font-semibold text-emerald-600">{rep.closes}</span>
                           </div>
                         </div>
                       </button>
@@ -2238,7 +2238,7 @@ export default function ReportingPage() {
             )}
 
             {/* ROW 6: Footer Actions */}
-            <div className="flex gap-2 justify-end pt-4 border-t border-slate-200 dark:border-slate-700">
+            <div className="flex gap-2 justify-end pt-4 border-t border-slate-200">
               <Button variant="outline" size="sm" className="gap-1.5">
                 <i className="fa-solid fa-download text-sm" />
                 <span className="hidden sm:inline text-xs">PDF</span>
